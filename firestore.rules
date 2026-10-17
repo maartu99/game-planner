@@ -1,45 +1,59 @@
 rules_version = '2';
 
 // Regole di sicurezza per "Si gioca?"
-// Solo le email elencate qui sotto possono leggere e scrivere i dati.
-// Scrivile tutte in minuscolo. Per aggiungere un amico: aggiungi la sua email e premi "Pubblica".
+// Si accede con Google o con email verificata. Ognuno vede solo i gruppi
+// di cui fa parte; si entra in un gruppo solo con il link di invito.
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isMember() {
-      return request.auth != null
-        && request.auth.token.email_verified == true
-        && request.auth.token.email.lower() in [
-          'mmattia@gmail.com',
-          'amico1@gmail.com',
-          'amico2@gmail.com',
-          'amico3@gmail.com',
-          'amico4@gmail.com'
-        ];
+    function signedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
     }
 
-    // Profilo: lo leggono tutti i membri, lo modifica solo il proprietario
+    function isMember(gid) {
+      return request.auth.uid in get(/databases/$(database)/documents/groups/$(gid)).data.members;
+    }
+
+    // Profilo personale (nome e disponibilità): solo il proprietario
     match /users/{uid} {
-      allow read: if isMember();
-      allow write: if isMember() && request.auth.uid == uid;
+      allow read, write: if signedIn() && request.auth.uid == uid;
     }
 
-    // Disponibilità: le leggono tutti i membri, le modifica solo il proprietario
-    match /availability/{uid} {
-      allow read: if isMember();
-      allow write: if isMember() && request.auth.uid == uid;
-    }
+    match /groups/{gid} {
+      // Il gruppo lo vedono solo i suoi membri
+      allow read: if signedIn() && request.auth.uid in resource.data.members;
 
-    // Giochi e sessioni: condivisi tra i membri
-    match /games/{id} {
-      allow read, create, update: if isMember();
-      allow delete: if isMember() && resource.data.createdBy == request.auth.uid;
-    }
+      // Chi crea il gruppo è il primo e unico membro
+      allow create: if signedIn()
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.members == [request.auth.uid];
 
-    match /sessions/{id} {
-      allow read, create, update: if isMember();
-      allow delete: if isMember() && resource.data.createdBy == request.auth.uid;
+      // I membri possono modificarlo. Chi non è membro può solo aggiungere
+      // se stesso, e solo con il codice di invito corretto.
+      allow update: if signedIn() && (
+        request.auth.uid in resource.data.members
+        || (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'names', 'prefs', 'joinCode'])
+          && request.resource.data.members == resource.data.members.concat([request.auth.uid])
+          && request.resource.data.joinCode == resource.data.inviteCode
+        )
+      );
+
+      // Solo chi l'ha creato può eliminarlo
+      allow delete: if signedIn() && resource.data.createdBy == request.auth.uid;
+
+      // Disponibilità dei membri: le leggono i membri, ognuno scrive solo le sue
+      match /availability/{uid} {
+        allow read: if signedIn() && isMember(gid);
+        allow write: if signedIn() && request.auth.uid == uid && isMember(gid);
+      }
+
+      // Serate proposte: condivise tra i membri, le annulla solo chi le ha proposte
+      match /sessions/{sid} {
+        allow read, create, update: if signedIn() && isMember(gid);
+        allow delete: if signedIn() && isMember(gid) && resource.data.createdBy == request.auth.uid;
+      }
     }
   }
 }
