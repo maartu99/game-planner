@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1b6d4f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Game Planner">
@@ -52,7 +52,7 @@
   --sh1:none; --sh2:none; --sh3:0 20px 40px rgba(0,0,0,.55);
   color-scheme:dark;
 }
-*{box-sizing:border-box}
+*{box-sizing:border-box;touch-action:manipulation}
 html,body{margin:0;background:var(--bg);color:var(--text);font:400 16px/1.45 "Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
@@ -111,6 +111,7 @@ h1,h2,h3{margin:0}
 .toggle2 button{width:36px;height:30px;border:none;border-radius:9999px;display:flex;align-items:center;justify-content:center;background:transparent;color:var(--muted)}
 .toggle2 button .ms{font-size:18px}
 .toggle2 button.on{background:var(--card);color:var(--primary-d)}
+.toggle2.txt button{width:46px;font-family:inherit;font-weight:700;font-size:12px;letter-spacing:.3px}
 
 /* testi */
 .h1{font-size:24px;line-height:32px;font-weight:700;letter-spacing:-.02em}
@@ -328,15 +329,21 @@ const pad = n => String(n).padStart(2, "0");
 const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const parseYmd = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
 const addDays = (s, n) => { const d = parseYmd(s); d.setDate(d.getDate() + n); return ymd(d); };
-const DOWS = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
-const MONTHS = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"];
+// Lingua: scelta salvata su questo dispositivo, altrimenti quella del browser
+let LANG = (() => { let l = null; try { l = localStorage.getItem("gp-lang"); } catch (e) {} return l || ((navigator.language || "it").toLowerCase().startsWith("it") ? "it" : "en"); })();
+const L = (it, en) => LANG === "en" ? en : it;
+const DOWS_IT = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
+const DOWS_EN = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const MONTHS_IT = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"];
+const MONTHS_EN = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const DOWS = () => L(DOWS_IT, DOWS_EN), MONTHS = () => L(MONTHS_IT, MONTHS_EN);
 const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
-const longDate = (k, yr) => { const d = parseYmd(k); return `${DOWS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}${yr ? " " + d.getFullYear() : ""}`; };
+const longDate = (k, yr) => { const d = parseYmd(k); return `${DOWS()[d.getDay()]} ${d.getDate()} ${MONTHS()[d.getMonth()]}${yr ? " " + d.getFullYear() : ""}`; };
 const todayStr = () => ymd(new Date());
 const LAST_DAY = `${LAST_YEAR}-12-31`;
 const curMonth = () => todayStr().slice(0, 7);
-const monthLabel = ym => { const [y, m] = ym.split("-").map(Number); return `${cap(MONTHS[m - 1])} ${y}`; };
-const fmt1 = n => n.toFixed(1).replace(".", ",");
+const monthLabel = ym => { const [y, m] = ym.split("-").map(Number); return `${cap(MONTHS()[m - 1])} ${y}`; };
+const fmt1 = n => L(n.toFixed(1).replace(".", ","), n.toFixed(1));
 const byNameStr = (a, b) => a.localeCompare(b, "it");
 const VOGLIA = { 3: "Tanta voglia", 2: "Normale", 1: "Poca voglia" };
 const AV_COLORS = ["#1b6d4f", "#4d3c88", "#8f4e00", "#ba1a1a", "#3f4943"];
@@ -632,13 +639,13 @@ async function makeFirebaseStore(cfg) {
 // ---------------------------------------------------------------------
 const groupList = () => Object.entries(S.groups).map(([id, g]) => ({ id, ...g })).sort((a, b) => byNameStr(a.name || "", b.name || ""));
 const getGroup = id => S.groups[id] ? { id, ...S.groups[id] } : null;
-const nameIn = (g, u) => u === S.me.uid ? (S.me.name || "Tu") : (g.names?.[u] || "Qualcuno");
+const nameIn = (g, u) => u === S.me.uid ? (S.me.name || L("Tu", "You")) : (g.names?.[u] || L("Qualcuno", "Someone"));
 const prefOf = (g, u) => g.prefs?.[u] || 2;
 const dayOf = (g, u, d) => u === S.me.uid ? (S.me.days || {})[d] : (g.avail?.[u] || {})[d];
 const adminsOf = g => (g.admins && g.admins.length ? g.admins : [g.createdBy]).filter(u => g.members.includes(u));
 const isAdmin = (g, u = S.me.uid) => !!g && adminsOf(g).includes(u);
 const need = g => g.rule === "min" ? Math.min(g.min || 2, g.members.length) : g.members.length;
-const ruleText = g => g.rule === "min" ? `Si gioca con almeno ${g.min} membri` : "Si gioca solo se ci sono tutti";
+const ruleText = g => g.rule === "min" ? L(`Si gioca con almeno ${g.min} membri`, `Plays with at least ${g.min} members`) : L("Si gioca solo se ci sono tutti", "Plays only if everyone is in");
 const byName = (g, list) => [...list].sort((a, b) => byNameStr(nameIn(g, a), nameIn(g, b)));
 const myGames = () => [...new Set([...(S.me.games || []), ...groupList().map(g => g.game)])].filter(Boolean).sort(byNameStr);
 
@@ -691,7 +698,8 @@ function notifications() {
   const props = allProposals().filter(x => x.p.by !== me).map(x => ({ kind: "prop", key: x.g.id + x.pid, at: x.p.createdAt || 0, ...x }));
   return [...evs, ...props].map(n => ({ ...n, unread: n.at > seen })).sort((a, b) => b.at - a.at);
 }
-const sessionText = (g, s) => `Confermato! ${longDate(s.date, true)} alle ${s.time || DEFAULT_TIME} si gioca a ${g.game} (gruppo ${g.name})${s.location ? ", " + s.location : ""}.${s.notes ? " " + s.notes : ""} Conferma la tua presenza su Game Planner: ${location.origin + location.pathname}`;
+const sessionText = (g, s) => L(`Confermato! ${longDate(s.date, true)} alle ${s.time || DEFAULT_TIME} si gioca a ${g.game} (gruppo ${g.name})${s.location ? ", " + s.location : ""}.${s.notes ? " " + s.notes : ""} Conferma la tua presenza su Game Planner: ${location.origin + location.pathname}`,
+  `Confirmed! ${longDate(s.date, true)} at ${s.time || DEFAULT_TIME} we play ${g.game} (group ${g.name})${s.location ? ", " + s.location : ""}.${s.notes ? " " + s.notes : ""} Confirm you're coming on Game Planner: ${location.origin + location.pathname}`);
 let notifiedKeys = null;
 function browserNotify() {
   if (!S.me) return;
@@ -701,11 +709,12 @@ function browserNotify() {
     if (notifiedKeys.has(n.key)) continue;
     notifiedKeys.add(n.key);
     const d = n.kind === "ev" ? n.s : n.p;
-    try { if ("Notification" in window && Notification.permission === "granted") new Notification(n.kind === "ev" ? "Game Planner - si gioca!" : "Game Planner - nuova proposta", { body: `${longDate(d.date)}${d.time ? " alle " + d.time : ""}: ${n.g.game} con ${n.g.name}` }); } catch (e) {}
+    try { if ("Notification" in window && Notification.permission === "granted") new Notification(n.kind === "ev" ? L("Game Planner - si gioca!", "Game Planner - game on!") : L("Game Planner - nuova proposta", "Game Planner - new proposal"), { body: `${longDate(d.date)}${d.time ? L(" alle ", " at ") + d.time : ""}: ${n.g.game} ${L("con", "with")} ${n.g.name}` }); } catch (e) {}
   }
 }
 function inviteLink(g) { return `${location.origin}${location.pathname}#join=${g.id}.${g.inviteCode}&n=${encodeURIComponent(g.name)}`; }
-const inviteText = g => `Ciao! Ti invito nel gruppo "${g.name}" (${g.game}) su Game Planner, così vediamo insieme quando possiamo giocare. Entra da qui: ${inviteLink(g)}`;
+const inviteText = g => L(`Ciao! Ti invito nel gruppo "${g.name}" (${g.game}) su Game Planner, così vediamo insieme quando possiamo giocare. Entra da qui: ${inviteLink(g)}`,
+  `Hi! I'm inviting you to the group "${g.name}" (${g.game}) on Game Planner, so we can see together when we can play. Join here: ${inviteLink(g)}`);
 function sessionTimes(s) {
   const [hh, mm] = (s.time || DEFAULT_TIME).split(":").map(Number);
   const start = parseYmd(s.date); start.setHours(hh, mm, 0, 0);
@@ -715,8 +724,8 @@ function sessionTimes(s) {
 }
 function sessionDetails(g, s) {
   const yes = g.members.filter(u => rsvpOf(g, s, u) === "yes");
-  const lines = [`Si gioca a ${g.game} con il gruppo ${g.name}!`];
-  if (yes.length) lines.push("Ci sono: " + byName(g, yes).map(u => nameIn(g, u)).join(", "));
+  const lines = [L(`Si gioca a ${g.game} con il gruppo ${g.name}!`, `We play ${g.game} with the group ${g.name}!`)];
+  if (yes.length) lines.push(L("Ci sono: ", "Coming: ") + byName(g, yes).map(u => nameIn(g, u)).join(", "));
   if (s.notes) lines.push(s.notes);
   return lines.join("\n");
 }
@@ -727,8 +736,8 @@ function downloadIcs(g, sid, s) {
   const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Game Planner//IT", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
     "BEGIN:VEVENT", `UID:${g.id}-${sid}@gameplanner`, `DTSTAMP:${stamp}`, `DTSTART:${t.start}`, `DTEND:${t.end}`,
     `SUMMARY:${e(g.game + " - " + g.name)}`, `LOCATION:${e(s.location)}`, `DESCRIPTION:${e(sessionDetails(g, s))}`,
-    "BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${e("Domani si gioca a " + g.game)}`, "TRIGGER:-P1D", "END:VALARM",
-    "BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${e("Tra 2 ore si gioca a " + g.game)}`, "TRIGGER:-PT2H", "END:VALARM",
+    "BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${e(L("Domani si gioca a ", "Tomorrow we play ") + g.game)}`, "TRIGGER:-P1D", "END:VALARM",
+    "BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${e(L("Tra 2 ore si gioca a ", "In 2 hours we play ") + g.game)}`, "TRIGGER:-PT2H", "END:VALARM",
     "END:VEVENT", "END:VCALENDAR"].join("\r\n");
   const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar;charset=utf-8" }));
   const a = document.createElement("a"); a.href = url; a.download = `${g.game.replace(/[^\w]+/g, "-").toLowerCase()}-${s.date}.ics`;
@@ -767,6 +776,18 @@ function render() {
   for (const [id, v] of Object.entries(keep)) { const el = document.getElementById(id); if (el && el.type !== "file") el.value = v; }
   if (focusId) { const el = document.getElementById(focusId); if (el) { el.focus({ preventScroll: true }); try { if (sel != null) el.setSelectionRange(sel, sel); } catch (e) {} } }
   const sh = document.querySelector(".sheet"); if (sh && sheetScroll) sh.scrollTop = sheetScroll;
+  translateDom($("#app"));
+}
+
+// Traduzione: i testi fissi sono scritti in italiano e qui si traducono
+// in inglese; le frasi con valori usano L(italiano, inglese).
+const tr = s => { if (LANG === "it" || s == null) return s; const k = String(s).trim(); const en = EN[k]; return en == null ? s : String(s).replace(k, () => en); };
+function translateDom(root) {
+  document.documentElement.lang = LANG;
+  if (LANG === "it" || !root) return;
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n => n.parentNode.closest(".ms") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+  for (let n = w.nextNode(); n; n = w.nextNode()) { const t = n.nodeValue; if (t.trim()) { const x = tr(t); if (x !== t) n.nodeValue = x; } }
+  root.querySelectorAll("[placeholder],[aria-label],[title]").forEach(el => { for (const a of ["placeholder", "aria-label", "title"]) { const v = el.getAttribute(a); if (v) { const x = tr(v); if (x !== v) el.setAttribute(a, x); } } });
 }
 
 const hero = () => `<div class="hero">
@@ -787,7 +808,7 @@ function shareableUrl() {
 }
 const inAppNote = () => IN_APP ? `<div class="peach-box stack g8">
     <strong style="font-size:14px">Sei nel browser interno di un'altra app</strong>
-    <span>Qui l'accesso con Google non funziona. Apri questa pagina in ${IS_ANDROID ? "Chrome" : "Safari o Chrome"}, oppure entra con email e password.</span>
+    <span>${L(`Qui l'accesso con Google non funziona. Apri questa pagina in ${IS_ANDROID ? "Chrome" : "Safari o Chrome"}, oppure entra con email e password.`, `Google sign-in doesn't work here. Open this page in ${IS_ANDROID ? "Chrome" : "Safari or Chrome"}, or sign in with email and password.`)}</span>
     <div class="row" style="gap:6px;flex-wrap:wrap">
       <button class="btn sm" data-action="copyAppLink">${ic("content_copy", "s16")}Copia link</button>
       ${IS_ANDROID ? `<a class="btn sm" href="intent://${location.host}${location.pathname}${S.pendingJoin ? "?join=" + S.pendingJoin.gid + "." + S.pendingJoin.code + "&n=" + encodeURIComponent(S.pendingJoin.name || "") : ""}#Intent;scheme=https;package=com.android.chrome;end">Apri in Chrome</a>` : `<span class="t12">Poi incollalo nella barra degli indirizzi.</span>`}
@@ -883,6 +904,8 @@ function renderMenu() {
       ${item("openAvatar", "face", "Avatar", "")}
       <div class="mi" style="cursor:default">${ic("contrast")}<span class="mi-txt"><b>Tema</b></span>
         <div class="toggle2"><button class="${theme === "light" ? "on" : ""}" data-action="theme" data-v="light" aria-label="Chiaro">${ic("light_mode")}</button><button class="${theme === "dark" ? "on" : ""}" data-action="theme" data-v="dark" aria-label="Scuro">${ic("dark_mode")}</button></div></div>
+      <div class="mi" style="cursor:default">${ic("translate")}<span class="mi-txt"><b>${L("Lingua", "Language")}</b></span>
+        <div class="toggle2 txt"><button class="${LANG === "it" ? "on" : ""}" data-action="lang" data-v="it">ITA</button><button class="${LANG === "en" ? "on" : ""}" data-action="lang" data-v="en">ENG</button></div></div>
     </div>
     <div class="menu-body" style="border-top:1px solid var(--soft)"><button class="mi red" data-action="logout">${ic("logout")}${store.demo ? "Cambia giocatore" : "Esci"}</button></div>
   </div>`;
@@ -904,10 +927,10 @@ function renderGroups() {
     <div class="stack g12">${list.map(g => {
       const next = Object.values(g.sessions || {}).filter(s => s.date >= today).sort((a, b) => a.date.localeCompare(b.date))[0];
       return `<button class="card click stack g10" data-action="openGroup" data-g="${g.id}">
-        <div class="row between" style="width:100%"><span style="font-size:18px;line-height:24px;font-weight:700">${esc(g.name)}</span><span class="t12 muted" style="font-weight:600;white-space:nowrap">${g.members.length === 1 ? "1 membro" : `${g.members.length} membri`}</span></div>
+        <div class="row between" style="width:100%"><span style="font-size:18px;line-height:24px;font-weight:700">${esc(g.name)}</span><span class="t12 muted" style="font-weight:600;white-space:nowrap">${g.members.length === 1 ? L("1 membro", "1 member") : L(`${g.members.length} membri`, `${g.members.length} members`)}</span></div>
         <span class="t13 muted">${esc(g.game)} · ${ruleText(g)}</span>
         <div class="chips">${byName(g, g.members).map(u => `<span class="chip m">${esc(nameIn(g, u))}</span>`).join("")}</div>
-        <div class="row between wrapf" style="width:100%;border-top:1px solid var(--soft3);padding-top:10px;font-size:12px;font-weight:700"><span class="muted">La tua voglia: <span style="color:var(--brass)">${VOGLIA[prefOf(g, S.me.uid)]}</span></span>${next ? `<span style="color:var(--primary-d)">Prossima serata: ${longDate(next.date)}</span>` : ""}</div>
+        <div class="row between wrapf" style="width:100%;border-top:1px solid var(--soft3);padding-top:10px;font-size:12px;font-weight:700"><span class="muted">La tua voglia: <span style="color:var(--brass)">${VOGLIA[prefOf(g, S.me.uid)]}</span></span>${next ? `<span style="color:var(--primary-d)">${L("Prossima serata", "Next night")}: ${longDate(next.date)}</span>` : ""}</div>
       </button>`;
     }).join("")}</div>`;
 }
@@ -927,7 +950,7 @@ function renderGroup(g) {
       <div class="row between" style="align-items:flex-start"><h1 class="h1" style="line-height:30px">${esc(g.name)}</h1>${admin ? `<button class="btn sm" style="flex:none" data-action="openF2Edit">${ic("edit", "s16")}Modifica</button>` : ""}</div>
       <span style="font-size:15px;font-weight:600">${esc(g.game)}</span>
       <span class="t13 muted">${ruleText(g)}</span>
-      <div class="info">${ic("shield_person")}<span>${admin ? "Sei admin: inviti, gestisci i giocatori e confermi le serate." : `Admin: ${esc(byName(g, adminsOf(g)).map(u => nameIn(g, u)).join(", "))}. Sono loro a confermare le serate.`}</span></div>
+      <div class="info">${ic("shield_person")}<span>${admin ? "Sei admin: inviti, gestisci i giocatori e confermi le serate." : L(`Admin: ${esc(byName(g, adminsOf(g)).map(u => nameIn(g, u)).join(", "))}. Sono loro a confermare le serate.`, `Admins: ${esc(byName(g, adminsOf(g)).map(u => nameIn(g, u)).join(", "))}. They confirm the nights.`)}</span></div>
     </div>
     <div class="card stack g10">
       <h2 class="h2">La tua voglia di giocare con questo gruppo</h2>
@@ -935,13 +958,13 @@ function renderGroup(g) {
       <div class="seg c3">${[3, 2, 1].map(v => `<button class="${prefOf(g, me) === v ? "on" : ""}" data-action="setPref" data-v="${v}">${VOGLIA[v]}</button>`).join("")}</div>
     </div>
     <div class="card stack g4">
-      <h2 class="h2" style="margin-bottom:6px">Membri (${g.members.length})</h2>
+      <h2 class="h2" style="margin-bottom:6px">${L("Membri", "Members")} (${g.members.length})</h2>
       ${byName(g, g.members).map(u => {
         const n = marked(u), uA = isAdmin(g, u);
         return `<div class="mrow">
           <div class="row between">
-            <div class="stack" style="gap:2px;min-width:0"><span class="mname">${esc(nameIn(g, u))}${u === me ? " (tu)" : ""}${uA ? `<span class="tag-admin">ADMIN</span>` : ""}</span>
-              <span class="t12 muted">${n ? `${n} giorni segnati da oggi in poi` : "Non ha ancora segnato le disponibilità"}</span></div>
+            <div class="stack" style="gap:2px;min-width:0"><span class="mname">${esc(nameIn(g, u))}${u === me ? L(" (tu)", " (you)") : ""}${uA ? `<span class="tag-admin">ADMIN</span>` : ""}</span>
+              <span class="t12 muted">${n ? L(`${n} giorni segnati da oggi in poi`, n === 1 ? "1 day marked from today on" : `${n} days marked from today on`) : "Non ha ancora segnato le disponibilità"}</span></div>
             <span class="voglia">${VOGLIA[prefOf(g, u)]}</span>
           </div>
           ${admin && u !== me ? `<div class="row" style="gap:6px"><button class="btn sm" style="font-size:12px;padding:0 10px" data-action="toggleAdmin" data-u="${u}">${uA ? "Togli admin" : "Rendi admin"}</button><button class="btn redtxt sm" style="font-size:12px;padding:0 10px" data-action="removeMember" data-u="${u}">Rimuovi dal gruppo</button></div>` : ""}
@@ -963,8 +986,8 @@ function renderGroup(g) {
     <div class="stack g10">
       <h2 style="margin-top:6px;font-size:18px;font-weight:700">Serate confermate</h2>
       ${sessions.length ? sessions.map(([sid, s]) => `<div class="card ev stack g12">
-        <div class="row between" style="align-items:flex-start"><div class="stack"><span style="font-size:18px;font-weight:700">${esc(g.game)}</span><span class="t13 muted">Gruppo ${esc(g.name)}</span></div><span class="tag c-green">Confermata</span></div>
-        <span style="font-size:15px;font-weight:700" class="row" >${ic("calendar_month", "s18")}<span>${longDate(s.date, true)} alle ${esc(s.time || DEFAULT_TIME)}</span></span>
+        <div class="row between" style="align-items:flex-start"><div class="stack"><span style="font-size:18px;font-weight:700">${esc(g.game)}</span><span class="t13 muted">${L("Gruppo", "Group")} ${esc(g.name)}</span></div><span class="tag c-green">Confermata</span></div>
+        <span style="font-size:15px;font-weight:700" class="row" >${ic("calendar_month", "s18")}<span>${longDate(s.date, true)}${L(" alle ", " at ")}${esc(s.time || DEFAULT_TIME)}</span></span>
         ${s.location ? `<span class="t13 muted row" style="margin-top:-6px;gap:6px">${ic("location_on", "s18")}${esc(s.location)}</span>` : ""}
         <span class="t12 muted">${esc(presenceLine(g, s))}</span>
         <div class="stack g6"><span class="t12" style="font-weight:700">La tua risposta <span class="faint">· puoi cambiarla quando vuoi</span></span>${answersSeg(rsvpOf(g, s, me), "rsvp", `data-g="${g.id}" data-s="${sid}"`)}</div>
@@ -981,8 +1004,8 @@ function presenceLine(g, s) {
   const mem = byName(g, g.members).map(u => ({ u, v: rsvpOf(g, s, u) }));
   const X = mem.filter(x => x.v === "yes").length, F = mem.filter(x => x.v === "maybe").length, Z = mem.filter(x => x.v === "no").length;
   const wait = mem.filter(x => !x.v);
-  const pres = !wait.length && !Z && !F ? `Ci sono tutti: ${X} su ${mem.length}.` : [X ? `${X} ci sono` : "", F ? `${F} forse` : "", wait.length ? `${wait.length} da confermare (${wait.map(x => nameIn(g, x.u)).join(", ")})` : "", Z ? `${Z} non vengono` : ""].filter(Boolean).join(", ") + ".";
-  return `Confermata da ${nameIn(g, s.confirmedBy || s.createdBy)}. ${pres}`;
+  const pres = !wait.length && !Z && !F ? L(`Ci sono tutti: ${X} su ${mem.length}.`, `Everyone's in: ${X} of ${mem.length}.`) : [X ? L(`${X} ci sono`, `${X} in`) : "", F ? L(`${F} forse`, `${F} maybe`) : "", wait.length ? L(`${wait.length} da confermare`, `${wait.length} to confirm`) + ` (${wait.map(x => nameIn(g, x.u)).join(", ")})` : "", Z ? L(`${Z} non vengono`, `${Z} not coming`) : ""].filter(Boolean).join(", ") + ".";
+  return L(`Confermata da ${nameIn(g, s.confirmedBy || s.createdBy)}. ${pres}`, `Confirmed by ${nameIn(g, s.confirmedBy || s.createdBy)}. ${pres}`);
 }
 
 // ----- DISPONIBILITÀ -----
@@ -1013,10 +1036,10 @@ function renderDisp() {
       <p class="t13 muted">Scegli SI, FORSE o NO e tocca i giorni. Toccando di nuovo un giorno con lo stesso stato lo cancelli.</p>
     </div>
     <div class="cal mb12">
-      <div class="cal-h">${["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"].map(w => `<span>${w}</span>`).join("")}</div>
+      <div class="cal-h">${L(["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"], ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]).map(w => `<span>${w}</span>`).join("")}</div>
       <div class="cal-g">${cells}</div>
     </div>
-    <p class="sub mb12">Hai segnato ${marked} giorni su ${keys.length} da qui a fine mese.</p>
+    <p class="sub mb12">${L(`Hai segnato ${marked} giorni su ${keys.length} da qui a fine mese.`, `You've marked ${marked} of ${keys.length} days until the end of the month.`)}</p>
     <div class="grid2" style="margin-bottom:6px"><button class="btn" style="font-size:13px" data-action="fillEmpty">Applica ai giorni vuoti</button><button class="btn" style="font-size:13px" data-action="fillWeekend">Applica ai weekend</button></div>
     <button class="btn redtxt m44 full" data-action="clearMonth">Svuota mese</button>`;
 }
@@ -1025,8 +1048,8 @@ function renderDisp() {
 const ROW_ST = { ok: ["Ci sono tutti quelli che servono", "c-mint"], maybe: ["Possibile se i forse confermano", "c-peach"], none: ["Non si può", "c-grey"] };
 function memberChip(x) {
   if (x.v === "yes") return `<span class="chip c-green">${esc(x.name)}</span>`;
-  if (x.v === "maybe") return `<span class="chip c-peach">${esc(x.name)} (forse)</span>`;
-  if (x.v === "busy") return `<span class="chip c-lav">${esc(x.name)} (gioca a ${esc(x.busyG)})</span>`;
+  if (x.v === "maybe") return `<span class="chip c-peach">${esc(x.name)} (${L("forse", "maybe")})</span>`;
+  if (x.v === "busy") return `<span class="chip c-lav">${esc(x.name)} (${L("gioca a", "plays")} ${esc(x.busyG)})</span>`;
   if (x.v === "no") return `<span class="chip c-err">${esc(x.name)}</span>`;
   return `<span class="chip c-grey">${esc(x.name)} (?)</span>`;
 }
@@ -1034,26 +1057,26 @@ function renderRow(e, k, isRec) {
   const pos = e.status !== "none", admin = isAdmin(e.g), st = ROW_ST[e.status];
   return `<div class="row-g ${isRec ? "rec" : ""} ${pos ? "" : "dim"}">
     <div class="row wrapf" style="gap:6px"><span style="font-size:15px;font-weight:700">${esc(e.g.name)}</span>${isRec ? `<span class="tag-rec">CONSIGLIATO</span>` : ""}</div>
-    <span class="t12 muted" style="margin-top:-4px">${esc(e.g.game)} · servono ${e.need} su ${e.M}</span>
+    <span class="t12 muted" style="margin-top:-4px">${esc(e.g.game)} · ${L(`servono ${e.need} su ${e.M}`, `needs ${e.need} of ${e.M}`)}</span>
     <span class="status ${st[1]}">${st[0]}</span>
     <div class="chips">${e.st.map(memberChip).join("")}</div>
-    ${pos ? `<div class="row between wrapf"><span class="t12 muted" style="font-weight:700">Voglia media: ${fmt1(e.media)} su 3</span>${admin ? "" : `<span class="t12 muted">Decide un admin</span>`}</div>
+    ${pos ? `<div class="row between wrapf"><span class="t12 muted" style="font-weight:700">${L("Voglia media", "Average keenness")}: ${fmt1(e.media)} ${L("su", "of")} 3</span>${admin ? "" : `<span class="t12 muted">Decide un admin</span>`}</div>
       ${admin ? `<button class="btn p m44" style="font-size:14px" data-action="openF5" data-g="${e.g.id}" data-date="${k}">Conferma questa serata</button>` : ""}` : ""}
   </div>`;
 }
 function renderProposal(x) {
   const g = x.g, p = x.p, me = S.me.uid, myV = dayOf(g, me, p.date);
   const mem = byName(g, g.members).map(u => ({ u, name: nameIn(g, u), v: dayOf(g, u, p.date) }));
-  const chip = m => m.v === "yes" ? `<span class="chip c-green">${esc(m.name)}</span>` : m.v === "maybe" ? `<span class="chip c-peach">${esc(m.name)} (forse)</span>` : m.v === "no" ? `<span class="chip c-err">${esc(m.name)} · no</span>` : `<span class="chip c-grey">${esc(m.name)} · in attesa</span>`;
+  const chip = m => m.v === "yes" ? `<span class="chip c-green">${esc(m.name)}</span>` : m.v === "maybe" ? `<span class="chip c-peach">${esc(m.name)} (${L("forse", "maybe")})</span>` : m.v === "no" ? `<span class="chip c-err">${esc(m.name)} · no</span>` : `<span class="chip c-grey">${esc(m.name)} · ${L("in attesa", "waiting")}</span>`;
   const yesN = mem.filter(m => m.v === "yes").length, ok = yesN === mem.length, admin = isAdmin(g);
   return `<div class="card prop stack g10">
     <div class="row wrapf" style="gap:6px"><span class="tag c-lav">Proposta</span><span class="t13 muted" style="font-weight:700">${esc(g.name)}</span></div>
-    <div class="stack" style="gap:2px"><span style="font-size:17px;font-weight:700">${longDate(p.date)}${p.time ? " alle " + esc(p.time) : ""}</span><span class="t13 muted">${esc(g.game)}${p.place ? " · " + esc(p.place) : ""}</span></div>
+    <div class="stack" style="gap:2px"><span style="font-size:17px;font-weight:700">${longDate(p.date)}${p.time ? L(" alle ", " at ") + esc(p.time) : ""}</span><span class="t13 muted">${esc(g.game)}${p.place ? " · " + esc(p.place) : ""}</span></div>
     ${p.desc ? `<p class="t13" style="background:var(--bg);border-radius:8px;padding:8px 10px">${esc(p.desc)}</p>` : ""}
-    <span class="t12 muted">Proposta da ${esc(nameIn(g, p.by))}.</span>
+    <span class="t12 muted">${L("Proposta da", "Proposed by")} ${esc(nameIn(g, p.by))}.</span>
     <div class="chips">${mem.map(chip).join("")}</div>
     <div class="stack g6"><span class="t12" style="font-weight:700">La tua risposta</span>${answersSeg(myV, "setMyDay", `data-date="${p.date}"`, ["Sì", "Forse", "No"])}</div>
-    ${admin ? `<div class="stack g4"><button class="btn p m44" style="font-size:14px" data-action="openF5" data-g="${g.id}" data-date="${p.date}" data-pid="${x.pid}" ${ok ? "" : "disabled"}>Conferma la serata</button>${ok ? "" : `<span class="t12 muted" style="text-align:center">Si attiva quando tutti dicono Sì (${yesN} su ${mem.length}).</span>`}</div>` : ""}
+    ${admin ? `<div class="stack g4"><button class="btn p m44" style="font-size:14px" data-action="openF5" data-g="${g.id}" data-date="${p.date}" data-pid="${x.pid}" ${ok ? "" : "disabled"}>Conferma la serata</button>${ok ? "" : `<span class="t12 muted" style="text-align:center">${L(`Si attiva quando tutti dicono Sì (${yesN} su ${mem.length}).`, `Available when everyone says Yes (${yesN} of ${mem.length}).`)}</span>`}</div>` : ""}
     ${p.by === me || admin ? `<button class="btn redtxt sm" style="min-height:40px" data-action="withdrawProp" data-g="${g.id}" data-pid="${x.pid}">Ritira la proposta</button>` : ""}
   </div>`;
 }
@@ -1078,14 +1101,14 @@ function renderSerate() {
       return { date: n.k, prop: 0, html: `<div class="card night stack g10">
         <div class="row"><h2 class="grow" style="font-size:17px;line-height:22px;font-weight:700">${longDate(n.k)}</h2><span class="tag ${b[1]}">${b[0]}</span>
           <button class="btn grey sm" ${first ? `data-action="openEv" data-g="${first.g.id}" data-s="${first.sid}"` : `data-action="openF4" data-date="${n.k}"`}>Apri</button></div>
-        ${n.confirmed.map(x => `<button class="conf-item" data-action="openEv" data-g="${x.g.id}" data-s="${x.sid}">${ic("event_available")}<span class="grow">Si gioca ${esc(x.g.game)} con ${esc(x.g.name)} alle ${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " · " + esc(x.s.location) : ""}</span>${ic("chevron_right")}</button>`).join("")}
-        ${n.rec && n.shared.length ? `<div class="peach-box">${n.possible.length} gruppi possibili con persone in comune (${esc(n.shared.join(", "))}): si gioca a uno solo. Consigliato ${esc(n.rec.g.name)}, il gruppo con più voglia di giocare.</div>` : ""}
+        ${n.confirmed.map(x => `<button class="conf-item" data-action="openEv" data-g="${x.g.id}" data-s="${x.sid}">${ic("event_available")}<span class="grow">${L(`Si gioca ${esc(x.g.game)} con ${esc(x.g.name)} alle`, `${esc(x.g.game)} with ${esc(x.g.name)} at`)} ${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " · " + esc(x.s.location) : ""}</span>${ic("chevron_right")}</button>`).join("")}
+        ${n.rec && n.shared.length ? `<div class="peach-box">${L(`${n.possible.length} gruppi possibili con persone in comune (${esc(n.shared.join(", "))}): si gioca a uno solo. Consigliato ${esc(n.rec.g.name)}, il gruppo con più voglia di giocare.`, `${n.possible.length} possible groups with people in common (${esc(n.shared.join(", "))}): only one can play. Recommended: ${esc(n.rec.g.name)}, the keenest group.`)}</div>` : ""}
         ${rows.map(e => renderRow(e, n.k, e === n.rec)).join("")}
       </div>` };
     }),
   ].sort((a, b) => a.date.localeCompare(b.date) || b.prop - a.prop);
   const ml = monthLabel(S.sMonth);
-  const empty = sF === "prop" ? `Nessuna proposta in ${ml}. Puoi proporre una serata da Disponibilità.` : sF === "conf" ? `Nessuna serata confermata in ${ml}.` : `Nessuna serata possibile in ${ml}. Servono le disponibilità di tutti: controlla in ogni gruppo chi non ha ancora segnato i suoi giorni, oppure prova un altro mese.`;
+  const empty = sF === "prop" ? L(`Nessuna proposta in ${ml}. Puoi proporre una serata da Disponibilità.`, `No proposals in ${ml}. You can propose a night from Availability.`) : sF === "conf" ? L(`Nessuna serata confermata in ${ml}.`, `No confirmed nights in ${ml}.`) : L(`Nessuna serata possibile in ${ml}. Servono le disponibilità di tutti: controlla in ogni gruppo chi non ha ancora segnato i suoi giorni, oppure prova un altro mese.`, `No possible nights in ${ml}. Everyone's availability is needed: check in each group who hasn't marked their days yet, or try another month.`);
   const tabB = (v, label, badge) => `<button class="${sF === v ? "on" : ""}" data-action="sFilter" data-v="${v}">${label}${badge ? `<span class="cnt">${badge}</span>` : ""}</button>`;
   return head + `<div class="stack g8 mb16">
       <div class="grid2">${monthSel("sMonthSel", S.sMonth, "")}<select id="sGroupSel" class="sel" data-change="sGroupSel"><option value="all">Tutti i miei gruppi</option>${groups.map(g => `<option value="${g.id}" ${S.sGroup === g.id ? "selected" : ""}>${esc(g.name)}</option>`).join("")}</select></div>
@@ -1099,11 +1122,11 @@ function renderSerate() {
 function eventCard(g, sid, s) {
   const me = S.me.uid, mine = rsvpOf(g, s, me), admin = isAdmin(g);
   const chips = byName(g, g.members).map(u => { const v = rsvpOf(g, s, u), n = esc(nameIn(g, u));
-    return v === "yes" ? `<span class="chip p c-mint">${n}</span>` : v === "maybe" ? `<span class="chip p c-peach">${n} · forse</span>` : v === "no" ? `<span class="chip p c-err">${n} · non viene</span>` : `<span class="chip p c-grey">${n} · in attesa</span>`; }).join("");
+    return v === "yes" ? `<span class="chip p c-mint">${n}</span>` : v === "maybe" ? `<span class="chip p c-peach">${n} · ${L("forse", "maybe")}</span>` : v === "no" ? `<span class="chip p c-err">${n} · ${L("non viene", "not coming")}</span>` : `<span class="chip p c-grey">${n} · ${L("in attesa", "waiting")}</span>`; }).join("");
   return `<div class="card ev raised stack g12">
-    <div class="row between" style="align-items:flex-start"><div class="stack"><span style="font-size:18px;font-weight:700">${esc(g.game)}</span><span class="t13 muted">Gruppo ${esc(g.name)}</span></div><span class="tag c-green">Confermata</span></div>
+    <div class="row between" style="align-items:flex-start"><div class="stack"><span style="font-size:18px;font-weight:700">${esc(g.game)}</span><span class="t13 muted">${L("Gruppo", "Group")} ${esc(g.name)}</span></div><span class="tag c-green">Confermata</span></div>
     <span class="t12 muted">${esc(presenceLine(g, s))}</span>
-    <div class="box"><span class="when">${ic("calendar_month")}${longDate(s.date, true)} alle ${esc(s.time || DEFAULT_TIME)}</span>
+    <div class="box"><span class="when">${ic("calendar_month")}${longDate(s.date, true)}${L(" alle ", " at ")}${esc(s.time || DEFAULT_TIME)}</span>
       ${s.location ? `<span class="meta">${ic("location_on")}${esc(s.location)}</span>` : ""}
       ${s.notes ? `<span class="meta">${ic("sticky_note_2")}${esc(s.notes)}</span>` : ""}</div>
     <div class="chips">${chips}</div>
@@ -1136,10 +1159,10 @@ function renderGiocate() {
   return `<div class="row between mb16"><h1 class="h1">Le mie giocate</h1>${anyAdmin ? `<button class="btn p sm" style="min-height:40px" data-action="openF5">${ic("add", "s18")}Conferma una serata</button>` : ""}</div>
     <div class="card stack g12 mb16">
       <h2 class="h2">Riepilogo</h2>
-      <p style="font-size:14px;line-height:20px">${nx ? `Prossima giocata: ${longDate(nx.s.date)} alle ${esc(nx.s.time || DEFAULT_TIME)}, ${esc(nx.g.game)} con ${esc(nx.g.name)}.` : "Nessuna giocata in programma."}</p>
+      <p style="font-size:14px;line-height:20px">${nx ? L(`Prossima giocata: ${longDate(nx.s.date)} alle ${esc(nx.s.time || DEFAULT_TIME)}, ${esc(nx.g.game)} con ${esc(nx.g.name)}.`, `Next game: ${longDate(nx.s.date)} at ${esc(nx.s.time || DEFAULT_TIME)}, ${esc(nx.g.game)} with ${esc(nx.g.name)}.`) : "Nessuna giocata in programma."}</p>
       <div class="seg c3" style="background:transparent;padding:0;gap:8px">${[[inProg.length, "in programma"], [hist.length, "giocate in totale"], [ranked.length, "giochi provati"]].map(([n, l]) => `<div class="counter"><b>${n}</b><span>${l}</span></div>`).join("")}</div>
       ${ranked.length ? `<div class="chips" style="gap:6px">${ranked.map(([gm, c]) => `<button class="gchip ${S.fGame === gm ? "on" : ""}" data-action="fGameChip" data-game="${esc(gm)}">${esc(gm)}: ${c}</button>`).join("")}</div>` : ""}
-      ${top ? `<p class="t13 muted">Il gioco a cui hai giocato di più è ${esc(top)}; la prima giocata registrata è del ${pd.getDate()} ${MONTHS[pd.getMonth()]} ${pd.getFullYear()}.</p>` : ""}
+      ${top ? `<p class="t13 muted">${L(`Il gioco a cui hai giocato di più è ${esc(top)}; la prima giocata registrata è del ${pd.getDate()} ${MONTHS()[pd.getMonth()]} ${pd.getFullYear()}.`, `Your most played game is ${esc(top)}; the first recorded play was on ${pd.getDate()} ${MONTHS()[pd.getMonth()]} ${pd.getFullYear()}.`)}</p>` : ""}
     </div>
     ${notifAsk ? `<div class="lav-card mb16"><p style="font-size:14px;line-height:20px">Vuoi un avviso su questo dispositivo quando un admin conferma una serata?</p><button class="btn ind sm" style="align-self:flex-start;min-height:40px;box-shadow:none" data-action="enableNotif">Attiva avvisi</button></div>` : ""}
     <h2 class="h2b mb10">In programma</h2>
@@ -1150,15 +1173,15 @@ function renderGiocate() {
         ${sel("fGame", "Gioco", [["all", "Tutti i giochi"], ...Object.keys(counts).sort(byNameStr).map(g => [g, g])])}
         ${sel("fGroup", "Gruppo", [["all", "Tutti i gruppi"], ...grpOpts])}
         ${sel("fYear", "Anno", [["all", "Tutti gli anni"], ...years.map(y => [y, y])])}
-        ${sel("fMonth", "Mese", [["all", "Tutti i mesi"], ...MONTHS.map((m, i) => [pad(i + 1), cap(m)])])}
+        ${sel("fMonth", "Mese", [["all", "Tutti i mesi"], ...MONTHS().map((m, i) => [pad(i + 1), cap(m)])])}
       </div>
-      <div class="row between mb14" style="min-height:36px"><span class="t13 muted">${N} ${N === 1 ? "giocata trovata" : "giocate trovate"}${hasF ? "" : " in totale"}</span>${hasF ? `<button class="btn grey sm" style="font-size:12px;padding:0 10px" data-action="clearFilters">Togli i filtri</button>` : ""}</div>
+      <div class="row between mb14" style="min-height:36px"><span class="t13 muted">${N} ${N === 1 ? L("giocata trovata", "play found") : L("giocate trovate", "plays found")}${hasF ? "" : L(" in totale", " in total")}</span>${hasF ? `<button class="btn grey sm" style="font-size:12px;padding:0 10px" data-action="clearFilters">Togli i filtri</button>` : ""}</div>
       ${N ? `<div class="stack g16">${secs.map(sc => `<div class="stack g8">
-        <div class="row between" style="padding:0 2px;align-items:baseline"><span style="font-size:15px;font-weight:800">${sc.label}</span><span class="t12 muted" style="font-weight:600">${sc.items.length === 1 ? "1 giocata" : `${sc.items.length} giocate`}</span></div>
+        <div class="row between" style="padding:0 2px;align-items:baseline"><span style="font-size:15px;font-weight:800">${sc.label}</span><span class="t12 muted" style="font-weight:600">${sc.items.length === 1 ? L("1 giocata", "1 play") : L(`${sc.items.length} giocate`, `${sc.items.length} plays`)}</span></div>
         ${sc.items.map(x => { const others = byName(x.g, x.g.members.filter(u => u !== me && (x.s.rsvps || {})[u] !== "no")).map(u => nameIn(x.g, u));
           return `<div class="hist"><span style="font-size:16px;font-weight:700">${esc(x.g.game)}</span><span class="t13" style="font-weight:600">${longDate(x.s.date, true)}</span>
-            <span class="t12 muted">Gruppo ${esc(x.g.name)} · ore ${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " · " + esc(x.s.location) : ""}</span>
-            <span class="t12 muted">Con: ${esc(others.length ? others.join(", ") : "nessun altro")}</span>
+            <span class="t12 muted">${L("Gruppo", "Group")} ${esc(x.g.name)} · ${L("ore", "at")} ${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " · " + esc(x.s.location) : ""}</span>
+            <span class="t12 muted">${L("Con", "With")}: ${esc(others.length ? others.join(", ") : L("nessun altro", "nobody else"))}</span>
             ${x.s.notes ? `<span class="t12 muted" style="font-style:italic">${esc(x.s.notes)}</span>` : ""}</div>`; }).join("")}
       </div>`).join("")}</div>` : `<p class="sub">Nessuna giocata con questi filtri.</p>`}`
       : `<p class="sub">Le serate giocate compariranno qui, con data, gioco, gruppo e chi c'era.</p>`}`;
@@ -1177,10 +1200,10 @@ function renderModal() {
     const list = notifications();
     return `<div class="scrim" data-action="closeModal"></div><div class="dialog stack g12">
       <h3 style="font-size:20px;font-weight:700">Avvisi</h3>
-      ${list.length ? list.map(n => { const un = (M.unread || []).includes(n.key), d = n.kind === "ev" ? n.s : n.p, at = d.time ? ` alle ${esc(d.time)}` : "";
+      ${list.length ? list.map(n => { const un = (M.unread || []).includes(n.key), d = n.kind === "ev" ? n.s : n.p, at = d.time ? `${L(" alle ", " at ")}${esc(d.time)}` : "";
         return n.kind === "prop"
-          ? `<div class="notif ${un ? "u-prop" : ""}"><b>${un ? `<span class="new">Nuova: </span>` : ""}Proposta: ${esc(n.g.game)} · ${longDate(d.date)}${at}</b><span class="t13 muted">${esc(nameIn(n.g, d.by))} propone una serata al gruppo ${esc(n.g.name)}${d.place ? ", " + esc(d.place) : ""}. Rispondi in Serate.</span></div>`
-          : `<div class="notif ${un ? "u-ev" : ""}"><b>${un ? `<span class="new">Nuova: </span>` : ""}${esc(n.g.game)} · ${longDate(d.date)}${at}</b><span class="t13 muted">${esc(nameIn(n.g, d.confirmedBy))} ha confermato la serata del gruppo ${esc(n.g.name)}${d.location ? ", " + esc(d.location) : ""}.</span></div>`; }).join("")
+          ? `<div class="notif ${un ? "u-prop" : ""}"><b>${un ? `<span class="new">Nuova: </span>` : ""}${L("Proposta", "Proposal")}: ${esc(n.g.game)} · ${longDate(d.date)}${at}</b><span class="t13 muted">${L(`${esc(nameIn(n.g, d.by))} propone una serata al gruppo ${esc(n.g.name)}${d.place ? ", " + esc(d.place) : ""}. Rispondi in Serate.`, `${esc(nameIn(n.g, d.by))} proposes a night to the group ${esc(n.g.name)}${d.place ? ", " + esc(d.place) : ""}. Answer in Nights.`)}</span></div>`
+          : `<div class="notif ${un ? "u-ev" : ""}"><b>${un ? `<span class="new">Nuova: </span>` : ""}${esc(n.g.game)} · ${longDate(d.date)}${at}</b><span class="t13 muted">${L(`${esc(nameIn(n.g, d.confirmedBy))} ha confermato la serata del gruppo ${esc(n.g.name)}${d.location ? ", " + esc(d.location) : ""}.`, `${esc(nameIn(n.g, d.confirmedBy))} confirmed the night for the group ${esc(n.g.name)}${d.location ? ", " + esc(d.location) : ""}.`)}</span></div>`; }).join("")
         : `<p class="sub">Nessun avviso. Quando un admin conferma una serata di un tuo gruppo, la trovi qui.</p>`}
       ${twoBtns(cancelBtn("Chiudi"), `<button class="btn p" data-action="tab" data-tab="giocate">Vai alle giocate</button>`)}
     </div>`;
@@ -1194,8 +1217,8 @@ function renderModal() {
     const k = M.kind, google = S.me.provider === "google";
     const fld = (id, label, type, ph = "", val = "") => `<label class="lbl">${label}<input id="${id}" data-keep class="in" type="${type}" placeholder="${ph}" value="${esc(val)}"></label>`;
     if (k === "email") inner = google
-      ? `${titleBlock("Email", `Hai fatto l'accesso con Google come ${esc(S.me.email)}. L'email si cambia dal tuo account Google.`)}<button class="btn p" data-action="closeModal">Ho capito</button>`
-      : `${titleBlock("Cambia email", `Ora accedi con ${esc(S.me.email)}. Ti mandiamo un'email per confermare il nuovo indirizzo.`)}${fld("accEmail", "Nuova email", "email", "nome@esempio.it")}${fld("accPwd", "Password attuale", "password")}${errSlot("accErr")}${twoBtns(cancelBtn(), `<button class="btn p" data-action="saveAcc">Salva</button>`)}`;
+      ? `${titleBlock("Email", L(`Hai fatto l'accesso con Google come ${esc(S.me.email)}. L'email si cambia dal tuo account Google.`, `You signed in with Google as ${esc(S.me.email)}. Change the email from your Google account.`))}<button class="btn p" data-action="closeModal">Ho capito</button>`
+      : `${titleBlock("Cambia email", L(`Ora accedi con ${esc(S.me.email)}. Ti mandiamo un'email per confermare il nuovo indirizzo.`, `You currently sign in with ${esc(S.me.email)}. We'll send an email to confirm the new address.`))}${fld("accEmail", "Nuova email", "email", "nome@esempio.it")}${fld("accPwd", "Password attuale", "password")}${errSlot("accErr")}${twoBtns(cancelBtn(), `<button class="btn p" data-action="saveAcc">Salva</button>`)}`;
     else if (k === "pwd") inner = google
       ? `${titleBlock("Password", "Hai fatto l'accesso con Google: non c'è una password di Game Planner da cambiare.")}<button class="btn p" data-action="closeModal">Ho capito</button>`
       : `${titleBlock("Cambia password", "Almeno 6 caratteri.")}${fld("accCur", "Password attuale", "password")}${fld("accNew", "Nuova password", "password")}${fld("accRep", "Ripeti la nuova password", "password")}${errSlot("accErr")}${twoBtns(cancelBtn(), `<button class="btn p" data-action="saveAcc">Salva</button>`)}`;
@@ -1215,7 +1238,7 @@ function renderModal() {
         return `<div class="stack" style="gap:2px"><div class="row" style="gap:6px"><input id="gd${i}" data-keep class="in grow" style="font-weight:600" value="${esc(S.gameDrafts[gm] ?? gm)}" data-game-input="${esc(gm)}">
           <button class="btn p" style="width:44px;min-height:44px;padding:0" aria-label="Salva" data-action="renameGame" data-i="${i}">${ic("check")}</button>
           <button class="btn redtxt" style="width:44px;min-height:44px;padding:0" aria-label="Elimina" data-action="removeGame" data-i="${i}">${ic("delete")}</button></div>
-          ${used ? `<span class="t12 muted" style="padding-left:2px;font-size:11px">${used === 1 ? "Usato da 1 gruppo" : `Usato da ${used} gruppi`}</span>` : ""}</div>`; }).join("") : `<p class="sub">Nessun gioco in lista.</p>`}
+          ${used ? `<span class="t12 muted" style="padding-left:2px;font-size:11px">${used === 1 ? L("Usato da 1 gruppo", "Used by 1 group") : L(`Usato da ${used} gruppi`, `Used by ${used} groups`)}</span>` : ""}</div>`; }).join("") : `<p class="sub">Nessun gioco in lista.</p>`}
       ${errSlot("gamesErr")}
       <button class="btn p" data-action="backToF2">Fatto</button>`;
   } else if (M.type === "prop") {
@@ -1232,11 +1255,11 @@ function renderModal() {
     const g = getGroup(M.gid), s = g?.sessions?.[M.sid];
     if (!s) { S.modal = null; return ""; }
     const ST = { yes: ["Ci sono", "c-mint"], maybe: ["Forse", "c-peach"], no: ["Non viene", "c-err"] };
-    inner = `<div class="row between" style="align-items:flex-start"><div class="stack"><h3>${esc(g.game)}</h3><span class="t13 muted">Gruppo ${esc(g.name)}</span></div><span class="tag c-green">Confermata</span></div>
-      <div class="box"><span class="when">${ic("calendar_month")}${longDate(s.date, true)} alle ${esc(s.time || DEFAULT_TIME)}</span>
+    inner = `<div class="row between" style="align-items:flex-start"><div class="stack"><h3>${esc(g.game)}</h3><span class="t13 muted">${L("Gruppo", "Group")} ${esc(g.name)}</span></div><span class="tag c-green">Confermata</span></div>
+      <div class="box"><span class="when">${ic("calendar_month")}${longDate(s.date, true)}${L(" alle ", " at ")}${esc(s.time || DEFAULT_TIME)}</span>
         ${s.location ? `<span class="meta">${ic("location_on")}${esc(s.location)}</span>` : ""}${s.notes ? `<span class="meta">${ic("sticky_note_2")}${esc(s.notes)}</span>` : ""}</div>
       <div class="stack"><span class="caps" style="margin-bottom:4px">PERSONE</span>
-        ${byName(g, g.members).map(u => { const t = ST[rsvpOf(g, s, u)] || ["In attesa", "c-grey"]; return `<div class="people-row"><span style="font-size:14px;font-weight:600">${esc(nameIn(g, u))}${u === me ? " (tu)" : ""}</span><span class="tag ${t[1]}" style="font-size:12px;font-weight:700;padding:3px 10px">${t[0]}</span></div>`; }).join("")}</div>
+        ${byName(g, g.members).map(u => { const t = ST[rsvpOf(g, s, u)] || ["In attesa", "c-grey"]; return `<div class="people-row"><span style="font-size:14px;font-weight:600">${esc(nameIn(g, u))}${u === me ? L(" (tu)", " (you)") : ""}</span><span class="tag ${t[1]}" style="font-size:12px;font-weight:700;padding:3px 10px">${t[0]}</span></div>`; }).join("")}</div>
       <div class="stack g6"><span class="t12" style="font-weight:700">La tua risposta <span class="faint">· puoi cambiarla quando vuoi</span></span>${answersSeg(rsvpOf(g, s, me), "rsvp", `data-g="${g.id}" data-s="${M.sid}"`)}</div>
       ${isAdmin(g) ? `<div class="grid2" style="gap:6px"><button class="btn m44" data-action="revoke" data-g="${g.id}" data-s="${M.sid}">Revoca conferma</button><button class="btn rose m44" data-action="cancelSession" data-g="${g.id}" data-s="${M.sid}">Annulla serata</button></div>` : ""}
       <button class="btn p" data-action="closeModal">Chiudi</button>`;
@@ -1263,7 +1286,7 @@ function renderModal() {
   } else if (M.type === "f4") {
     const n = night(M.date, "all"), myV = (S.me.days || {})[M.date];
     inner = `<h3>${longDate(M.date, true)}</h3>
-      ${n.confirmed.length ? `<div class="stack g6"><span class="caps">CONFERMATE</span>${n.confirmed.map(x => `<button class="conf-item" data-action="openEv" data-g="${x.g.id}" data-s="${x.sid}">${esc(x.g.game)} con ${esc(x.g.name)} alle ${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " · " + esc(x.s.location) : ""}</button>`).join("")}</div>` : ""}
+      ${n.confirmed.length ? `<div class="stack g6"><span class="caps">CONFERMATE</span>${n.confirmed.map(x => `<button class="conf-item" data-action="openEv" data-g="${x.g.id}" data-s="${x.sid}">${esc(x.g.game)} ${L("con", "with")} ${esc(x.g.name)}${L(" alle ", " at ")}${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " · " + esc(x.s.location) : ""}</button>`).join("")}</div>` : ""}
       <div class="stack g8"><span class="caps">GIOCHI POSSIBILI QUESTA SERA</span>
         <p class="t13 muted">${n.possible.length >= 2 ? "Più giochi sono possibili: l'admin sceglie a cosa giocare. Il consigliato è quello con più voglia di giocare." : n.possible.length === 1 ? "C'è un gioco possibile." : "Nessun gioco possibile questa sera con le disponibilità attuali."}</p>
         ${n.evals.map(e => renderRow(e, M.date, e === n.rec)).join("")}
@@ -1288,13 +1311,13 @@ function renderModal() {
     inner = `${titleBlock("Avvisa tutti", "Tutti i membri del gruppo vedono già la serata nell'app, tra gli Avvisi e in Giocate. Puoi avvisarli anche fuori dall'app:")}
       <div class="box" style="font-size:13px;line-height:19px;padding:12px;display:block">${esc(msg)}</div>
       <a class="btn p" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Invia su WhatsApp</a>
-      ${emails.length ? `<a class="btn" href="mailto:?bcc=${encodeURIComponent(emails.join(","))}&subject=${encodeURIComponent(`Game Planner - si gioca: ${g.game} ${longDate(s.date)}`)}&body=${encodeURIComponent(msg)}">Invia per email a ${emails.length} ${emails.length === 1 ? "persona" : "persone"}</a>` : ""}
+      ${emails.length ? `<a class="btn" href="mailto:?bcc=${encodeURIComponent(emails.join(","))}&subject=${encodeURIComponent(L(`Game Planner - si gioca: ${g.game} ${longDate(s.date)}`, `Game Planner - game night: ${g.game} ${longDate(s.date)}`))}&body=${encodeURIComponent(msg)}">${L(`Invia per email a ${emails.length} ${emails.length === 1 ? "persona" : "persone"}`, `Email ${emails.length} ${emails.length === 1 ? "person" : "people"}`)}</a>` : ""}
       <button class="btn" data-action="copyText" data-text="${esc(msg)}">Copia il messaggio</button>
       <button class="btn link m44" data-action="closeModal">Fatto</button>`;
   } else if (M.type === "f7") {
     const p = S.pendingJoin || {};
     inner = `<h3>Invito</h3>
-      <p style="font-size:15px;line-height:21px">Sei stato invitato nel gruppo <strong>${esc(p.name || "senza nome")}</strong>.</p>
+      <p style="font-size:15px;line-height:21px">Sei stato invitato nel gruppo <strong>${esc(p.name || L("senza nome", "unnamed"))}</strong>.</p>
       <p class="t13 muted">Entrando, gli altri membri vedranno il tuo nome e le tue disponibilità.</p>
       ${errSlot("jErr")}
       ${twoBtns(`<button class="btn" data-action="ignoreJoin">Non ora</button>`, `<button class="btn p" data-action="doJoin">Unisciti</button>`)}`;
@@ -1312,10 +1335,10 @@ function renderAsk() {
 let toastTimer;
 function toast(msg) {
   document.querySelector(".toast")?.remove();
-  const t = document.createElement("div"); t.className = "toast"; t.textContent = msg;
+  const t = document.createElement("div"); t.className = "toast"; t.textContent = tr(msg);
   document.body.appendChild(t); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.remove(), 2600);
 }
-function showErr(id, msg) { const el = document.getElementById(id); if (el) el.innerHTML = msg ? `<div class="err-box">${esc(msg)}</div>` : ""; }
+function showErr(id, msg) { const el = document.getElementById(id); if (el) el.innerHTML = msg ? `<div class="err-box">${esc(tr(msg))}</div>` : ""; }
 
 const AUTH_ERRORS = {
   "auth/invalid-email": "Email non valida.",
@@ -1332,6 +1355,300 @@ const AUTH_ERRORS = {
   "auth/requires-recent-login": "Per sicurezza esci e rientra, poi riprova.",
 };
 const authMsg = e => AUTH_ERRORS[e?.code] || e?.message || "Qualcosa non ha funzionato. Riprova.";
+
+const EN = {
+  // accesso
+  "Caricamento...": "Loading...",
+  "Quando si gioca?": "When do we play?",
+  "Crea i gruppi delle tue campagne, segna quando ci sei, scopri quando si gioca.": "Create groups for your campaigns, mark when you're free, find out when you play.",
+  "Non riesco a leggere i dati. Controlla la connessione e riprova.": "Can't read the data. Check your connection and try again.",
+  "Non riesco a collegarmi al server. Controlla la connessione e ricarica la pagina.": "Can't reach the server. Check your connection and reload the page.",
+  "Esci": "Log out",
+  "Sei stato invitato nel gruppo": "You've been invited to the group",
+  ". Accedi per unirti.": ". Sign in to join.",
+  "Sei nel browser interno di un'altra app": "You're in another app's built-in browser",
+  "Copia link": "Copy link",
+  "Apri in Chrome": "Open in Chrome",
+  "Poi incollalo nella barra degli indirizzi.": "Then paste it into the address bar.",
+  "Entra con Google": "Sign in with Google",
+  "oppure con email": "or with email",
+  "Entra": "Sign in",
+  "Crea account": "Create account",
+  "Password dimenticata?": "Forgot password?",
+  "Quasi fatto": "Almost done",
+  "Ti abbiamo mandato un'email per verificare l'indirizzo. Apri il link (controlla anche lo spam), poi torna qui.": "We sent you an email to verify your address. Open the link (check spam too), then come back here.",
+  "Ho verificato, entra": "I've verified, sign in",
+  "Rinvia email": "Resend email",
+  "Modalità demo: i dati restano solo su questo dispositivo. Puoi creare più giocatori e passare dall'uno all'altro per provare gruppi, inviti e proposte.": "Demo mode: data stays on this device only. You can create several players and switch between them to try groups, invites and proposals.",
+  "Entra come": "Sign in as",
+  "Nuovo giocatore": "New player",
+  "Il tuo nome": "Your name",
+  "Carica l'esempio": "Load the example",
+  "Cancella tutti i dati demo": "Delete all demo data",
+
+  // testata e menu
+  "Avvisi": "Notifications",
+  "Il tuo account": "Your account",
+  "Modalità demo - i dati restano su questo dispositivo.": "Demo mode - data stays on this device.",
+  "Gruppi": "Groups",
+  "Disponibilità": "Availability",
+  "Serate": "Nights",
+  "Giocate": "Played",
+  "Nome": "Name",
+  "Gestita da Google": "Managed by Google",
+  "Telefono": "Phone",
+  "Non impostato": "Not set",
+  "Tema": "Theme",
+  "Chiaro": "Light",
+  "Scuro": "Dark",
+  "Cambia giocatore": "Switch player",
+
+  // gruppi
+  "Hai ricevuto un link di invito?": "Got an invite link?",
+  "Incollalo qui": "Paste it here",
+  "I miei gruppi": "My groups",
+  "Crea gruppo": "Create group",
+  "Benvenuto!": "Welcome!",
+  "Tutto parte da un gruppo: una campagna di un gioco con le persone che ci giocano. Puoi far parte di più gruppi.": "It all starts with a group: a campaign of one game with the people who play it. You can be in several groups.",
+  "Crea il primo gruppo e invita gli altri via email, SMS o WhatsApp, oppure apri il link di invito che ti hanno mandato.": "Create your first group and invite the others by email, SMS or WhatsApp, or open the invite link you were sent.",
+  "Crea un gruppo": "Create a group",
+  "La tua voglia:": "Your keenness:",
+  "Tanta voglia": "Very keen",
+  "Normale": "Normal",
+  "Poca voglia": "Not very keen",
+  "Modifica": "Edit",
+  "Sei admin: inviti, gestisci i giocatori e confermi le serate.": "You're an admin: you invite people, manage players and confirm nights.",
+  "La tua voglia di giocare con questo gruppo": "How keen you are to play with this group",
+  "Serve a scegliere quale gruppo consigliare quando la stessa sera si potrebbe giocare a più giochi.": "Used to pick which group to recommend when several games are possible on the same night.",
+  "Non ha ancora segnato le disponibilità": "Hasn't marked availability yet",
+  "Togli admin": "Remove admin",
+  "Rendi admin": "Make admin",
+  "Rimuovi dal gruppo": "Remove from group",
+  "Invita qualcuno": "Invite someone",
+  "Chi riceve il link entra nel gruppo dopo aver fatto l'accesso.": "Whoever gets the link joins the group after signing in.",
+  "Condividi...": "Share...",
+  "Via email": "By email",
+  "nome@esempio.it": "name@example.com",
+  "Invia": "Send",
+  "Via cellulare": "By phone",
+  "Funziona anche con chi non ha ancora l'app: dal link si registra e entra direttamente nel gruppo.": "Works for people who don't have the app yet too: from the link they sign up and join the group directly.",
+  "Per invitare qualcuno chiedi a un admin del gruppo.": "To invite someone, ask a group admin.",
+  "Serate confermate": "Confirmed nights",
+  "Confermata": "Confirmed",
+  "La tua risposta": "Your answer",
+  "· puoi cambiarla quando vuoi": "· you can change it anytime",
+  "Nessuna serata in programma.": "No nights scheduled.",
+  "Guarda le Serate possibili.": "See the possible Nights.",
+  "Esci dal gruppo": "Leave group",
+  "Elimina gruppo": "Delete group",
+  "Ci sono": "I'm in",
+  "Forse": "Maybe",
+  "Non posso": "Can't",
+
+  // disponibilità
+  "Le mie disponibilità": "My availability",
+  "Facoltative: aiutano a trovare le serate possibili. Valgono per tutti i tuoi gruppi.": "Optional: they help find possible nights. They apply to all your groups.",
+  "Proponi una serata": "Propose a night",
+  "Ricorda: per vedere quando si gioca devi far parte di almeno un gruppo.": "Remember: to see when you play you need to be in at least one group.",
+  "Vai su Gruppi.": "Go to Groups.",
+  "SI": "YES",
+  "FORSE": "MAYBE",
+  "Cancella": "Clear",
+  "Scegli SI, FORSE o NO e tocca i giorni. Toccando di nuovo un giorno con lo stesso stato lo cancelli.": "Pick YES, MAYBE or NO and tap the days. Tapping a day again with the same state clears it.",
+  "Applica ai giorni vuoti": "Apply to empty days",
+  "Applica ai weekend": "Apply to weekends",
+  "Svuota mese": "Clear month",
+
+  // serate
+  "Ci sono tutti quelli che servono": "Everyone needed is in",
+  "Possibile se i forse confermano": "Possible if the maybes confirm",
+  "Non si può": "Not possible",
+  "CONSIGLIATO": "RECOMMENDED",
+  "Decide un admin": "An admin decides",
+  "Conferma questa serata": "Confirm this night",
+  "Proposta": "Proposal",
+  "Sì": "Yes",
+  "Conferma la serata": "Confirm the night",
+  "Ritira la proposta": "Withdraw proposal",
+  "Incrocia le disponibilità di tutti i membri dei tuoi gruppi, sera per sera.": "Matches the availability of all the members of your groups, night by night.",
+  "Qui vedrai in quali serate si può giocare e con quale gruppo. Prima crea o entra in un gruppo.": "Here you'll see which nights you can play and with which group. First create or join a group.",
+  "Vai su Gruppi": "Go to Groups",
+  "Si può giocare": "Can play",
+  "Dipende dai forse": "Depends on maybes",
+  "Nessun gruppo": "No group",
+  "Apri": "Open",
+  "Tutti i miei gruppi": "All my groups",
+  "Tutte": "All",
+  "Proposte": "Proposals",
+  "Confermate": "Confirmed",
+  "Solo le serate possibili": "Only possible nights",
+
+  // giocate
+  "Le mie giocate": "My games played",
+  "Conferma una serata": "Confirm a night",
+  "Riepilogo": "Summary",
+  "Nessuna giocata in programma.": "Nothing scheduled.",
+  "in programma": "scheduled",
+  "giocate in totale": "played in total",
+  "giochi provati": "games tried",
+  "Vuoi un avviso su questo dispositivo quando un admin conferma una serata?": "Want a notification on this device when an admin confirms a night?",
+  "Attiva avvisi": "Turn on notifications",
+  "In programma": "Scheduled",
+  "Nessuna serata confermata.": "No confirmed nights.",
+  "Storico delle giocate": "History",
+  "Gioco": "Game",
+  "Gruppo": "Group",
+  "Anno": "Year",
+  "Mese": "Month",
+  "Tutti i giochi": "All games",
+  "Tutti i gruppi": "All groups",
+  "Tutti gli anni": "All years",
+  "Tutti i mesi": "All months",
+  "Togli i filtri": "Clear filters",
+  "Nessuna giocata con questi filtri.": "Nothing played with these filters.",
+  "Le serate giocate compariranno qui, con data, gioco, gruppo e chi c'era.": "Nights you've played will show up here, with date, game, group and who was there.",
+  "Aggiungi al calendario": "Add to calendar",
+  "Avvisa tutti": "Notify everyone",
+  "Revoca conferma": "Revoke confirmation",
+  "Annulla serata": "Cancel night",
+
+  // finestre
+  "Annulla": "Cancel",
+  "Chiudi": "Close",
+  "Vai alle giocate": "Go to Played",
+  "Nuova:": "New:",
+  "Nessun avviso. Quando un admin conferma una serata di un tuo gruppo, la trovi qui.": "No notifications. When an admin confirms a night for one of your groups, you'll find it here.",
+  "È il nome che vedono gli altri nei tuoi gruppi.": "It's the name others see in your groups.",
+  "Salva": "Save",
+  "Ho capito": "Got it",
+  "Cambia email": "Change email",
+  "Nuova email": "New email",
+  "Password attuale": "Current password",
+  "Cambia password": "Change password",
+  "Almeno 6 caratteri.": "At least 6 characters.",
+  "Nuova password": "New password",
+  "Ripeti la nuova password": "Repeat the new password",
+  "Hai fatto l'accesso con Google: non c'è una password di Game Planner da cambiare.": "You signed in with Google: there's no Game Planner password to change.",
+  "Numero di telefono": "Phone number",
+  "Serve agli admin per mandarti inviti e avvisi via SMS o WhatsApp.": "Lets admins send you invites and notices by SMS or WhatsApp.",
+  "Cellulare": "Mobile",
+  "Il tuo avatar": "Your avatar",
+  "Simbolo": "Symbol",
+  "Colore": "Color",
+  "Fatto": "Done",
+  "Gestisci giochi": "Manage games",
+  "Rinomina o elimina i giochi della lista. Rinominando un gioco si aggiorna anche nei gruppi che lo usano e di cui sei admin.": "Rename or delete games in the list. Renaming a game also updates it in the groups that use it where you're an admin.",
+  "Elimina": "Delete",
+  "Nessun gioco in lista.": "No games in the list.",
+  "Il gruppo riceve la proposta e ognuno risponde Sì, Forse o No.": "The group gets the proposal and everyone answers Yes, Maybe or No.",
+  "Scegli un gruppo": "Choose a group",
+  "Giorno": "Day",
+  "Ora": "Time",
+  "(facoltativa)": "(optional)",
+  "(facoltativo)": "(optional)",
+  "Dove": "Where",
+  "Descrizione": "Description",
+  "Es. da Gigi, via Roma 12": "E.g. at Gigi's, 12 Main St",
+  "Es. chiudiamo il capitolo, si cena prima": "E.g. we finish the chapter, dinner first",
+  "Invia proposta": "Send proposal",
+  "PERSONE": "PEOPLE",
+  "In attesa": "Waiting",
+  "Non viene": "Not coming",
+  "Modifica gruppo": "Edit group",
+  "Nuovo gruppo": "New group",
+  "Nome del gruppo o della campagna": "Group or campaign name",
+  "Es. La campagna del giovedì": "E.g. The Thursday campaign",
+  "Scegli un gioco": "Choose a game",
+  "+ Aggiungi nuovo": "+ Add new",
+  "Nome del nuovo gioco": "New game name",
+  "Es. Pathfinder": "E.g. Pathfinder",
+  "Quando si può giocare": "When you can play",
+  "Solo se ci sono tutti i membri": "Only if all members are in",
+  "Basta un minimo di": "At least",
+  "membri": "members",
+  "Ho un invito": "I have an invite",
+  "Incolla qui il link che ti hanno mandato.": "Paste the link you were sent here.",
+  "Continua": "Continue",
+  "CONFERMATE": "CONFIRMED",
+  "GIOCHI POSSIBILI QUESTA SERA": "POSSIBLE GAMES THIS NIGHT",
+  "Più giochi sono possibili: l'admin sceglie a cosa giocare. Il consigliato è quello con più voglia di giocare.": "Several games are possible: the admin picks what to play. The recommended one is the keenest.",
+  "C'è un gioco possibile.": "One game is possible.",
+  "Nessun gioco possibile questa sera con le disponibilità attuali.": "No game possible this night with the current availability.",
+  "Tutti i tuoi gruppi hanno già una serata confermata.": "All your groups already have a confirmed night.",
+  "Tu quella sera:": "You that night:",
+  "Non ci sono": "I'm out",
+  "Tutti i membri del gruppo riceveranno l'avviso.": "All group members will be notified.",
+  "Note": "Notes",
+  "Es. portate le schede, si cena prima": "E.g. bring your character sheets, dinner first",
+  "Conferma": "Confirm",
+  "Tutti i membri del gruppo vedono già la serata nell'app, tra gli Avvisi e in Giocate. Puoi avvisarli anche fuori dall'app:": "All group members already see the night in the app, in Notifications and in Played. You can also tell them outside the app:",
+  "Invia su WhatsApp": "Send on WhatsApp",
+  "Copia il messaggio": "Copy message",
+  "Invito": "Invite",
+  "Entrando, gli altri membri vedranno il tuo nome e le tue disponibilità.": "Once you join, the other members will see your name and availability.",
+  "Non ora": "Not now",
+  "Unisciti": "Join",
+
+  // domande
+  "Cancello le tue disponibilità di questo mese?": "Clear your availability for this month?",
+  "Svuota": "Clear",
+  "Ritiri questa proposta per tutto il gruppo?": "Withdraw this proposal for the whole group?",
+  "Ritira": "Withdraw",
+  "Revochi la conferma? La serata torna una proposta e tutti possono rispondere di nuovo.": "Revoke the confirmation? The night goes back to being a proposal and everyone can answer again.",
+  "Revoca": "Revoke",
+  "Annulli questa serata per tutti?": "Cancel this night for everyone?",
+  "Cancello tutti i dati della demo?": "Delete all demo data?",
+
+  // messaggi ed errori
+  "Evento scaricato: aprilo per aggiungerlo al calendario.": "Event downloaded: open it to add it to your calendar.",
+  "Email non valida.": "Invalid email.",
+  "Inserisci la password.": "Enter your password.",
+  "La password deve avere almeno 6 caratteri.": "The password must be at least 6 characters.",
+  "Esiste già un account con questa email: usa Entra.": "An account with this email already exists: use Sign in.",
+  "Email o password non corrette.": "Wrong email or password.",
+  "Accesso annullato.": "Sign-in cancelled.",
+  "Il browser ha bloccato la finestra di Google. Riprova o usa email e password.": "The browser blocked the Google window. Try again or use email and password.",
+  "Questo indirizzo non è autorizzato nel progetto Firebase (vedi README).": "This address isn't authorized in the Firebase project (see README).",
+  "Troppi tentativi, riprova tra poco.": "Too many attempts, try again shortly.",
+  "Per sicurezza esci e rientra, poi riprova.": "For security, log out and back in, then try again.",
+  "Qualcosa non ha funzionato. Riprova.": "Something went wrong. Try again.",
+  "Permesso negato: controlla le regole Firestore.": "Permission denied: check the Firestore rules.",
+  "Copiato.": "Copied.",
+  "Ti abbiamo mandato un'email per confermare il nuovo indirizzo.": "We sent you an email to confirm the new address.",
+  "Inserisci la password attuale.": "Enter your current password.",
+  "Le due password non coincidono.": "The two passwords don't match.",
+  "Password aggiornata.": "Password updated.",
+  "Scrivi un numero di cellulare valido.": "Enter a valid mobile number.",
+  "Numero salvato.": "Number saved.",
+  "Numero rimosso.": "Number removed.",
+  "Scrivi il nome del gruppo e il gioco.": "Enter the group name and the game.",
+  "Gruppo creato: ora invita gli altri.": "Group created: now invite the others.",
+  "Il nome del gioco non può essere vuoto.": "The game name can't be empty.",
+  "Questo gioco è già in lista.": "This game is already in the list.",
+  "Gioco rinominato.": "Game renamed.",
+  "Il gruppo deve avere almeno un admin.": "The group needs at least one admin.",
+  "Sei l'unico admin: prima rendi admin qualcun altro.": "You're the only admin: make someone else admin first.",
+  "Scrivi un indirizzo email valido.": "Enter a valid email address.",
+  "Questo non sembra un link di invito valido.": "This doesn't look like a valid invite link.",
+  "Sei entrato nel gruppo. Segna le tue disponibilità!": "You joined the group. Mark your availability!",
+  "Scegli prima SI, FORSE o NO.": "Pick YES, MAYBE or NO first.",
+  "Scegli un gruppo.": "Choose a group.",
+  "Scegli un giorno a partire da oggi.": "Choose a day from today on.",
+  "Scegli un gruppo di cui sei admin.": "Choose a group you're an admin of.",
+  "Questo gruppo ha già una serata confermata in quel giorno.": "This group already has a confirmed night on that day.",
+  "Serata confermata: i membri del gruppo trovano l'avviso nell'app.": "Night confirmed: group members will find the notice in the app.",
+  "Conferma revocata: la serata è di nuovo una proposta.": "Confirmation revoked: the night is a proposal again.",
+  "Serata annullata.": "Night cancelled.",
+  "Avvisi attivati su questo dispositivo.": "Notifications turned on for this device.",
+  "Scrivi la tua email qui sopra, poi tocca di nuovo.": "Enter your email above, then tap again.",
+  "Ti abbiamo mandato un'email per reimpostare la password.": "We sent you an email to reset your password.",
+  "Email inviata di nuovo.": "Email sent again.",
+  "Non risulta ancora verificata. Apri il link nell'email e riprova.": "Not verified yet. Open the link in the email and try again.",
+  "Scrivi un nome.": "Enter a name.",
+  "Invito non valido o gruppo non più esistente.": "Invalid invite or the group no longer exists.",
+  "Password attuale non corretta.": "Current password is wrong.",
+  "Non riesco a verificare la password. Riprova.": "Can't verify the password. Try again.",
+};
 
 // ---------------------------------------------------------------------
 //  AZIONI
@@ -1410,6 +1727,7 @@ document.addEventListener("click", e => {
     case "openAvatar": S.menuOpen = false; S.modal = { type: "avatar" }; render(); break;
     case "setAvIcon": run(() => store.setProfile({ avIcon: d.v || null })); break;
     case "setAvColor": run(() => store.setProfile({ avColor: d.v })); break;
+    case "lang": LANG = d.v; try { localStorage.setItem("gp-lang", d.v); } catch (err) {} render(); break;
     case "theme": document.documentElement.setAttribute("data-theme", d.v); try { localStorage.setItem("gp-theme", d.v); } catch (err) {} render(); break;
     case "logout": S.modal = null; S.menuOpen = false; S.tab = "gruppi"; S.groupId = null; notifiedKeys = null; run(() => store.logout()); break;
 
@@ -1449,7 +1767,7 @@ document.addEventListener("click", e => {
     }
     case "removeGame": {
       const gm = (S.me.games || [])[+d.i]; const used = groupList().some(x => x.game === gm);
-      ask(used ? `Elimini "${gm}" dalla lista? I gruppi che lo usano lo mantengono.` : `Elimini "${gm}" dalla lista?`, "Elimina", () => { if (S.gameSel === gm) S.gameSel = ""; run(() => store.removeGame(gm)); });
+      ask(used ? L(`Elimini "${gm}" dalla lista? I gruppi che lo usano lo mantengono.`, `Remove "${gm}" from the list? Groups using it keep it.`) : L(`Elimini "${gm}" dalla lista?`, `Remove "${gm}" from the list?`), L("Elimina", "Delete"), () => { if (S.gameSel === gm) S.gameSel = ""; run(() => store.removeGame(gm)); });
       break;
     }
     case "setPref": run(() => store.setPref(S.groupId, +d.v)); break;
@@ -1457,20 +1775,20 @@ document.addEventListener("click", e => {
       if (isAdmin(g, d.u) && adminsOf(g).length === 1) { toast("Il gruppo deve avere almeno un admin."); break; }
       run(() => store.setAdmin(S.groupId, d.u, !isAdmin(g, d.u))); break;
     }
-    case "removeMember": ask(`Rimuovi ${nameIn(g, d.u)} dal gruppo?`, "Rimuovi", () => run(() => store.removeMember(g.id, d.u))); break;
+    case "removeMember": ask(L(`Rimuovi ${nameIn(g, d.u)} dal gruppo?`, `Remove ${nameIn(g, d.u)} from the group?`), L("Rimuovi", "Remove"), () => run(() => store.removeMember(g.id, d.u))); break;
     case "leaveGroup": {
       if (isAdmin(g) && adminsOf(g).length === 1 && g.members.length > 1) { toast("Sei l'unico admin: prima rendi admin qualcun altro."); break; }
-      ask(`Vuoi uscire dal gruppo "${g.name}"?`, "Esci", () => { const id = g.id; go("gruppi"); run(() => g.members.length === 1 ? store.deleteGroup(id) : store.leaveGroup(id)); });
+      ask(L(`Vuoi uscire dal gruppo "${g.name}"?`, `Leave the group "${g.name}"?`), L("Esci", "Leave"), () => { const id = g.id; go("gruppi"); run(() => g.members.length === 1 ? store.deleteGroup(id) : store.leaveGroup(id)); });
       break;
     }
-    case "deleteGroup": ask(`Elimini il gruppo "${g.name}" per tutti?`, "Elimina", () => { const id = g.id; go("gruppi"); run(() => store.deleteGroup(id)); }); break;
+    case "deleteGroup": ask(L(`Elimini il gruppo "${g.name}" per tutti?`, `Delete the group "${g.name}" for everyone?`), L("Elimina", "Delete"), () => { const id = g.id; go("gruppi"); run(() => store.deleteGroup(id)); }); break;
     case "copyLink": copy(inviteLink(g)); break;
     case "shareLink": if (navigator.share) navigator.share({ title: "Game Planner", text: inviteText(g) }).catch(() => {}); else copy(inviteText(g)); break;
     case "inviteEmail": {
       const to = val("invEmail");
       if (!/^\S+@\S+\.\S+$/.test(to)) { showErr("invErr", "Scrivi un indirizzo email valido."); break; }
       showErr("invErr", "");
-      location.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(`Invito al gruppo ${g.name}`)}&body=${encodeURIComponent(inviteText(g))}`;
+      location.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(L(`Invito al gruppo ${g.name}`, `Invite to the group ${g.name}`))}&body=${encodeURIComponent(inviteText(g))}`;
       break;
     }
     case "inviteSms": case "inviteWa": {
@@ -1526,7 +1844,7 @@ document.addEventListener("click", e => {
       if (!date || date < todayStr() || date > LAST_DAY) { showErr("propErr", "Scegli un giorno a partire da oggi."); break; }
       const data = { date, time: val("pTime"), place: val("pPlace"), desc: val("pDesc") };
       S.modal = null; S.tab = "serate"; S.sFilter = "all"; S.groupId = null; S.sMonth = date.slice(0, 7);
-      run(async () => { await store.createProposal(gid, data); toast(`Proposta inviata al gruppo ${gg.name}.`); });
+      run(async () => { await store.createProposal(gid, data); toast(L(`Proposta inviata al gruppo ${gg.name}.`, `Proposal sent to the group ${gg.name}.`)); });
       render(); window.scrollTo(0, 0);
       break;
     }
@@ -1602,7 +1920,7 @@ document.addEventListener("click", e => {
     case "demoAs": notifiedKeys = null; store.loginAs(d.u); break;
     case "demoNew": { const n = val("demoName"); if (!n) { toast("Scrivi un nome."); break; } store.createUser(n); break; }
     case "demoSeed": store.seed(); S.tab = "gruppi"; render(); break;
-    case "demoReset": ask("Cancello tutti i dati della demo?", "Cancella", () => store.reset()); break;
+    case "demoReset": ask("Cancello tutti i dati della demo?", L("Cancella", "Delete"), () => store.reset()); break;
   }
 });
 
@@ -1625,7 +1943,7 @@ document.addEventListener("keydown", e => {
   else { try { inv = JSON.parse(sessionStorage.getItem("gp-join") || "null"); } catch (e) {} }
   S.pendingJoin = inv;
   try { store = FIREBASE_CONFIG ? await makeFirebaseStore(FIREBASE_CONFIG) : makeLocalStore(); }
-  catch (e) { console.error(e); $("#app").innerHTML = `<div class="auth">${hero()}<div class="card"><p class="sub">Non riesco a collegarmi al server. Controlla la connessione e ricarica la pagina.</p></div></div>`; return; }
+  catch (e) { console.error(e); $("#app").innerHTML = `<div class="auth">${hero()}<div class="card"><p class="sub">Non riesco a collegarmi al server. Controlla la connessione e ricarica la pagina.</p></div></div>`; translateDom($("#app")); return; }
   store.start(data => { Object.assign(S, data); render(); browserNotify(); });
 })();
 </script>
