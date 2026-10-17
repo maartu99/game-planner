@@ -1,0 +1,45 @@
+rules_version = '2';
+
+// Regole di sicurezza per "Si gioca?"
+// Solo le email elencate qui sotto possono leggere e scrivere i dati.
+// Scrivile tutte in minuscolo. Per aggiungere un amico: aggiungi la sua email e premi "Pubblica".
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isMember() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower() in [
+          'mmattia@gmail.com',
+          'amico1@gmail.com',
+          'amico2@gmail.com',
+          'amico3@gmail.com',
+          'amico4@gmail.com'
+        ];
+    }
+
+    // Profilo: lo leggono tutti i membri, lo modifica solo il proprietario
+    match /users/{uid} {
+      allow read: if isMember();
+      allow write: if isMember() && request.auth.uid == uid;
+    }
+
+    // Disponibilità: le leggono tutti i membri, le modifica solo il proprietario
+    match /availability/{uid} {
+      allow read: if isMember();
+      allow write: if isMember() && request.auth.uid == uid;
+    }
+
+    // Giochi e sessioni: condivisi tra i membri
+    match /games/{id} {
+      allow read, create, update: if isMember();
+      allow delete: if isMember() && resource.data.createdBy == request.auth.uid;
+    }
+
+    match /sessions/{id} {
+      allow read, create, update: if isMember();
+      allow delete: if isMember() && resource.data.createdBy == request.auth.uid;
+    }
+  }
+}

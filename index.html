@@ -1,0 +1,847 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f2a44">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Si gioca?">
+<title>Si gioca?</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231f2a44'/%3E%3Ccircle cx='22' cy='22' r='6' fill='%23f4c95d'/%3E%3Ccircle cx='42' cy='42' r='6' fill='%23f4c95d'/%3E%3Ccircle cx='42' cy='22' r='6' fill='%23f4c95d'/%3E%3Ccircle cx='22' cy='42' r='6' fill='%23f4c95d'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f6f4ef; --surface:#ffffff; --surface-2:#efece4; --text:#1d2230; --muted:#6b7080; --line:#e2ddd2;
+  --accent:#2f4b8a; --accent-text:#ffffff; --accent-soft:#e3e9f7;
+  --yes:#2e9d5b; --yes-bg:#dff3e6; --maybe:#b97c0c; --maybe-bg:#fbefd2; --no:#b5463c; --no-bg:#f6dedb;
+  --radius:14px; --shadow:0 1px 2px rgba(0,0,0,.05),0 4px 14px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#14171f; --surface:#1d212c; --surface-2:#262b38; --text:#eceef3; --muted:#9aa0ae; --line:#2e3442;
+    --accent:#8aa6f0; --accent-text:#0f1320; --accent-soft:#25304a;
+    --yes:#4cc27e; --yes-bg:#1b3527; --maybe:#e3a93a; --maybe-bg:#3a2f17; --no:#e0766b; --no-bg:#3b2120;
+    --shadow:none;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--accent)}
+.wrap{max-width:640px;margin:0 auto;padding:0 16px}
+header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top)}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;height:56px;gap:8px}
+.brand{font-weight:800;font-size:19px;letter-spacing:-.2px}
+.who{display:flex;gap:6px;align-items:center}
+main{padding:16px 0 110px}
+h2{font-size:20px;margin:4px 0 12px}
+h3{font-size:16px;margin:0 0 6px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);margin-bottom:12px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.between{justify-content:space-between}
+.stack>*+*{margin-top:10px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 14px;font-weight:600;font-size:15px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-text)}
+.btn.ghost{background:transparent}
+.btn.sm{padding:6px 10px;font-size:13px;border-radius:8px}
+.btn.danger{color:var(--no)}
+.btn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.btn.yes.on{background:var(--yes-bg);border-color:var(--yes);color:var(--yes)}
+.btn.no.on{background:var(--no-bg);border-color:var(--no);color:var(--no)}
+.btn:disabled{opacity:.4;cursor:default}
+input[type=text],input[type=email],input[type=password],input[type=time],input[type=date],select,textarea{
+  width:100%;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;font-size:16px}
+textarea{min-height:70px;resize:vertical}
+label.f{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:4px}
+.chip{display:inline-block;border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:3px 10px;font-size:13px;margin:2px 4px 2px 0}
+.chip.yes{background:var(--yes-bg);border-color:var(--yes);color:var(--yes)}
+.chip.maybe{background:var(--maybe-bg);border-color:var(--maybe);color:var(--maybe)}
+.chip.no{background:var(--no-bg);border-color:var(--no);color:var(--no)}
+.badge{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px}
+.badge.go{background:var(--yes-bg);color:var(--yes)}
+.badge.wait{background:var(--maybe-bg);color:var(--maybe)}
+.banner{background:var(--maybe-bg);color:var(--text);border:1px solid var(--maybe);border-radius:10px;padding:8px 12px;font-size:13px;margin-bottom:12px}
+.err{color:var(--no);font-size:14px;min-height:20px}
+
+/* calendario */
+.years{display:flex;gap:6px;margin-bottom:10px}
+.years .btn{flex:1}
+.monthbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.monthbar .title{font-weight:700;font-size:18px}
+.navbtn{width:42px;height:38px;border:1px solid var(--line);background:var(--surface);border-radius:10px;font-size:20px;line-height:1}
+.brushes{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+.brushes .btn{padding:8px 4px;font-size:13px}
+.brushes .btn.b-yes.on{background:var(--yes-bg);border-color:var(--yes);color:var(--yes)}
+.brushes .btn.b-maybe.on{background:var(--maybe-bg);border-color:var(--maybe);color:var(--maybe)}
+.brushes .btn.b-no.on{background:var(--no-bg);border-color:var(--no);color:var(--no)}
+.dow,.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.dow div{text-align:center;font-size:12px;color:var(--muted);font-weight:600;padding-bottom:4px}
+.day{aspect-ratio:1/1;border:1px solid var(--line);background:var(--surface);border-radius:10px;position:relative;padding:0;display:flex;align-items:center;justify-content:center;font-size:15px}
+.day.yes{background:var(--yes-bg);border-color:var(--yes);color:var(--yes);font-weight:700}
+.day.maybe{background:var(--maybe-bg);border-color:var(--maybe);color:var(--maybe);font-weight:700}
+.day.no{background:var(--no-bg);border-color:var(--no);color:var(--no)}
+.day.today .n{text-decoration:underline;text-underline-offset:3px;font-weight:800}
+.day:disabled{opacity:.35;cursor:default}
+.day .o{position:absolute;bottom:2px;right:5px;font-size:10px;color:var(--muted);font-weight:600}
+.day .sdot{position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.legend{font-size:12px;color:var(--muted);margin-top:10px}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+.day.h1{background:color-mix(in srgb,var(--yes) 15%,var(--surface))}
+.day.h2{background:color-mix(in srgb,var(--yes) 32%,var(--surface))}
+.day.h3{background:color-mix(in srgb,var(--yes) 55%,var(--surface));font-weight:700}
+.day.h4{background:var(--yes);color:#fff;font-weight:800;border-color:var(--yes)}
+.day.h4 .o{color:#fff}
+.day .g{position:absolute;bottom:2px;left:0;right:0;text-align:center;font-size:10px;font-weight:700;opacity:.85}
+.who-list{margin:6px 0 12px}
+.who-list h3{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:12px 0 4px}
+
+/* nav */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs .wrap{display:grid;grid-template-columns:repeat(4,1fr);padding:0 4px}
+nav.tabs button{background:none;border:0;padding:12px 2px 14px;font-size:13px;font-weight:600;color:var(--muted);position:relative}
+nav.tabs button.on{color:var(--accent)}
+nav.tabs button.on::before{content:"";position:absolute;top:0;left:22%;right:22%;height:3px;border-radius:0 0 3px 3px;background:var(--accent)}
+nav.tabs .count{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:var(--accent);color:var(--accent-text);font-size:11px;margin-left:3px}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto}
+@media (min-width:600px){.overlay{align-items:center}.sheet{border-radius:18px}}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;z-index:30;max-width:90vw}
+.auth{max-width:400px;margin:40px auto;padding:0 16px}
+.auth h1{font-size:30px;margin:0 0 4px;letter-spacing:-.5px}
+.divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;margin:14px 0}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
+.full{width:100%}
+details summary{cursor:pointer;color:var(--muted);font-weight:600;margin:8px 0}
+</style>
+</head>
+<body>
+<div id="app"><div class="auth"><p class="muted">Caricamento...</p></div></div>
+
+<script type="module">
+// =====================================================================
+//  CONFIGURAZIONE
+//  Incolla qui sotto la configurazione del tuo progetto Firebase
+//  (Console Firebase > Impostazioni progetto > Le tue app > Config).
+//  Finché resta null, l'app gira in MODALITÀ DEMO: i dati restano
+//  solo su questo dispositivo e puoi provare tutto da solo.
+// =====================================================================
+const FIREBASE_CONFIG = null;
+/* Esempio:
+const FIREBASE_CONFIG = {
+  apiKey: "AIza...",
+  authDomain: "si-gioca.firebaseapp.com",
+  projectId: "si-gioca",
+  storageBucket: "si-gioca.appspot.com",
+  messagingSenderId: "1234567890",
+  appId: "1:1234567890:web:abcdef"
+};
+*/
+const DEFAULT_TIME = "21:00";
+const SESSION_HOURS = 3;
+const YEARS = [2026, 2027, 2028, 2029];
+// =====================================================================
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad = n => String(n).padStart(2, "0");
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parseYmd = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+const MONTHS = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+const DOW = ["Lun","Mar","Mer","Gio","Ven","Sab","Dom"];
+const fmtDate = s => { const t = parseYmd(s).toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long", year: "numeric" }); return t.charAt(0).toUpperCase() + t.slice(1); };
+const todayStr = () => ymd(new Date());
+const LAST_DAY = `${YEARS[YEARS.length - 1]}-12-31`;
+
+const now = new Date();
+const startY = Math.min(Math.max(now.getFullYear(), YEARS[0]), YEARS[YEARS.length - 1]);
+const S = {
+  authState: "loading", me: null, users: {}, games: {}, avail: {}, sessions: {},
+  tab: "cal", brush: "yes", calMode: "group",
+  view: { y: startY, m: startY === now.getFullYear() ? now.getMonth() : 0 },
+  includeMaybe: false, onlyMine: true, gameFilter: "all", matchLimit: 30,
+  modal: null, authErr: "", busy: false,
+};
+let store = null;
+
+// ---------------------------------------------------------------------
+//  STORE DEMO (localStorage)
+// ---------------------------------------------------------------------
+function makeLocalStore() {
+  const KEY = "sigioca-demo-v1";
+  let db = null;
+  try { db = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+  db = db || { users: {}, games: {}, avail: {}, sessions: {}, current: null };
+  let listener = () => {};
+  const emit = () => listener({
+    users: db.users, games: db.games, avail: db.avail, sessions: db.sessions,
+    me: db.current && db.users[db.current] ? { uid: db.current, ...db.users[db.current] } : null,
+    authState: db.current && db.users[db.current] ? "ready" : "signedOut",
+  });
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {} emit(); };
+  const id = () => Math.random().toString(36).slice(2, 10);
+  const me = () => db.users[db.current];
+  return {
+    demo: true,
+    start(fn) { listener = fn; emit(); },
+    loginAs(uid) { db.current = uid; save(); },
+    createUser(name) { const uid = "u_" + id(); db.users[uid] = { name, games: [] }; db.current = uid; save(); },
+    logout() { db.current = null; save(); },
+    setName(name) { me().name = name; save(); },
+    toggleInterest(gid) { const u = me(); u.games = u.games.includes(gid) ? u.games.filter(x => x !== gid) : [...u.games, gid]; save(); },
+    setDays(map) { const a = db.avail[db.current] ||= {}; for (const [d, v] of Object.entries(map)) { if (v) a[d] = v; else delete a[d]; } save(); },
+    addGame(name, minPlayers) { const gid = "g_" + id(); db.games[gid] = { name, minPlayers, createdBy: db.current }; me().games.push(gid); save(); },
+    deleteGame(gid) { delete db.games[gid]; for (const u of Object.values(db.users)) u.games = (u.games || []).filter(x => x !== gid); save(); },
+    createSession(data) { const sid = "s_" + id(); db.sessions[sid] = { ...data, createdBy: db.current, rsvps: { [db.current]: "yes" } }; save(); },
+    rsvp(sid, val) { db.sessions[sid].rsvps[db.current] = val; save(); },
+    deleteSession(sid) { delete db.sessions[sid]; save(); },
+    reset() { db = { users: {}, games: {}, avail: {}, sessions: {}, current: null }; save(); },
+    seed() {
+      let r = 7; const rnd = () => (r = (r * 16807) % 2147483647) / 2147483647;
+      const G = { dnd: ["Dungeons & Dragons", 4], catan: ["Catan", 3], magic: ["Magic", 2] };
+      for (const [k, [name, min]] of Object.entries(G)) if (!db.games["g_" + k]) db.games["g_" + k] = { name, minPlayers: min, createdBy: null };
+      const friends = { Luca: ["g_dnd", "g_catan"], Giulia: ["g_dnd", "g_magic"], Marco: ["g_dnd", "g_catan", "g_magic"], Sara: ["g_catan", "g_dnd"] };
+      if (!db.current) { const uid = "u_" + id(); db.users[uid] = { name: "Io", games: [] }; db.current = uid; }
+      const meU = db.users[db.current];
+      for (const g of ["g_dnd", "g_catan"]) if (!meU.games.includes(g)) meU.games.push(g);
+      const fill = uid => {
+        const a = db.avail[uid] ||= {}; const d = new Date();
+        for (let i = 1; i <= 150; i++) {
+          d.setDate(d.getDate() + 1); const w = d.getDay(); const x = rnd(); const k = ymd(d);
+          if (a[k]) continue;
+          if (w === 5 || w === 6 || w === 0) { if (x < .6) a[k] = "yes"; else if (x < .75) a[k] = "maybe"; else if (x < .85) a[k] = "no"; }
+          else if (x < .15) a[k] = "yes";
+        }
+      };
+      for (const [name, games] of Object.entries(friends)) {
+        let uid = Object.keys(db.users).find(u => db.users[u].name === name);
+        if (!uid) { uid = "u_" + id(); db.users[uid] = { name, games }; }
+        fill(uid);
+      }
+      fill(db.current);
+      save();
+    },
+  };
+}
+
+// ---------------------------------------------------------------------
+//  STORE FIREBASE
+// ---------------------------------------------------------------------
+async function makeFirebaseStore(cfg) {
+  const V = "10.12.2";
+  const [{ initializeApp }, A, F] = await Promise.all([
+    import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`),
+    import(`https://www.gstatic.com/firebasejs/${V}/firebase-auth.js`),
+    import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`),
+  ]);
+  const app = initializeApp(cfg);
+  const auth = A.getAuth(app);
+  auth.languageCode = "it";
+  const db = F.getFirestore(app);
+  const data = { users: {}, games: {}, avail: {}, sessions: {} };
+  let listener = () => {}, unsubs = [], uid = null, authState = "loading", email = "";
+  const emit = () => listener({
+    ...data, authState, authEmail: email,
+    me: uid && authState === "ready" ? { uid, email, games: [], ...(data.users[uid] || {}) } : null,
+  });
+  const stop = () => { unsubs.forEach(u => u()); unsubs = []; };
+  const onErr = e => { console.error(e); if (e.code === "permission-denied") { authState = "denied"; stop(); } emit(); };
+  const watch = (name, map) => unsubs.push(F.onSnapshot(F.collection(db, name), snap => {
+    const out = {}; snap.forEach(d => { out[d.id] = map(d.data()); }); data[name === "availability" ? "avail" : name] = out; emit();
+  }, onErr));
+
+  async function handleUser(user) {
+    stop();
+    if (!user) { uid = null; email = ""; authState = "signedOut"; return emit(); }
+    email = (user.email || "").toLowerCase();
+    const isPassword = user.providerData.some(p => p.providerId === "password");
+    if (isPassword && !user.emailVerified) { uid = null; authState = "unverified"; return emit(); }
+    uid = user.uid;
+    try {
+      const ref = F.doc(db, "users", uid);
+      const snap = await F.getDoc(ref);
+      if (!snap.exists()) await F.setDoc(ref, { name: user.displayName || email.split("@")[0], email, games: [] });
+    } catch (e) { return onErr(e); }
+    authState = "ready";
+    watch("users", d => ({ games: [], ...d }));
+    watch("games", d => d);
+    watch("availability", d => d.days || {});
+    watch("sessions", d => ({ rsvps: {}, ...d }));
+    emit();
+  }
+
+  return {
+    demo: false,
+    start(fn) { listener = fn; emit(); A.onAuthStateChanged(auth, handleUser); },
+    signInGoogle: () => A.signInWithPopup(auth, new A.GoogleAuthProvider()),
+    signInEmail: (e, p) => A.signInWithEmailAndPassword(auth, e, p),
+    async signUpEmail(e, p) { const c = await A.createUserWithEmailAndPassword(auth, e, p); await A.sendEmailVerification(c.user); },
+    resendVerification: () => A.sendEmailVerification(auth.currentUser),
+    async checkVerified() { await auth.currentUser.reload(); await auth.currentUser.getIdToken(true); await handleUser(auth.currentUser); return auth.currentUser.emailVerified; },
+    resetPassword: e => A.sendPasswordResetEmail(auth, e),
+    logout: () => A.signOut(auth),
+    setName: name => F.updateDoc(F.doc(db, "users", uid), { name }),
+    toggleInterest(gid) {
+      const has = (data.users[uid]?.games || []).includes(gid);
+      return F.updateDoc(F.doc(db, "users", uid), { games: has ? F.arrayRemove(gid) : F.arrayUnion(gid) });
+    },
+    setDays(map) {
+      const days = {}; for (const [d, v] of Object.entries(map)) days[d] = v || F.deleteField();
+      return F.setDoc(F.doc(db, "availability", uid), { days }, { merge: true });
+    },
+    async addGame(name, minPlayers) {
+      const ref = await F.addDoc(F.collection(db, "games"), { name, minPlayers, createdBy: uid });
+      await F.updateDoc(F.doc(db, "users", uid), { games: F.arrayUnion(ref.id) });
+    },
+    deleteGame: gid => F.deleteDoc(F.doc(db, "games", gid)),
+    createSession: d => F.addDoc(F.collection(db, "sessions"), { ...d, createdBy: uid, rsvps: { [uid]: "yes" }, createdAt: F.serverTimestamp() }),
+    rsvp: (sid, val) => F.setDoc(F.doc(db, "sessions", sid), { rsvps: { [uid]: val } }, { merge: true }),
+    deleteSession: sid => F.deleteDoc(F.doc(db, "sessions", sid)),
+  };
+}
+
+// ---------------------------------------------------------------------
+//  LOGICA
+// ---------------------------------------------------------------------
+const userName = uid => S.users[uid]?.name || "Qualcuno";
+const myGames = () => (S.me?.games || []).filter(g => S.games[g]);
+const playersOf = gid => Object.keys(S.users).filter(u => (S.users[u].games || []).includes(gid));
+const sortByName = list => [...list].sort((a, b) => userName(a).localeCompare(userName(b)));
+
+function computeMatches() {
+  const today = todayStr(), me = S.me.uid;
+  const dates = new Set();
+  for (const a of Object.values(S.avail)) for (const d of Object.keys(a)) if (d >= today && d <= LAST_DAY) dates.add(d);
+  const sorted = [...dates].sort();
+  const existing = new Set(Object.values(S.sessions).map(s => s.gameId + "|" + s.date));
+  const out = [];
+  for (const [gid, g] of Object.entries(S.games)) {
+    if (S.gameFilter !== "all" && S.gameFilter !== gid) continue;
+    const players = playersOf(gid);
+    if (S.onlyMine && !players.includes(me)) continue;
+    for (const d of sorted) {
+      const st = u => (S.avail[u] || {})[d];
+      const yes = players.filter(u => st(u) === "yes");
+      const maybe = players.filter(u => st(u) === "maybe");
+      const count = yes.length + (S.includeMaybe ? maybe.length : 0);
+      if (count < (g.minPlayers || 2)) continue;
+      if (S.onlyMine && !(st(me) === "yes" || (S.includeMaybe && st(me) === "maybe"))) continue;
+      out.push({ gid, g, date: d, yes, maybe, players, proposed: existing.has(gid + "|" + d) });
+    }
+  }
+  out.sort((a, b) => a.date.localeCompare(b.date) || a.g.name.localeCompare(b.g.name));
+  return out;
+}
+
+function sessionInfo(s) {
+  const min = S.games[s.gameId]?.minPlayers || s.minPlayers || 2;
+  const rs = s.rsvps || {};
+  const invited = new Set([...(s.invited || []), ...playersOf(s.gameId), ...Object.keys(rs)]);
+  const yes = [...invited].filter(u => rs[u] === "yes");
+  const no = [...invited].filter(u => rs[u] === "no");
+  const pending = [...invited].filter(u => !rs[u] && S.users[u]);
+  return { min, yes, no, pending, go: yes.length >= min, name: S.games[s.gameId]?.name || s.gameName || "Gioco" };
+}
+
+function sessionTimes(s) {
+  const [hh, mm] = (s.time || DEFAULT_TIME).split(":").map(Number);
+  const start = parseYmd(s.date); start.setHours(hh, mm, 0, 0);
+  const end = new Date(start.getTime() + SESSION_HOURS * 3600e3);
+  const f = d => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
+  return { start: f(start), end: f(end) };
+}
+
+function sessionDetails(s, info) {
+  const lines = [`Si gioca a ${info.name}!`];
+  if (info.yes.length) lines.push("Confermati: " + sortByName(info.yes).map(userName).join(", "));
+  if (s.notes) lines.push(s.notes);
+  return lines.join("\n");
+}
+
+function downloadIcs(sid) {
+  const s = S.sessions[sid]; if (!s) return;
+  const info = sessionInfo(s), t = sessionTimes(s);
+  const e = x => String(x || "").replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/([,;])/g, "\\$1");
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  const ics = [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Si gioca//IT", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
+    "BEGIN:VEVENT", `UID:${sid}@sigioca`, `DTSTAMP:${stamp}`, `DTSTART:${t.start}`, `DTEND:${t.end}`,
+    `SUMMARY:${e(info.name)}`, `LOCATION:${e(s.location)}`, `DESCRIPTION:${e(sessionDetails(s, info))}`,
+    "BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${e("Domani si gioca a " + info.name)}`, "TRIGGER:-P1D", "END:VALARM",
+    "BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${e("Tra 2 ore si gioca a " + info.name)}`, "TRIGGER:-PT2H", "END:VALARM",
+    "END:VEVENT", "END:VCALENDAR",
+  ].join("\r\n");
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `${info.name.replace(/[^\w]+/g, "-").toLowerCase()}-${s.date}.ics`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+function gcalLink(sid, s) {
+  const info = sessionInfo(s), t = sessionTimes(s);
+  const p = new URLSearchParams({ action: "TEMPLATE", text: info.name, dates: `${t.start}/${t.end}`, details: sessionDetails(s, info), location: s.location || "" });
+  return "https://calendar.google.com/calendar/render?" + p.toString();
+}
+
+// ---------------------------------------------------------------------
+//  RENDER
+// ---------------------------------------------------------------------
+function render() {
+  const keep = {}; let focusId = null, sel = null;
+  document.querySelectorAll("[data-keep]").forEach(el => { keep[el.id] = el.value; });
+  const ae = document.activeElement;
+  if (ae && ae.id) { focusId = ae.id; try { sel = ae.selectionStart; } catch (e) {} }
+
+  let html;
+  if (S.authState === "loading") html = `<div class="auth"><p class="muted">Caricamento...</p></div>`;
+  else if (S.authState === "unverified") html = renderUnverified();
+  else if (S.authState === "denied") html = renderDenied();
+  else if (!S.me) html = store.demo ? renderDemoLogin() : renderLogin();
+  else html = renderShell();
+  $("#app").innerHTML = html + (S.modal ? renderModal() : "");
+
+  for (const [id, v] of Object.entries(keep)) { const el = document.getElementById(id); if (el) el.value = v; }
+  if (focusId) { const el = document.getElementById(focusId); if (el) { el.focus({ preventScroll: true }); try { if (sel != null) el.setSelectionRange(sel, sel); } catch (e) {} } }
+}
+
+function renderLogin() {
+  return `<div class="auth stack">
+    <h1>Si gioca?</h1>
+    <p class="muted">Segna quando ci sei, scopri quando si gioca.</p>
+    <button class="btn primary full" data-action="googleIn">Entra con Google</button>
+    <div class="divider">oppure con email</div>
+    <div><label class="f" for="authEmail">Email</label><input id="authEmail" data-keep type="email" autocomplete="email"></div>
+    <div><label class="f" for="authPw">Password</label><input id="authPw" data-keep type="password" autocomplete="current-password"></div>
+    <div class="err">${esc(S.authErr)}</div>
+    <div class="row"><button class="btn primary" style="flex:1" data-action="emailIn">Entra</button><button class="btn" style="flex:1" data-action="emailUp">Crea account</button></div>
+    <button class="btn ghost sm" data-action="resetPw">Password dimenticata?</button>
+  </div>`;
+}
+
+function renderUnverified() {
+  return `<div class="auth stack">
+    <h1>Quasi fatto</h1>
+    <p>Ti abbiamo mandato un'email per verificare l'indirizzo. Apri il link (controlla anche lo spam), poi torna qui.</p>
+    <div class="err">${esc(S.authErr)}</div>
+    <button class="btn primary full" data-action="checkVerify">Ho verificato, entra</button>
+    <div class="row"><button class="btn" style="flex:1" data-action="resendVerify">Rinvia email</button><button class="btn" style="flex:1" data-action="logout">Esci</button></div>
+  </div>`;
+}
+
+function renderDenied() {
+  return `<div class="auth stack">
+    <h1>Non sei in lista</h1>
+    <p>L'account <strong>${esc(S.authEmail)}</strong> non è tra i giocatori del gruppo. Chiedi a chi gestisce l'app di aggiungere la tua email, poi rientra.</p>
+    <button class="btn full" data-action="logout">Esci</button>
+  </div>`;
+}
+
+function renderDemoLogin() {
+  const users = Object.entries(S.users);
+  return `<div class="auth stack">
+    <h1>Si gioca?</h1>
+    <div class="banner">Modalità demo: i dati restano solo su questo dispositivo. Puoi creare più giocatori per provare gli incroci.</div>
+    ${users.length ? `<div><label class="f">Entra come</label><div class="row">${users.map(([u, x]) => `<button class="btn" data-action="demoAs" data-u="${u}">${esc(x.name)}</button>`).join("")}</div></div>` : ""}
+    <div><label class="f" for="demoName">Nuovo giocatore</label><input id="demoName" data-keep type="text" placeholder="Il tuo nome"></div>
+    <button class="btn primary full" data-action="demoNew">Entra</button>
+    <div class="divider">per provare al volo</div>
+    <button class="btn full" data-action="demoSeed">Carica un gruppo di esempio</button>
+    ${users.length ? `<button class="btn ghost sm danger" data-action="demoReset">Cancella tutti i dati demo</button>` : ""}
+  </div>`;
+}
+
+function renderShell() {
+  const today = todayStr();
+  const toAnswer = Object.values(S.sessions).filter(s => s.date >= today && playersOf(s.gameId).includes(S.me.uid) && !(s.rsvps || {})[S.me.uid]).length;
+  let body = "";
+  if (S.tab === "cal") body = renderCal();
+  else if (S.tab === "games") body = renderGames();
+  else if (S.tab === "match") body = renderMatches();
+  else body = renderSessions();
+  const t = (id, label, extra = "") => `<button class="${S.tab === id ? "on" : ""}" data-action="tab" data-tab="${id}">${label}${extra}</button>`;
+  return `
+  <header class="top"><div class="wrap">
+    <div class="brand">Si gioca?</div>
+    <div class="who">
+      <button class="btn sm ghost" data-action="rename">${esc(S.me.name || "Profilo")}</button>
+      <button class="btn sm" data-action="logout">${store.demo ? "Cambia" : "Esci"}</button>
+    </div>
+  </div></header>
+  <main><div class="wrap">
+    ${store.demo ? `<div class="banner">Modalità demo - i dati restano su questo dispositivo.</div>` : ""}
+    ${body}
+  </div></main>
+  <nav class="tabs"><div class="wrap">
+    ${t("cal", "Calendario")}${t("games", "Giochi")}${t("match", "Incroci")}${t("sess", "Sessioni", toAnswer ? `<span class="count">${toAnswer}</span>` : "")}
+  </div></nav>`;
+}
+
+function renderCal() {
+  const { y, m } = S.view;
+  const mine = S.avail[S.me.uid] || {};
+  const first = new Date(y, m, 1);
+  const offset = (first.getDay() + 6) % 7;
+  const dim = new Date(y, m + 1, 0).getDate();
+  const today = todayStr();
+  const sessDays = new Set(Object.values(S.sessions).filter(s => (s.rsvps || {})[S.me.uid] !== "no" && playersOf(s.gameId).includes(S.me.uid)).map(s => s.date));
+  const others = Object.keys(S.users).filter(u => u !== S.me.uid);
+  const everyone = Object.keys(S.users);
+  const group = S.calMode === "group";
+  let cells = "";
+  for (let i = 0; i < offset; i++) cells += `<div></div>`;
+  for (let d = 1; d <= dim; d++) {
+    const k = `${y}-${pad(m + 1)}-${pad(d)}`;
+    if (group) {
+      const n = everyone.filter(u => (S.avail[u] || {})[k] === "yes").length;
+      const ratio = everyone.length ? n / everyone.length : 0;
+      const h = !n ? "" : ratio >= 1 ? "h4" : ratio >= .75 ? "h3" : ratio >= .45 ? "h2" : "h1";
+      cells += `<button class="day ${h} ${k === today ? "today" : ""}" data-action="dayInfo" data-date="${k}" ${k < today ? "disabled" : ""} aria-label="${k}">
+        <span class="n">${d}</span>${n ? `<span class="g">${n}/${everyone.length}</span>` : ""}${sessDays.has(k) ? `<span class="sdot"></span>` : ""}</button>`;
+    } else {
+      const st = mine[k] || "";
+      const n = others.filter(u => (S.avail[u] || {})[k] === "yes").length;
+      cells += `<button class="day ${st} ${k === today ? "today" : ""}" data-action="day" data-date="${k}" ${k < today ? "disabled" : ""} aria-label="${k}">
+        <span class="n">${d}</span>${n ? `<span class="o">${n}</span>` : ""}${sessDays.has(k) ? `<span class="sdot"></span>` : ""}</button>`;
+    }
+  }
+  const atStart = y === YEARS[0] && m === 0, atEnd = y === YEARS[YEARS.length - 1] && m === 11;
+  const b = (id, label) => `<button class="btn b-${id} ${S.brush === id ? "on" : ""}" data-action="brush" data-b="${id}">${label}</button>`;
+  return `
+    <div class="years">${YEARS.map(yr => `<button class="btn sm ${yr === y ? "on" : ""}" data-action="year" data-y="${yr}">${yr}</button>`).join("")}</div>
+    <div class="monthbar">
+      <button class="navbtn" data-action="prevMonth" ${atStart ? "disabled" : ""} aria-label="Mese precedente">&lsaquo;</button>
+      <div class="title">${MONTHS[m]} ${y}</div>
+      <button class="navbtn" data-action="nextMonth" ${atEnd ? "disabled" : ""} aria-label="Mese successivo">&rsaquo;</button>
+    </div>
+    <div class="modes">
+      <button class="btn sm ${group ? "on" : ""}" data-action="calMode" data-m="group">Gruppo</button>
+      <button class="btn sm ${group ? "" : "on"}" data-action="calMode" data-m="mine">Le mie disponibilità</button>
+    </div>
+    ${group ? "" : `<div class="brushes">${b("yes", "Ci sono")}${b("maybe", "Forse")}${b("no", "Non ci sono")}${b("clear", "Cancella")}</div>`}
+    <div class="dow">${DOW.map(d => `<div>${d}</div>`).join("")}</div>
+    <div class="grid">${cells}</div>
+    ${group ? `<p class="legend">Quanti del gruppo ci sono ogni giorno: più è verde, più siete. Tocca un giorno per vedere chi c'è, chi forse e chi no. Il pallino indica una sessione in programma.</p>` : `
+    <div class="row" style="margin-top:12px">
+      <button class="btn sm" data-action="bulkWeekend">Applica ai weekend del mese</button>
+      <button class="btn sm ghost" data-action="clearMonth">Svuota mese</button>
+    </div>
+    <p class="legend">Scegli uno stato e tocca i giorni. Il numero piccolo indica quanti altri ci sono quel giorno; il pallino indica una sessione in programma.</p>`}
+    ${myGames().length ? "" : `<div class="card"><strong>Prossimo passo:</strong> vai su <a href="#" data-action="tab" data-tab="games">Giochi</a> e scegli a cosa vuoi giocare, così gli incroci sanno cosa cercare.</div>`}`;
+}
+
+function renderGames() {
+  const games = Object.entries(S.games).sort((a, b) => a[1].name.localeCompare(b[1].name));
+  const opts = [2, 3, 4, 5, 6, 7, 8].map(n => `<option value="${n}" ${n === 3 ? "selected" : ""}>${n}</option>`).join("");
+  return `
+    <h2>Giochi</h2>
+    <div class="card stack">
+      <div><label class="f" for="newGameName">Nuovo gioco</label><input id="newGameName" data-keep type="text" placeholder="Es. Dungeons & Dragons"></div>
+      <div class="row">
+        <div style="flex:1"><label class="f" for="newGameMin">Giocatori minimi</label><select id="newGameMin" data-keep>${opts}</select></div>
+        <button class="btn primary" style="align-self:flex-end" data-action="addGame">Aggiungi</button>
+      </div>
+    </div>
+    ${games.length ? games.map(([gid, g]) => {
+      const players = sortByName(playersOf(gid));
+      const inIt = players.includes(S.me.uid);
+      return `<div class="card">
+        <div class="row between"><h3>${esc(g.name)}</h3><span class="muted small">min. ${g.minPlayers || 2} giocatori</span></div>
+        <div style="margin:6px 0 10px">${players.length ? players.map(u => `<span class="chip ${u === S.me.uid ? "yes" : ""}">${esc(userName(u))}</span>`).join("") : `<span class="muted small">Ancora nessuno</span>`}</div>
+        <div class="row between">
+          <button class="btn sm ${inIt ? "yes on" : ""}" data-action="toggleInterest" data-g="${gid}">${inIt ? "Ci gioco" : "Voglio giocarci"}</button>
+          ${g.createdBy === S.me.uid ? `<button class="btn sm ghost danger" data-action="deleteGame" data-g="${gid}">Elimina</button>` : ""}
+        </div>
+      </div>`;
+    }).join("") : `<p class="muted">Nessun gioco ancora. Aggiungine uno qui sopra.</p>`}`;
+}
+
+function renderMatches() {
+  const games = Object.entries(S.games).sort((a, b) => a[1].name.localeCompare(b[1].name));
+  const all = computeMatches();
+  const shown = all.slice(0, S.matchLimit);
+  const chip = (id, label) => `<button class="btn sm ${S.gameFilter === id ? "on" : ""}" data-action="filterGame" data-g="${id}">${esc(label)}</button>`;
+  let empty = "";
+  if (!games.length) empty = `Non ci sono ancora giochi. Aggiungine uno in <a href="#" data-action="tab" data-tab="games">Giochi</a>.`;
+  else if (S.onlyMine && !myGames().length) empty = `Non hai ancora scelto a cosa giocare. Vai su <a href="#" data-action="tab" data-tab="games">Giochi</a>.`;
+  else if (!all.length) empty = `Nessun incrocio per ora. Servono abbastanza giocatori disponibili lo stesso giorno: segna più date nel calendario${S.includeMaybe ? "" : " o prova a contare anche i forse"}.`;
+  return `
+    <h2>Incroci</h2>
+    <div class="row" style="margin-bottom:8px">${chip("all", "Tutti")}${games.map(([gid, g]) => chip(gid, g.name)).join("")}</div>
+    <div class="row" style="margin-bottom:14px">
+      <button class="btn sm ${S.includeMaybe ? "on" : ""}" data-action="toggleMaybe">Conta anche i forse</button>
+      <button class="btn sm ${S.onlyMine ? "on" : ""}" data-action="toggleMine">Solo dove ci sono anch'io</button>
+    </div>
+    ${empty ? `<p class="muted">${empty}</p>` : shown.map(x => `
+      <div class="card">
+        <div class="row between"><h3>${esc(x.g.name)}</h3><span class="badge go">${x.yes.length}/${x.players.length} disponibili</span></div>
+        <div class="muted" style="margin-bottom:8px">${fmtDate(x.date)}</div>
+        <div>${sortByName(x.yes).map(u => `<span class="chip yes">${esc(userName(u))}</span>`).join("")}${sortByName(x.maybe).map(u => `<span class="chip maybe">${esc(userName(u))} (forse)</span>`).join("")}</div>
+        <div class="row" style="margin-top:10px">
+          ${x.proposed ? `<button class="btn sm" data-action="tab" data-tab="sess">Già proposta - vedi sessioni</button>` : `<button class="btn sm primary" data-action="propose" data-g="${x.gid}" data-date="${x.date}">Proponi questa data</button>`}
+        </div>
+      </div>`).join("")}
+    ${all.length > shown.length ? `<button class="btn full" data-action="moreMatches">Mostra altri (${all.length - shown.length})</button>` : ""}`;
+}
+
+function renderSessionCard(sid, s, past) {
+  const info = sessionInfo(s);
+  const my = (s.rsvps || {})[S.me.uid];
+  const iCan = playersOf(s.gameId).includes(S.me.uid) || my;
+  return `<div class="card">
+    <div class="row between"><h3>${esc(info.name)}</h3>
+      ${past ? "" : info.go ? `<span class="badge go">Si gioca</span>` : `<span class="badge wait">${info.min - info.yes.length === 1 ? "Manca 1 conferma" : `Mancano ${info.min - info.yes.length} conferme`}</span>`}</div>
+    <div><strong>${fmtDate(s.date)}</strong> alle ${esc(s.time || DEFAULT_TIME)}</div>
+    ${s.location ? `<div class="muted">${esc(s.location)}</div>` : ""}
+    ${s.notes ? `<div class="small" style="margin-top:4px">${esc(s.notes)}</div>` : ""}
+    <div style="margin:10px 0">
+      ${sortByName(info.yes).map(u => `<span class="chip yes">${esc(userName(u))}</span>`).join("")}
+      ${sortByName(info.pending).map(u => `<span class="chip">${esc(userName(u))} - in attesa</span>`).join("")}
+      ${sortByName(info.no).map(u => `<span class="chip no">${esc(userName(u))} - non viene</span>`).join("")}
+    </div>
+    ${past ? "" : `
+    ${iCan ? `<div class="row" style="margin-bottom:8px">
+      <button class="btn sm yes ${my === "yes" ? "on" : ""}" data-action="rsvp" data-s="${sid}" data-v="yes">Ci sono</button>
+      <button class="btn sm no ${my === "no" ? "on" : ""}" data-action="rsvp" data-s="${sid}" data-v="no">Non posso</button>
+    </div>` : ""}
+    <div class="row">
+      <button class="btn sm" data-action="ics" data-s="${sid}">Aggiungi al calendario</button>
+      <a class="btn sm" href="${esc(gcalLink(sid, s))}" target="_blank" rel="noopener" style="text-decoration:none">Google Calendar</a>
+      ${s.createdBy === S.me.uid ? `<button class="btn sm ghost danger" data-action="deleteSession" data-s="${sid}">Annulla</button>` : ""}
+    </div>`}
+  </div>`;
+}
+
+function renderSessions() {
+  const today = todayStr();
+  const list = Object.entries(S.sessions).sort((a, b) => (a[1].date + (a[1].time || "")).localeCompare(b[1].date + (b[1].time || "")));
+  const up = list.filter(([, s]) => s.date >= today);
+  const past = list.filter(([, s]) => s.date < today).reverse().slice(0, 10);
+  return `
+    <div class="row between" style="margin-bottom:12px"><h2 style="margin:0">Sessioni</h2><button class="btn sm primary" data-action="newSession">Nuova sessione</button></div>
+    ${up.length ? up.map(([sid, s]) => renderSessionCard(sid, s, false)).join("") : `<p class="muted">Nessuna sessione in programma. Proponine una dagli <a href="#" data-action="tab" data-tab="match">Incroci</a>.</p>`}
+    ${past.length ? `<details><summary>Sessioni passate</summary>${past.map(([sid, s]) => renderSessionCard(sid, s, true)).join("")}</details>` : ""}`;
+}
+
+function renderModal() {
+  const M = S.modal;
+  let inner = "";
+  if (M.type === "day") {
+    const k = M.date, all = sortByName(Object.keys(S.users));
+    const st = u => (S.avail[u] || {})[k];
+    const grp = (title, list, cls, suffix = "") => `<h3>${title} (${list.length})</h3><div>${list.length ? list.map(u => `<span class="chip ${cls}">${esc(userName(u))}${suffix}</span>`).join("") : `<span class="muted small">Nessuno</span>`}</div>`;
+    const yes = all.filter(u => st(u) === "yes"), maybe = all.filter(u => st(u) === "maybe"), no = all.filter(u => st(u) === "no"), none = all.filter(u => !st(u));
+    const sess = Object.entries(S.sessions).filter(([, s]) => s.date === k);
+    const games = Object.entries(S.games).map(([gid, g]) => { const p = playersOf(gid); const n = p.filter(u => st(u) === "yes").length; return { gid, g, n, tot: p.length, ok: n >= (g.minPlayers || 2) }; }).filter(x => x.tot).sort((a, b) => b.ok - a.ok || b.n - a.n);
+    const my = st(S.me.uid);
+    inner = `<h2>${fmtDate(k)}</h2>
+      <div class="who-list">
+        ${grp("Ci sono", yes, "yes")}${grp("Forse", maybe, "maybe")}${grp("Non ci sono", no, "no")}${none.length ? grp("Non hanno ancora segnato", none, "") : ""}
+        ${sess.length ? `<h3>Sessioni</h3>${sess.map(([, s]) => { const i = sessionInfo(s); return `<div class="small"><strong>${esc(i.name)}</strong> alle ${esc(s.time || DEFAULT_TIME)}${s.location ? " - " + esc(s.location) : ""} - ${i.yes.length} confermati${i.go ? ", si gioca" : ""}</div>`; }).join("")}` : ""}
+        ${games.length ? `<h3>Giochi possibili</h3>${games.map(x => `<div class="row between small" style="margin:4px 0"><span>${esc(x.g.name)}: ${x.n} su ${x.tot} disponibili (min. ${x.g.minPlayers || 2})</span>${x.ok && !sess.some(([, s]) => s.gameId === x.gid) ? `<button class="btn sm primary" data-action="propose" data-g="${x.gid}" data-date="${k}">Proponi</button>` : ""}</div>`).join("")}` : ""}
+      </div>
+      <div class="row" style="margin-bottom:12px"><span class="small muted" style="width:100%">Tu quel giorno:</span>
+        <button class="btn sm yes ${my === "yes" ? "on" : ""}" data-action="setMyDay" data-date="${k}" data-v="yes">Ci sono</button>
+        <button class="btn sm ${my === "maybe" ? "on" : ""}" data-action="setMyDay" data-date="${k}" data-v="maybe">Forse</button>
+        <button class="btn sm no ${my === "no" ? "on" : ""}" data-action="setMyDay" data-date="${k}" data-v="no">Non ci sono</button>
+      </div>
+      <button class="btn full" data-action="closeModal">Chiudi</button>`;
+  } else if (M.type === "name") {
+    inner = `<h2>Il tuo nome</h2>
+      <p class="muted small">È il nome che vedono gli altri.</p>
+      <input id="nameInput" data-keep type="text" value="${esc(S.me.name || "")}">
+      <div class="row" style="margin-top:14px"><button class="btn" style="flex:1" data-action="closeModal">Annulla</button><button class="btn primary" style="flex:1" data-action="saveName">Salva</button></div>`;
+  } else if (M.type === "session") {
+    const games = Object.entries(S.games).sort((a, b) => a[1].name.localeCompare(b[1].name));
+    inner = `<h2>Proponi una sessione</h2>
+      <div class="stack">
+        <div><label class="f" for="sGame">Gioco</label><select id="sGame" data-keep>${games.map(([gid, g]) => `<option value="${gid}" ${gid === M.gameId ? "selected" : ""}>${esc(g.name)}</option>`).join("")}</select></div>
+        <div class="row">
+          <div style="flex:1.4"><label class="f" for="sDate">Giorno</label><input id="sDate" data-keep type="date" min="${todayStr()}" max="${LAST_DAY}" value="${esc(M.date || "")}"></div>
+          <div style="flex:1"><label class="f" for="sTime">Ora</label><input id="sTime" data-keep type="time" value="${DEFAULT_TIME}"></div>
+        </div>
+        <div><label class="f" for="sLoc">Dove</label><input id="sLoc" data-keep type="text" placeholder="Es. da Marco, via Roma 12"></div>
+        <div><label class="f" for="sNotes">Note</label><textarea id="sNotes" data-keep placeholder="Es. portate i dadi, si cena prima"></textarea></div>
+        <div class="err" id="sErr"></div>
+        <div class="row"><button class="btn" style="flex:1" data-action="closeModal">Annulla</button><button class="btn primary" style="flex:1" data-action="saveSession">Proponi</button></div>
+      </div>`;
+  }
+  return `<div class="overlay" data-action="overlay"><div class="sheet">${inner}</div></div>`;
+}
+
+let toastTimer;
+function toast(msg) {
+  document.querySelector(".toast")?.remove();
+  const t = document.createElement("div"); t.className = "toast"; t.textContent = msg;
+  document.body.appendChild(t); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.remove(), 2600);
+}
+
+const AUTH_ERRORS = {
+  "auth/invalid-email": "Email non valida.",
+  "auth/missing-password": "Inserisci la password.",
+  "auth/weak-password": "La password deve avere almeno 6 caratteri.",
+  "auth/email-already-in-use": "Esiste già un account con questa email: usa Entra.",
+  "auth/invalid-credential": "Email o password non corrette.",
+  "auth/wrong-password": "Email o password non corrette.",
+  "auth/user-not-found": "Email o password non corrette.",
+  "auth/popup-closed-by-user": "Accesso annullato.",
+  "auth/popup-blocked": "Il browser ha bloccato la finestra di Google. Riprova o usa email e password.",
+  "auth/unauthorized-domain": "Questo indirizzo non è autorizzato nel progetto Firebase (vedi README).",
+  "auth/too-many-requests": "Troppi tentativi, riprova tra poco.",
+};
+const authMsg = e => AUTH_ERRORS[e?.code] || "Qualcosa non ha funzionato. Riprova.";
+
+// ---------------------------------------------------------------------
+//  AZIONI
+// ---------------------------------------------------------------------
+async function run(fn) {
+  try { await fn(); } catch (e) { console.error(e); toast(e?.code === "permission-denied" ? "Permesso negato: controlla le regole Firestore." : "Errore: " + (e?.message || e)); }
+}
+const val = id => (document.getElementById(id)?.value || "").trim();
+
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-action]");
+  if (!el) return;
+  const a = el.dataset.action;
+  if (a === "overlay") { if (e.target === el) { S.modal = null; render(); } return; }
+  if (el.tagName === "A" && el.getAttribute("href") === "#") e.preventDefault();
+  const d = el.dataset;
+
+  switch (a) {
+    // navigazione
+    case "tab": S.tab = d.tab; S.modal = null; render(); window.scrollTo(0, 0); break;
+    case "year": S.view = { y: +d.y, m: S.view.m }; render(); break;
+    case "prevMonth": { let { y, m } = S.view; m--; if (m < 0) { m = 11; y--; } S.view = { y, m }; render(); break; }
+    case "nextMonth": { let { y, m } = S.view; m++; if (m > 11) { m = 0; y++; } S.view = { y, m }; render(); break; }
+    case "brush": S.brush = d.b; render(); break;
+    case "closeModal": S.modal = null; render(); break;
+
+    // calendario
+    case "calMode": S.calMode = d.m; render(); break;
+    case "dayInfo": S.modal = { type: "day", date: d.date }; render(); break;
+    case "setMyDay": {
+      const cur = (S.avail[S.me.uid] || {})[d.date];
+      run(() => store.setDays({ [d.date]: cur === d.v ? null : d.v }));
+      break;
+    }
+    case "day": {
+      const cur = (S.avail[S.me.uid] || {})[d.date];
+      const next = S.brush === "clear" || cur === S.brush ? null : S.brush;
+      run(() => store.setDays({ [d.date]: next }));
+      break;
+    }
+    case "bulkWeekend": {
+      if (S.brush === "clear") { toast("Scegli prima uno stato (Ci sono, Forse, Non ci sono)."); break; }
+      const { y, m } = S.view, map = {}, today = todayStr();
+      for (let i = 1; i <= new Date(y, m + 1, 0).getDate(); i++) {
+        const dt = new Date(y, m, i), w = dt.getDay(), k = ymd(dt);
+        if ((w === 0 || w === 6) && k >= today) map[k] = S.brush;
+      }
+      run(() => store.setDays(map));
+      break;
+    }
+    case "clearMonth": {
+      const { y, m } = S.view, map = {}, today = todayStr(), mine = S.avail[S.me.uid] || {};
+      for (const k of Object.keys(mine)) if (k.startsWith(`${y}-${pad(m + 1)}-`) && k >= today) map[k] = null;
+      if (!Object.keys(map).length) break;
+      if (confirm("Cancello le tue disponibilità di questo mese?")) run(() => store.setDays(map));
+      break;
+    }
+
+    // giochi
+    case "addGame": {
+      const name = val("newGameName"), min = +val("newGameMin") || 3;
+      if (!name) { toast("Scrivi il nome del gioco."); break; }
+      if (Object.values(S.games).some(g => g.name.toLowerCase() === name.toLowerCase())) { toast("Questo gioco c'è già."); break; }
+      document.getElementById("newGameName").value = "";
+      run(() => store.addGame(name, min));
+      break;
+    }
+    case "toggleInterest": run(() => store.toggleInterest(d.g)); break;
+    case "deleteGame": if (confirm("Elimini questo gioco per tutti?")) run(() => store.deleteGame(d.g)); break;
+
+    // incroci
+    case "filterGame": S.gameFilter = d.g; S.matchLimit = 30; render(); break;
+    case "toggleMaybe": S.includeMaybe = !S.includeMaybe; render(); break;
+    case "toggleMine": S.onlyMine = !S.onlyMine; render(); break;
+    case "moreMatches": S.matchLimit += 30; render(); break;
+    case "propose": S.modal = { type: "session", gameId: d.g, date: d.date }; render(); break;
+    case "newSession":
+      if (!Object.keys(S.games).length) { toast("Aggiungi prima un gioco."); break; }
+      S.modal = { type: "session", gameId: myGames()[0] || Object.keys(S.games)[0], date: "" }; render(); break;
+
+    // sessioni
+    case "saveSession": {
+      const gameId = val("sGame"), date = val("sDate"), time = val("sTime") || DEFAULT_TIME;
+      const err = document.getElementById("sErr");
+      if (!gameId || !S.games[gameId]) { err.textContent = "Scegli un gioco."; break; }
+      if (!date || date < todayStr()) { err.textContent = "Scegli un giorno a partire da oggi."; break; }
+      const g = S.games[gameId];
+      const data = { gameId, gameName: g.name, minPlayers: g.minPlayers || 2, date, time, location: val("sLoc"), notes: val("sNotes"), invited: playersOf(gameId) };
+      S.modal = null; S.tab = "sess";
+      run(async () => { await store.createSession(data); toast("Sessione proposta: ora tocca agli altri confermare."); });
+      render();
+      break;
+    }
+    case "rsvp": {
+      const cur = (S.sessions[d.s]?.rsvps || {})[S.me.uid];
+      if (cur !== d.v) run(() => store.rsvp(d.s, d.v));
+      break;
+    }
+    case "ics": downloadIcs(d.s); break;
+    case "deleteSession": if (confirm("Annulli questa sessione per tutti?")) run(() => store.deleteSession(d.s)); break;
+
+    // profilo
+    case "rename": S.modal = { type: "name" }; render(); break;
+    case "saveName": { const n = val("nameInput"); if (!n) break; S.modal = null; run(() => store.setName(n)); render(); break; }
+    case "logout": S.modal = null; S.tab = "cal"; run(() => store.logout()); break;
+
+    // auth Firebase
+    case "googleIn": S.authErr = ""; store.signInGoogle().catch(e => { S.authErr = authMsg(e); render(); }); break;
+    case "emailIn": S.authErr = ""; store.signInEmail(val("authEmail"), val("authPw")).catch(e => { S.authErr = authMsg(e); render(); }); break;
+    case "emailUp": S.authErr = ""; store.signUpEmail(val("authEmail"), val("authPw")).catch(e => { S.authErr = authMsg(e); render(); }); break;
+    case "resetPw": {
+      const em = val("authEmail");
+      if (!em) { S.authErr = "Scrivi la tua email qui sopra, poi tocca di nuovo."; render(); break; }
+      store.resetPassword(em).then(() => toast("Ti abbiamo mandato un'email per reimpostare la password.")).catch(e => { S.authErr = authMsg(e); render(); });
+      break;
+    }
+    case "resendVerify": store.resendVerification().then(() => toast("Email inviata di nuovo.")).catch(e => { S.authErr = authMsg(e); render(); }); break;
+    case "checkVerify": store.checkVerified().then(ok => { if (!ok) { S.authErr = "Non risulta ancora verificata. Apri il link nell'email e riprova."; render(); } }).catch(e => { S.authErr = authMsg(e); render(); }); break;
+
+    // demo
+    case "demoAs": store.loginAs(d.u); break;
+    case "demoNew": { const n = val("demoName"); if (!n) { toast("Scrivi un nome."); break; } document.getElementById("demoName").value = ""; store.createUser(n); break; }
+    case "demoSeed": store.seed(); S.tab = "match"; render(); break;
+    case "demoReset": if (confirm("Cancello tutti i dati della demo?")) store.reset(); break;
+  }
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && S.modal) { S.modal = null; render(); }
+  if (e.key === "Enter" && e.target.id === "newGameName") document.querySelector('[data-action="addGame"]')?.click();
+  if (e.key === "Enter" && e.target.id === "demoName") document.querySelector('[data-action="demoNew"]')?.click();
+  if (e.key === "Enter" && e.target.id === "nameInput") document.querySelector('[data-action="saveName"]')?.click();
+  if (e.key === "Enter" && e.target.id === "authPw") document.querySelector('[data-action="emailIn"]')?.click();
+});
+
+// ---------------------------------------------------------------------
+//  AVVIO
+// ---------------------------------------------------------------------
+(async () => {
+  try {
+    store = FIREBASE_CONFIG ? await makeFirebaseStore(FIREBASE_CONFIG) : makeLocalStore();
+  } catch (e) {
+    console.error(e);
+    $("#app").innerHTML = `<div class="auth"><h1>Ops</h1><p>Non riesco a collegarmi a Firebase. Controlla la configurazione in index.html e la connessione.</p></div>`;
+    return;
+  }
+  store.start(data => { Object.assign(S, data); render(); });
+})();
+</script>
+</body>
+</html>
