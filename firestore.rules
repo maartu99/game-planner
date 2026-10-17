@@ -1,9 +1,10 @@
 rules_version = '2';
 
-// Regole di sicurezza per "Si gioca?"
+// Regole di sicurezza per "Game Planner"
 // Si accede con Google o con email verificata. Ognuno vede solo i gruppi
 // di cui fa parte; si entra in un gruppo solo con il link di invito.
-// Gli admin di un gruppo gestiscono membri e inviti e confermano le serate.
+// Gli admin gestiscono membri e inviti e confermano le serate;
+// ogni membro può proporre serate e rispondere.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -24,8 +25,11 @@ service cloud.firestore {
     function onlyOwnKey(field) {
       return request.resource.data.get(field, {}).diff(resource.data.get(field, {})).affectedKeys().hasOnly([request.auth.uid]);
     }
+    function ownMaps() {
+      return onlyOwnKey('names') && onlyOwnKey('emails') && onlyOwnKey('prefs') && onlyOwnKey('phones');
+    }
 
-    // Profilo personale (nome, disponibilità, avvisi letti): solo il proprietario
+    // Profilo personale (nome, disponibilità, telefono, avatar, giochi, avvisi letti): solo il proprietario
     match /users/{uid} {
       allow read, write: if signedIn() && request.auth.uid == uid;
     }
@@ -40,22 +44,22 @@ service cloud.firestore {
         && request.resource.data.admins == [request.auth.uid];
 
       allow update: if signedIn() && (
-        // Admin: possono modificare tutto (nome, regola, membri, admin)
+        // Admin: possono modificare tutto (nome, gioco, regola, membri, admin)
         request.auth.uid in resource.data.admins
-        // Membro: cambia solo il proprio nome, email e voglia di giocare
+        // Membro: cambia solo i propri dati (nome, email, telefono, voglia di giocare)
         || (request.auth.uid in resource.data.members
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['names', 'emails', 'prefs'])
-            && onlyOwnKey('names') && onlyOwnKey('emails') && onlyOwnKey('prefs'))
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['names', 'emails', 'prefs', 'phones'])
+            && ownMaps())
         // Membro che esce dal gruppo
         || (request.auth.uid in resource.data.members
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'names', 'emails', 'prefs'])
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'names', 'emails', 'prefs', 'phones'])
             && request.resource.data.members == resource.data.members.removeAll([request.auth.uid])
-            && onlyOwnKey('names') && onlyOwnKey('emails') && onlyOwnKey('prefs'))
+            && ownMaps())
         // Nuovo membro che entra con il codice di invito corretto
-        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'names', 'emails', 'prefs', 'joinCode'])
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'names', 'emails', 'prefs', 'phones', 'joinCode'])
             && request.resource.data.members == resource.data.members.concat([request.auth.uid])
             && request.resource.data.joinCode == resource.data.inviteCode
-            && onlyOwnKey('names') && onlyOwnKey('emails') && onlyOwnKey('prefs'))
+            && ownMaps())
       );
 
       allow delete: if signedIn() && request.auth.uid in resource.data.admins;
@@ -68,7 +72,17 @@ service cloud.firestore {
         allow delete: if signedIn() && (request.auth.uid == uid || isAdmin(gid));
       }
 
-      // Serate: le confermano e annullano gli admin; ogni membro conferma solo la propria presenza
+      // Proposte di serata: le fa qualsiasi membro; le ritira chi le ha fatte o un admin
+      match /proposals/{pid} {
+        allow read: if signedIn() && isMember(gid);
+        allow create: if signedIn() && isMember(gid) && request.resource.data.by == request.auth.uid;
+        allow delete: if signedIn() && isMember(gid) && (resource.data.by == request.auth.uid || isAdmin(gid));
+        // Un admin che revoca una serata la rimette tra le proposte a nome di chi l'aveva confermata
+        allow create: if signedIn() && isAdmin(gid);
+      }
+
+      // Serate confermate: le confermano, revocano e annullano gli admin;
+      // ogni membro risponde solo per sé (Ci sono / Forse / Non posso)
       match /sessions/{sid} {
         allow read: if signedIn() && isMember(gid);
         allow create, delete: if signedIn() && isAdmin(gid);

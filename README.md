@@ -14,6 +14,14 @@ Costi: zero. GitHub Pages ospita l'app, Firebase (piano gratuito Spark, senza ca
 
 App online: https://maartu99.github.io/game-planner/
 
+## Novità della versione disegnata con Claude Design
+
+- **Proposte di serata**: da Disponibilità chiunque propone una serata a un gruppo (giorno, ora, luogo e descrizione facoltativi). I membri rispondono Sì, Forse o No; l'admin conferma quando tutti hanno detto Sì. Chi propone o un admin può ritirare la proposta.
+- **Serate** con tre viste: Tutte, Proposte (con il numero di proposte a cui non hai ancora risposto) e Confermate.
+- **Serate confermate**: risposta Ci sono, Forse o Non posso; l'admin può avvisare tutti, revocare la conferma (la serata torna una proposta) o annullarla.
+- **Menu account** (tocca l'avatar): nome, email, password, telefono, avatar (simbolo e colore), tema chiaro o scuro, esci.
+- **Lista giochi**: nel nuovo gruppo il gioco si sceglie da una lista personale, con "Gestisci giochi" per rinominarli o eliminarli.
+
 ## Le pagine
 
 - **Gruppi**: i tuoi gruppi; da qui ne crei uno nuovo o entri con un link di invito. Nella pagina del gruppo trovi gioco e regola ("solo se ci sono tutti" oppure "almeno N membri"), chi sono gli admin, la tua voglia di giocare, i membri (con chi non ha ancora segnato le disponibilità) e le serate confermate. Gli admin vedono anche gli inviti (link, email, SMS, WhatsApp), i pulsanti "Rendi admin" e "Rimuovi dal gruppo" e possono modificare o eliminare il gruppo.
