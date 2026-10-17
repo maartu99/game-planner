@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1f2a44">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Si gioca?">
-<title>Si gioca?</title>
+<meta name="apple-mobile-web-app-title" content="Game Planner">
+<title>Game Planner</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231f2a44'/%3E%3Ccircle cx='22' cy='22' r='6' fill='%23f4c95d'/%3E%3Ccircle cx='42' cy='42' r='6' fill='%23f4c95d'/%3E%3Ccircle cx='42' cy='22' r='6' fill='%23f4c95d'/%3E%3Ccircle cx='22' cy='42' r='6' fill='%23f4c95d'/%3E%3C/svg%3E">
 <style>
 :root{
@@ -64,6 +64,7 @@ label.f{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-b
 .chip.yes{background:var(--yes-bg);border-color:var(--yes);color:var(--yes)}
 .chip.maybe{background:var(--maybe-bg);border-color:var(--maybe);color:var(--maybe)}
 .chip.no{background:var(--no-bg);border-color:var(--no);color:var(--no)}
+button.chip{cursor:pointer;font-size:13px}
 .chip.none{opacity:.75;border-style:dashed}
 .chip.busy{background:var(--no-bg);border-color:var(--no);color:var(--no);border-style:dashed}
 .stat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
@@ -119,7 +120,8 @@ nav.tabs .count{display:inline-block;min-width:18px;padding:0 5px;border-radius:
 @media (min-width:600px){.overlay{align-items:center}.sheet{border-radius:18px}}
 .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;z-index:30;max-width:90vw}
 .auth{max-width:400px;margin:40px auto;padding:0 16px}
-.auth h1{font-size:30px;margin:0 0 4px;letter-spacing:-.5px}
+.auth h1{font-size:30px;margin:0;letter-spacing:-.5px}
+.subtitle{font-size:18px;font-weight:600;color:var(--accent);margin:0 0 6px}
 .divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;margin:14px 0}
 .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
 details summary{cursor:pointer;color:var(--muted);font-weight:600;margin:8px 0}
@@ -184,6 +186,7 @@ const S = {
   authState: "loading", me: null, groups: {}, demoUsers: [],
   tab: "groups", groupId: null, brush: "yes",
   month: curMonth(), nMonth: curMonth(), nGroup: "all", onlyPossible: true,
+  hGame: "all", hYear: "all", hMonth: "all", hGroup: "all",
   modal: null, authErr: "", pendingJoin: null,
 };
 let store = null;
@@ -268,16 +271,21 @@ function makeLocalStore() {
         const members = who.map(n => ids[n]); const p = {};
         members.forEach((m, i) => { p[m] = prefs[i]; });
         const sessions = {};
-        past.forEach(([day, place], i) => {
+        past.forEach(([date, place, absent], i) => {
           const rsvps = {}; members.forEach(m => { rsvps[m] = "yes"; });
-          sessions[gid + "p" + i] = { date: `2026-10-${pad(day)}`, time: "21:00", location: place, notes: "", createdBy: ids[admins[0]], confirmedBy: ids[admins[0]], confirmedAt: Date.UTC(2026, 9, day - 3), rsvps };
+          if (absent) rsvps[ids[absent]] = "no";
+          const [y, m, d] = date.split("-").map(Number);
+          sessions[gid + "p" + i] = { date, time: "21:00", location: place, notes: "", createdBy: ids[admins[0]], confirmedBy: ids[admins[0]], confirmedAt: Date.UTC(y, m - 1, d - 3), rsvps };
         });
         db.groups[gid] = { name, game, rule: "all", min: 2, members, admins: admins.map(n => ids[n]), prefs: p, inviteCode: "demo" + gid, createdBy: ids[admins[0]], sessions };
       };
-      mk("gLUT", "L'Ultima Torcia", "Ultima Torcia", ["Gigi", "Mattia", "Roberto", "Iole", "Gian"], [3, 3, 2, 3, 2], ["Mattia"], [[5, "da Gigi"], [12, "da Iole"]]);
-      mk("gSB", "Set Base", "Set Base", ["Mattia", "Iole", "Gian"], [2, 2, 3], ["Gian"], [[8, "da Gian"]]);
-      mk("gDND", "Campagna D&D", "Dungeons & Dragons", ["Gigi", "Mattia", "Roberto", "Iole", "Gian", "Fabiola"], [2, 3, 3, 2, 2, 3], ["Mattia", "Fabiola"], [[13, "da Mattia"]]);
-      mk("gFM", "Fan Made", "Fan Made", ["Gigi", "Roberto", "Iole", "Gian"], [3, 2, 2, 3], ["Gigi"], [[9, "da Roberto"], [16, "da Roberto"]]);
+      mk("gLUT", "L'Ultima Torcia", "Ultima Torcia", ["Gigi", "Mattia", "Roberto", "Iole", "Gian"], [3, 3, 2, 3, 2], ["Mattia"],
+        [["2025-11-14", "da Gigi"], ["2025-12-05", "da Iole"], ["2026-02-20", "da Gigi"], ["2026-04-17", "da Roberto", "Gian"], ["2026-06-12", "da Iole"], ["2026-10-05", "da Gigi"], ["2026-10-12", "da Iole"]]);
+      mk("gSB", "Set Base", "Set Base", ["Mattia", "Iole", "Gian"], [2, 2, 3], ["Gian"],
+        [["2026-03-07", "da Gian"], ["2026-07-18", "da Mattia"], ["2026-10-08", "da Gian"]]);
+      mk("gDND", "Campagna D&D", "Dungeons & Dragons", ["Gigi", "Mattia", "Roberto", "Iole", "Gian", "Fabiola"], [2, 3, 3, 2, 2, 3], ["Mattia", "Fabiola"],
+        [["2025-09-20", "da Fabiola"], ["2025-10-25", "da Mattia"], ["2025-12-27", "da Fabiola", "Iole"], ["2026-01-24", "da Mattia"], ["2026-05-09", "da Fabiola"], ["2026-09-19", "da Mattia"], ["2026-10-13", "da Mattia"]]);
+      mk("gFM", "Fan Made", "Fan Made", ["Gigi", "Roberto", "Iole", "Gian"], [3, 2, 2, 3], ["Gigi"], [["2026-10-09", "da Roberto"], ["2026-10-16", "da Roberto"]]);
       db.current = ids.Mattia;
       save();
     },
@@ -452,7 +460,7 @@ function notifications() {
     .map(x => ({ ...x, unread: x.s.confirmedAt > seen }))
     .sort((a, b) => b.s.confirmedAt - a.s.confirmedAt);
 }
-const sessionText = (g, s) => `Confermato! ${fmtDate(s.date)} alle ${s.time || DEFAULT_TIME} si gioca a ${g.game} (gruppo ${g.name})${s.location ? ", " + s.location : ""}.${s.notes ? " " + s.notes : ""} Conferma la tua presenza su Si gioca?: ${location.origin + location.pathname}`;
+const sessionText = (g, s) => `Confermato! ${fmtDate(s.date)} alle ${s.time || DEFAULT_TIME} si gioca a ${g.game} (gruppo ${g.name})${s.location ? ", " + s.location : ""}.${s.notes ? " " + s.notes : ""} Conferma la tua presenza su Game Planner: ${location.origin + location.pathname}`;
 
 // Notifiche del browser per le nuove serate confermate (mentre l'app è aperta)
 let notifiedKeys = null;
@@ -464,7 +472,7 @@ function browserNotify() {
     const k = n.g.id + n.sid;
     if (!n.unread || notifiedKeys.has(k)) continue;
     notifiedKeys.add(k);
-    try { if ("Notification" in window && Notification.permission === "granted") new Notification("Si gioca!", { body: `${fmtShort(n.s.date)} alle ${n.s.time || DEFAULT_TIME}: ${n.g.game} con ${n.g.name}` }); } catch (e) {}
+    try { if ("Notification" in window && Notification.permission === "granted") new Notification("Game Planner - si gioca!", { body: `${fmtShort(n.s.date)} alle ${n.s.time || DEFAULT_TIME}: ${n.g.game} con ${n.g.name}` }); } catch (e) {}
   }
 }
 
@@ -472,7 +480,7 @@ function inviteLink(g) {
   const base = location.origin + location.pathname;
   return `${base}#join=${g.id}.${g.inviteCode}&n=${encodeURIComponent(g.name)}`;
 }
-const inviteText = g => `Ciao! Ti invito nel gruppo "${g.name}" (${g.game}) su Si gioca?, così vediamo insieme quando possiamo giocare. Entra da qui: ${inviteLink(g)}`;
+const inviteText = g => `Ciao! Ti invito nel gruppo "${g.name}" (${g.game}) su Game Planner, così vediamo insieme quando possiamo giocare. Entra da qui: ${inviteLink(g)}`;
 
 function sessionTimes(s) {
   const [hh, mm] = (s.time || DEFAULT_TIME).split(":").map(Number);
@@ -493,8 +501,8 @@ function downloadIcs(g, sid, s) {
   const e = x => String(x || "").replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/([,;])/g, "\\$1");
   const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
   const ics = [
-    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Si gioca//IT", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
-    "BEGIN:VEVENT", `UID:${g.id}-${sid}@sigioca`, `DTSTAMP:${stamp}`, `DTSTART:${t.start}`, `DTEND:${t.end}`,
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Game Planner//IT", "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
+    "BEGIN:VEVENT", `UID:${g.id}-${sid}@gameplanner`, `DTSTAMP:${stamp}`, `DTSTART:${t.start}`, `DTEND:${t.end}`,
     `SUMMARY:${e(g.game + " - " + g.name)}`, `LOCATION:${e(s.location)}`, `DESCRIPTION:${e(sessionDetails(g, s))}`,
     "BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${e("Domani si gioca a " + g.game)}`, "TRIGGER:-P1D", "END:VALARM",
     "BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${e("Tra 2 ore si gioca a " + g.game)}`, "TRIGGER:-PT2H", "END:VALARM",
@@ -543,7 +551,8 @@ const inviteBanner = () => S.pendingJoin ? `<div class="note">Sei stato invitato
 
 function renderLogin() {
   return `<div class="auth stack">
-    <h1>Si gioca?</h1>
+    <h1>Game Planner</h1>
+    <p class="subtitle">Quando si gioca?</p>
     <p class="muted">Crea i gruppi delle tue campagne, segna quando ci sei, scopri quando si gioca.</p>
     ${inviteBanner()}
     <button class="btn primary full" data-action="googleIn">Entra con Google</button>
@@ -569,7 +578,8 @@ function renderUnverified() {
 function renderDemoLogin() {
   const users = S.demoUsers || [];
   return `<div class="auth stack">
-    <h1>Si gioca?</h1>
+    <h1>Game Planner</h1>
+    <p class="subtitle">Quando si gioca?</p>
     <div class="banner">Modalità demo: i dati restano solo su questo dispositivo. Puoi creare più giocatori e passare dall'uno all'altro per provare gruppi, inviti e incroci.</div>
     ${inviteBanner()}
     ${users.length ? `<div><label class="f">Entra come</label><div class="row">${users.map(u => `<button class="btn" data-action="demoAs" data-u="${u.id}">${esc(u.name)}</button>`).join("")}</div></div>` : ""}
@@ -593,7 +603,7 @@ function renderShell() {
   const t = (id, label, extra = "") => `<button class="${S.tab === id ? "on" : ""}" data-action="tab" data-tab="${id}">${label}${extra}</button>`;
   return `
   <header class="top"><div class="wrap">
-    <div class="brand">Si gioca?</div>
+    <div class="brand">Game Planner</div>
     <div class="who">
       <button class="btn sm ${unread ? "primary" : ""}" data-action="openNotifs">Avvisi${unread ? ` (${unread})` : ""}</button>
       <button class="btn sm ghost" data-action="rename">${esc(S.me.name || "Profilo")}</button>
@@ -831,17 +841,30 @@ function renderPlays() {
   const today = todayStr(), me = S.me.uid, all = allSessions();
   const mineIn = x => (x.s.rsvps || {})[me] !== "no";
   const up = all.filter(x => x.s.date >= today);
-  const past = all.filter(x => x.s.date < today && mineIn(x)).reverse();
-  const year = today.slice(0, 4);
-  const thisYear = past.filter(x => x.s.date.startsWith(year));
+  const played = all.filter(x => x.s.date < today && mineIn(x)).reverse();
+  const games = [...new Set(played.map(x => x.g.game))].sort((a, b) => a.localeCompare(b));
   const perGame = {};
-  thisYear.forEach(x => { perGame[x.g.game] = (perGame[x.g.game] || 0) + 1; });
+  played.forEach(x => { perGame[x.g.game] = (perGame[x.g.game] || 0) + 1; });
   const topGame = Object.entries(perGame).sort((a, b) => b[1] - a[1])[0];
   const next = up.find(mineIn);
   const canConfirm = groupList().some(g => isAdmin(g));
   const perm = "Notification" in window ? Notification.permission : "unsupported";
+
+  // filtri dello storico
+  const years = [...new Set(played.map(x => x.s.date.slice(0, 4)))].sort().reverse();
+  const groupsP = [...new Map(played.map(x => [x.g.id, x.g.name])).entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  if (S.hGame !== "all" && !games.includes(S.hGame)) S.hGame = "all";
+  if (S.hYear !== "all" && !years.includes(S.hYear)) S.hYear = "all";
+  if (S.hGroup !== "all" && !groupsP.some(([id]) => id === S.hGroup)) S.hGroup = "all";
+  const list = played.filter(x => (S.hGame === "all" || x.g.game === S.hGame) && (S.hYear === "all" || x.s.date.startsWith(S.hYear))
+    && (S.hMonth === "all" || x.s.date.slice(5, 7) === S.hMonth) && (S.hGroup === "all" || x.g.id === S.hGroup));
+  const filtered = S.hGame !== "all" || S.hYear !== "all" || S.hMonth !== "all" || S.hGroup !== "all";
   const months = {};
-  past.forEach(x => { (months[x.s.date.slice(0, 7)] ||= []).push(x); });
+  list.forEach(x => { (months[x.s.date.slice(0, 7)] ||= []).push(x); });
+  const sel = (id, label, opts) => `<div style="flex:1;min-width:140px"><label class="f" for="${id}">${label}</label><select id="${id}" data-action-change="${id}">${opts}</select></div>`;
+  const opt = (v, t, cur) => `<option value="${esc(v)}" ${v === cur ? "selected" : ""}>${esc(t)}</option>`;
+  const present = x => byName(x.g, x.g.members.filter(u => (x.s.rsvps || {})[u] === "yes"));
+
   return `
     <div class="row between" style="margin-bottom:12px"><h2 style="margin:0">Le mie giocate</h2>${canConfirm ? `<button class="btn sm primary" data-action="newSession">Conferma una serata</button>` : ""}</div>
     <div class="card">
@@ -849,17 +872,38 @@ function renderPlays() {
       ${next ? `<p class="small" style="margin:4px 0">Prossima giocata: <strong>${fmtShort(next.s.date)}</strong> alle ${esc(next.s.time || DEFAULT_TIME)}, ${esc(next.g.game)} con ${esc(next.g.name)}.</p>` : `<p class="small muted" style="margin:4px 0">Nessuna giocata in programma.</p>`}
       <div class="stat">
         <div><strong>${up.filter(mineIn).length}</strong><span class="small muted">in programma</span></div>
-        <div><strong>${thisYear.length}</strong><span class="small muted">giocate nel ${year}</span></div>
-        <div><strong>${Object.keys(perGame).length}</strong><span class="small muted">giochi diversi</span></div>
+        <div><strong>${played.length}</strong><span class="small muted">giocate in totale</span></div>
+        <div><strong>${games.length}</strong><span class="small muted">giochi provati</span></div>
       </div>
-      ${Object.keys(perGame).length ? `<div style="margin-top:10px">${Object.entries(perGame).sort((a, b) => b[1] - a[1]).map(([gm, n]) => `<span class="chip">${esc(gm)}: ${n}</span>`).join("")}</div>` : ""}
-      ${topGame ? `<p class="small muted" style="margin:8px 0 0">Il gioco a cui hai giocato di più quest'anno è ${esc(topGame[0])}.</p>` : ""}
+      ${games.length ? `<div style="margin-top:10px">${Object.entries(perGame).sort((a, b) => b[1] - a[1]).map(([gm, n]) => `<button class="chip ${S.hGame === gm ? "yes" : ""}" data-action="filterPlayed" data-game="${esc(gm)}">${esc(gm)}: ${n}</button>`).join("")}</div>` : ""}
+      ${topGame ? `<p class="small muted" style="margin:8px 0 0">Il gioco a cui hai giocato di più è ${esc(topGame[0])}${played.length ? `; la prima giocata registrata è del ${fmtDate(played[played.length - 1].s.date).replace(/^\S+ /, "")}` : ""}.</p>` : ""}
     </div>
     ${perm === "default" ? `<div class="note row between"><span>Vuoi un avviso su questo dispositivo quando un admin conferma una serata?</span><button class="btn sm" data-action="enableNotif">Attiva avvisi</button></div>` : ""}
     <h4>In programma</h4>
     ${up.length ? up.map(x => renderSessionCard(x.g, x.sid, x.s, false)).join("") : `<p class="muted small">Nessuna serata confermata. Guarda le <a href="#" data-action="tab" data-tab="nights">Serate</a> possibili.</p>`}
-    <h4>Storico</h4>
-    ${past.length ? Object.entries(months).map(([ym, xs]) => `<div class="card"><h3>${monthLabel(ym)}</h3>${xs.map(x => `<div class="hist"><span>${fmtShort(x.s.date)}</span><span><strong>${esc(x.g.game)}</strong> <span class="muted">- ${esc(x.g.name)}${x.s.location ? ", " + esc(x.s.location) : ""}</span></span></div>`).join("")}</div>`).join("") : `<p class="muted small">Le serate giocate compariranno qui.</p>`}`;
+    <h4>Storico delle giocate</h4>
+    ${played.length ? `
+    <div class="card">
+      <div class="row">
+        ${sel("hGame", "Gioco", opt("all", "Tutti i giochi", S.hGame) + games.map(g => opt(g, g, S.hGame)).join(""))}
+        ${sel("hGroup", "Gruppo", opt("all", "Tutti i gruppi", S.hGroup) + groupsP.map(([id, n]) => opt(id, n, S.hGroup)).join(""))}
+      </div>
+      <div class="row" style="margin-top:8px">
+        ${sel("hYear", "Anno", opt("all", "Tutti gli anni", S.hYear) + years.map(y => opt(y, y, S.hYear)).join(""))}
+        ${sel("hMonth", "Mese", opt("all", "Tutti i mesi", S.hMonth) + MONTHS.map((m, i) => opt(pad(i + 1), m, S.hMonth)).join(""))}
+      </div>
+      <div class="row between" style="margin-top:10px">
+        <span class="small"><strong>${list.length}</strong> ${list.length === 1 ? "giocata trovata" : "giocate trovate"}${filtered ? "" : " in totale"}</span>
+        ${filtered ? `<button class="btn sm ghost" data-action="resetPlayed">Togli i filtri</button>` : ""}
+      </div>
+    </div>
+    ${list.length ? Object.entries(months).map(([ym, xs]) => `<div class="card"><div class="row between"><h3>${monthLabel(ym)}</h3><span class="small muted">${xs.length} ${xs.length === 1 ? "giocata" : "giocate"}</span></div>
+      ${xs.map(x => `<div class="hist" style="display:block">
+        <div class="row between"><strong>${esc(x.g.game)}</strong><span class="small">${fmtDate(x.s.date)}</span></div>
+        <div class="small muted">Gruppo ${esc(x.g.name)} - ore ${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " - " + esc(x.s.location) : ""}</div>
+        <div class="small muted">Con: ${esc(present(x).filter(u => u !== me).map(u => nameIn(x.g, u)).join(", ") || "nessun altro")}</div>
+        ${x.s.notes ? `<div class="small">${esc(x.s.notes)}</div>` : ""}
+      </div>`).join("")}</div>`).join("") : `<p class="muted small">Nessuna giocata con questi filtri.</p>`}` : `<p class="muted small">Le serate giocate compariranno qui, con data, gioco, gruppo e chi c'era.</p>`}`;
 }
 
 // ----- FINESTRE -----
@@ -928,7 +972,7 @@ function renderModal() {
       <div class="linkbox">${esc(sessionText(g, s))}</div>
       <div class="stack">
         <a class="btn full" href="https://wa.me/?text=${encodeURIComponent(sessionText(g, s))}" target="_blank" rel="noopener">Invia su WhatsApp</a>
-        ${emails.length ? `<a class="btn full" href="mailto:?bcc=${encodeURIComponent(emails.join(","))}&subject=${encodeURIComponent(`Si gioca: ${g.game} ${fmtShort(s.date)}`)}&body=${encodeURIComponent(sessionText(g, s))}">Invia per email a ${emails.length} ${emails.length === 1 ? "persona" : "persone"}</a>` : ""}
+        ${emails.length ? `<a class="btn full" href="mailto:?bcc=${encodeURIComponent(emails.join(","))}&subject=${encodeURIComponent(`Game Planner - si gioca: ${g.game} ${fmtShort(s.date)}`)}&body=${encodeURIComponent(sessionText(g, s))}">Invia per email a ${emails.length} ${emails.length === 1 ? "persona" : "persone"}</a>` : ""}
         <button class="btn full" data-action="copyText" data-text="${esc(sessionText(g, s))}">Copia il messaggio</button>
         <button class="btn full ghost" data-action="closeModal">Fatto</button>
       </div>`;
@@ -991,6 +1035,7 @@ document.addEventListener("change", e => {
   if (id === "monthSel") { S.month = e.target.value; render(); }
   if (id === "nMonthSel") { S.nMonth = e.target.value; render(); }
   if (id === "nGroupSel") { S.nGroup = e.target.value; render(); }
+  if (["hGame", "hYear", "hMonth", "hGroup"].includes(id)) { S[id] = e.target.value; render(); }
 });
 
 document.addEventListener("click", e => {
@@ -1032,7 +1077,7 @@ document.addEventListener("click", e => {
     case "toggleAdmin": run(() => store.setAdmin(S.groupId, d.u, !isAdmin(g, d.u))); break;
     case "removeMember": if (confirm(`Rimuovi ${nameIn(g, d.u)} dal gruppo?`)) run(() => store.removeMember(S.groupId, d.u)); break;
     case "copyLink": copy(inviteLink(g)); break;
-    case "shareLink": navigator.share({ title: "Si gioca?", text: inviteText(g) }).catch(() => {}); break;
+    case "shareLink": navigator.share({ title: "Game Planner", text: inviteText(g) }).catch(() => {}); break;
     case "inviteEmail": {
       const to = val("invEmail");
       if (!/^\S+@\S+\.\S+$/.test(to)) { toast("Scrivi un indirizzo email valido."); break; }
@@ -1123,6 +1168,8 @@ document.addEventListener("click", e => {
       render();
       break;
     }
+    case "filterPlayed": S.hGame = S.hGame === d.game ? "all" : d.game; render(); break;
+    case "resetPlayed": S.hGame = S.hYear = S.hMonth = S.hGroup = "all"; render(); break;
     case "notifyAll": S.modal = { type: "notify", gid: d.g, sid: d.s }; render(); break;
     case "copyText": copy(d.text); break;
     case "openNotifs": S.modal = { type: "notifs" }; render(); if (notifications().some(n => n.unread)) run(() => store.markSeen()); break;

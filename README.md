@@ -1,4 +1,4 @@
-# Si gioca?
+# Game Planner - Quando si gioca?
 
 Web app leggera per organizzare le serate di gioco tra amici, partendo dai **gruppi**.
 
@@ -8,7 +8,7 @@ Web app leggera per organizzare le serate di gioco tra amici, partendo dai **gru
 - La pagina **Serate** incrocia le disponibilità di tutti, sera per sera, e dice a quali gruppi si può giocare. Se la stessa sera sono possibili più gruppi con persone in comune, consiglia quello con più **voglia di giocare** (ognuno la indica per ogni gruppo).
 - Ogni gruppo ha uno o più **admin**: invitano persone (anche chi non ha ancora l'app), aggiungono e rimuovono giocatori, nominano altri admin.
 - L'admin apre una serata, vede tutti i giochi possibili quella sera e **conferma** quello a cui si gioca. Tutti i membri ricevono l'**avviso** nell'app (e sul dispositivo, se hanno attivato gli avvisi); l'admin può avvisarli anche via WhatsApp o email.
-- La sezione **Giocate** riepiloga quando giochi e a cosa: prossime serate, presenze, storico e statistiche.
+- La sezione **Giocate** riepiloga quando giochi e a cosa: serate in programma, giocate totali, giochi provati e lo storico dettagliato (data, gioco, gruppo, luogo, chi c'era) filtrabile per gioco, gruppo, anno e mese.
 
 Costi: zero. GitHub Pages ospita l'app, Firebase (piano gratuito Spark, senza carta di credito) gestisce login e dati.
 
@@ -19,7 +19,7 @@ App online: https://maartu99.github.io/game-planner/
 - **Gruppi**: i tuoi gruppi; da qui ne crei uno nuovo o entri con un link di invito. Nella pagina del gruppo trovi gioco e regola ("solo se ci sono tutti" oppure "almeno N membri"), chi sono gli admin, la tua voglia di giocare, i membri (con chi non ha ancora segnato le disponibilità) e le serate confermate. Gli admin vedono anche gli inviti (link, email, SMS, WhatsApp), i pulsanti "Rendi admin" e "Rimuovi dal gruppo" e possono modificare o eliminare il gruppo.
 - **Disponibilità**: menu mese/anno e calendario del mese; scegli SI, FORSE o NO e tocca i giorni. Scorciatoie per i giorni vuoti, i weekend o per svuotare il mese.
 - **Serate**: per ogni sera del mese scelto, i gruppi con cui si può giocare, chi c'è, chi forse, chi no, chi non ha risposto e chi è già impegnato in un'altra serata confermata, con il gruppo consigliato. "Apri" mostra la serata nel dettaglio: l'admin sceglie e conferma il gioco.
-- **Giocate**: riepilogo (prossima giocata, quante serate, giochi più giocati), serate in programma con le presenze ("Ci sono" / "Non posso", "Aggiungi al calendario", Google Calendar) e storico mese per mese.
+- **Giocate**: riepilogo (prossima giocata, serate in programma, giocate totali, giochi provati, conteggio per gioco), serate in programma con le presenze ("Ci sono" / "Non posso", "Aggiungi al calendario", Google Calendar) e storico dettagliato filtrabile per gioco, gruppo, anno e mese.
 - **Avvisi** (in alto): le serate confermate dagli admin dei tuoi gruppi, con il numero di quelle non ancora lette.
 
 ## Provarla subito (modalità demo)
