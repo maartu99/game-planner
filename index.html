@@ -65,6 +65,12 @@ label.f{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-b
 .chip.maybe{background:var(--maybe-bg);border-color:var(--maybe);color:var(--maybe)}
 .chip.no{background:var(--no-bg);border-color:var(--no);color:var(--no)}
 .chip.none{opacity:.75;border-style:dashed}
+.chip.busy{background:var(--no-bg);border-color:var(--no);color:var(--no);border-style:dashed}
+.stat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.stat div{background:var(--surface-2);border-radius:10px;padding:10px;text-align:center}
+.stat strong{display:block;font-size:22px}
+.hist{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.hist:last-child{border-bottom:0}
 .badge{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
 .badge.go{background:var(--yes-bg);color:var(--yes)}
 .badge.wait{background:var(--maybe-bg);color:var(--maybe)}
@@ -186,13 +192,13 @@ function makeLocalStore() {
   let listener = () => {};
   const emit = () => {
     const uid = db.current, u = uid && db.users[uid];
-    const me = u ? { uid, name: u.name, email: "", days: u.days || {} } : null;
+    const me = u ? { uid, name: u.name, email: u.email || "", days: u.days || {}, seenAt: u.seenAt || 0 } : null;
     const groups = {};
     if (me) for (const [gid, g] of Object.entries(db.groups)) {
       if (!g.members.includes(uid)) continue;
-      const names = {}, avail = {};
-      for (const m of g.members) { names[m] = db.users[m]?.name || "?"; avail[m] = db.users[m]?.days || {}; }
-      groups[gid] = { ...g, names, avail, sessions: g.sessions || {} };
+      const names = {}, avail = {}, emails = {};
+      for (const m of g.members) { names[m] = db.users[m]?.name || "?"; avail[m] = db.users[m]?.days || {}; emails[m] = db.users[m]?.email || ""; }
+      groups[gid] = { ...g, names, emails, avail, sessions: g.sessions || {} };
     }
     listener({ me, groups, authState: me ? "ready" : "signedOut", demoUsers: Object.entries(db.users).map(([id, x]) => ({ id, name: x.name })) });
   };
@@ -207,7 +213,7 @@ function makeLocalStore() {
     logout() { db.current = null; save(); },
     setName(n) { db.users[db.current].name = n; save(); },
     setDays(map) { const d = db.users[db.current].days ||= {}; for (const [k, v] of Object.entries(map)) { if (v) d[k] = v; else delete d[k]; } save(); },
-    createGroup(data) { const gid = "g" + id(); db.groups[gid] = { ...data, members: [db.current], prefs: { [db.current]: 2 }, inviteCode: id(), createdBy: db.current, sessions: {} }; save(); return gid; },
+    createGroup(data) { const gid = "g" + id(); db.groups[gid] = { ...data, members: [db.current], admins: [db.current], prefs: { [db.current]: 2 }, inviteCode: id(), createdBy: db.current, sessions: {} }; save(); return gid; },
     updateGroup(gid, p) { Object.assign(G(gid), p); save(); },
     joinGroup(gid, code) {
       const g = G(gid);
@@ -215,10 +221,13 @@ function makeLocalStore() {
       if (!g.members.includes(db.current)) g.members.push(db.current);
       g.prefs[db.current] ??= 2; save();
     },
-    leaveGroup(gid) { const g = G(gid); g.members = g.members.filter(x => x !== db.current); delete g.prefs[db.current]; save(); },
+    removeMember(gid, u) { const g = G(gid); g.members = g.members.filter(x => x !== u); g.admins = (g.admins || []).filter(x => x !== u); delete g.prefs[u]; save(); },
+    leaveGroup(gid) { this.removeMember(gid, db.current); },
+    setAdmin(gid, u, on) { const g = G(gid); g.admins = (g.admins || []).filter(x => x !== u); if (on) g.admins.push(u); save(); },
     deleteGroup(gid) { delete db.groups[gid]; save(); },
     setPref(gid, v) { G(gid).prefs[db.current] = v; save(); },
-    createSession(gid, data) { G(gid).sessions[ "s" + id()] = { ...data, createdBy: db.current, rsvps: { [db.current]: "yes" } }; save(); },
+    markSeen() { db.users[db.current].seenAt = Date.now(); save(); },
+    confirmSession(gid, data) { G(gid).sessions["s" + id()] = { ...data, createdBy: db.current, confirmedBy: db.current, confirmedAt: Date.now(), rsvps: { [db.current]: "yes" } }; save(); },
     rsvp(gid, sid, v) { G(gid).sessions[sid].rsvps[db.current] = v; save(); },
     deleteSession(gid, sid) { delete G(gid).sessions[sid]; save(); },
     reset() { db = { users: {}, groups: {}, current: null }; save(); },
@@ -246,17 +255,22 @@ function makeLocalStore() {
           days[k] = x < base ? "yes" : x < base + .12 ? "maybe" : "no";
           d.setDate(d.getDate() + 1);
         }
-        db.users[uid] = { name, days };
+        db.users[uid] = { name, days, email: name.toLowerCase() + "@esempio.it", seenAt: 0 };
       }
-      const mk = (gid, name, game, who, prefs) => {
+      const mk = (gid, name, game, who, prefs, admins, past) => {
         const members = who.map(n => ids[n]); const p = {};
         members.forEach((m, i) => { p[m] = prefs[i]; });
-        db.groups[gid] = { name, game, rule: "all", min: 2, members, prefs: p, inviteCode: "demo" + gid, createdBy: ids.Mattia, sessions: {} };
+        const sessions = {};
+        past.forEach(([day, place], i) => {
+          const rsvps = {}; members.forEach(m => { rsvps[m] = "yes"; });
+          sessions[gid + "p" + i] = { date: `2026-10-${pad(day)}`, time: "21:00", location: place, notes: "", createdBy: ids[admins[0]], confirmedBy: ids[admins[0]], confirmedAt: Date.UTC(2026, 9, day - 3), rsvps };
+        });
+        db.groups[gid] = { name, game, rule: "all", min: 2, members, admins: admins.map(n => ids[n]), prefs: p, inviteCode: "demo" + gid, createdBy: ids[admins[0]], sessions };
       };
-      mk("gLUT", "L'Ultima Torcia", "Ultima Torcia", ["Gigi", "Mattia", "Roberto", "Iole", "Gian"], [3, 3, 2, 3, 2]);
-      mk("gSB", "Set Base", "Set Base", ["Mattia", "Iole", "Gian"], [2, 2, 3]);
-      mk("gDND", "Campagna D&D", "Dungeons & Dragons", ["Gigi", "Mattia", "Roberto", "Iole", "Gian", "Fabiola"], [2, 3, 3, 2, 2, 3]);
-      mk("gFM", "Fan Made", "Fan Made", ["Gigi", "Roberto", "Iole", "Gian"], [3, 2, 2, 3]);
+      mk("gLUT", "L'Ultima Torcia", "Ultima Torcia", ["Gigi", "Mattia", "Roberto", "Iole", "Gian"], [3, 3, 2, 3, 2], ["Mattia"], [[5, "da Gigi"], [12, "da Iole"]]);
+      mk("gSB", "Set Base", "Set Base", ["Mattia", "Iole", "Gian"], [2, 2, 3], ["Gian"], [[8, "da Gian"]]);
+      mk("gDND", "Campagna D&D", "Dungeons & Dragons", ["Gigi", "Mattia", "Roberto", "Iole", "Gian", "Fabiola"], [2, 3, 3, 2, 2, 3], ["Mattia", "Fabiola"], [[13, "da Mattia"]]);
+      mk("gFM", "Fan Made", "Fan Made", ["Gigi", "Roberto", "Iole", "Gian"], [3, 2, 2, 3], ["Gigi"], [[9, "da Roberto"], [16, "da Roberto"]]);
       db.current = ids.Mattia;
       save();
     },
@@ -347,26 +361,29 @@ async function makeFirebaseStore(cfg) {
     },
     async createGroup(data) {
       const ref = F.doc(F.collection(db, "groups"));
-      await F.setDoc(ref, { ...data, members: [uid], names: { [uid]: meDoc?.name || "" }, prefs: { [uid]: 2 }, inviteCode: rid(), createdBy: uid, createdAt: F.serverTimestamp() });
+      await F.setDoc(ref, { ...data, members: [uid], admins: [uid], names: { [uid]: meDoc?.name || "" }, emails: { [uid]: email }, prefs: { [uid]: 2 }, inviteCode: rid(), createdBy: uid, createdAt: F.serverTimestamp() });
       await F.setDoc(F.doc(db, "groups", ref.id, "availability", uid), { days: meDoc?.days || {} });
       return ref.id;
     },
     updateGroup: (gid, p) => F.updateDoc(F.doc(db, "groups", gid), p),
     async joinGroup(gid, code) {
       try {
-        await F.updateDoc(F.doc(db, "groups", gid), { members: F.arrayUnion(uid), ["names." + uid]: meDoc?.name || "", ["prefs." + uid]: 2, joinCode: code });
+        await F.updateDoc(F.doc(db, "groups", gid), { members: F.arrayUnion(uid), ["names." + uid]: meDoc?.name || "", ["emails." + uid]: email, ["prefs." + uid]: 2, joinCode: code });
       } catch (e) {
         throw new Error(e.code === "permission-denied" || e.code === "not-found" ? "Invito non valido o gruppo non più esistente." : e.message);
       }
       await F.setDoc(F.doc(db, "groups", gid, "availability", uid), { days: meDoc?.days || {} });
     },
-    async leaveGroup(gid) {
-      await F.deleteDoc(F.doc(db, "groups", gid, "availability", uid));
-      await F.updateDoc(F.doc(db, "groups", gid), { members: F.arrayRemove(uid), ["names." + uid]: F.deleteField(), ["prefs." + uid]: F.deleteField() });
+    async removeMember(gid, u) {
+      await F.deleteDoc(F.doc(db, "groups", gid, "availability", u));
+      await F.updateDoc(F.doc(db, "groups", gid), { members: F.arrayRemove(u), admins: F.arrayRemove(u), ["names." + u]: F.deleteField(), ["emails." + u]: F.deleteField(), ["prefs." + u]: F.deleteField() });
     },
+    leaveGroup(gid) { return this.removeMember(gid, uid); },
+    setAdmin: (gid, u, on) => F.updateDoc(F.doc(db, "groups", gid), { admins: on ? F.arrayUnion(u) : F.arrayRemove(u) }),
     deleteGroup: gid => F.deleteDoc(F.doc(db, "groups", gid)),
     setPref: (gid, v) => F.updateDoc(F.doc(db, "groups", gid), { ["prefs." + uid]: v }),
-    createSession: (gid, d) => F.addDoc(F.collection(db, "groups", gid, "sessions"), { ...d, createdBy: uid, rsvps: { [uid]: "yes" }, createdAt: F.serverTimestamp() }),
+    markSeen: () => F.updateDoc(F.doc(db, "users", uid), { seenAt: Date.now() }),
+    confirmSession: (gid, d) => F.addDoc(F.collection(db, "groups", gid, "sessions"), { ...d, createdBy: uid, confirmedBy: uid, confirmedAt: Date.now(), rsvps: { [uid]: "yes" } }),
     rsvp: (gid, sid, v) => F.updateDoc(F.doc(db, "groups", gid, "sessions", sid), { ["rsvps." + uid]: v }),
     deleteSession: (gid, sid) => F.deleteDoc(F.doc(db, "groups", gid, "sessions", sid)),
   };
@@ -384,9 +401,24 @@ const need = g => g.rule === "min" ? Math.min(g.min || 2, g.members.length) : g.
 const ruleText = g => g.rule === "min" ? `Si gioca con almeno ${g.min} membri` : "Si gioca solo se ci sono tutti";
 const byName = (g, list) => [...list].sort((a, b) => nameIn(g, a).localeCompare(nameIn(g, b)));
 
+const adminsOf = g => g.admins || [g.createdBy];
+const isAdmin = (g, u = S.me.uid) => adminsOf(g).includes(u);
+
+// Chi quella sera è già impegnato in una serata confermata di un altro gruppo
+function busyOn(d, exceptGid) {
+  const busy = {};
+  for (const x of allSessions()) {
+    if (x.s.date !== d || x.g.id === exceptGid) continue;
+    for (const u of x.g.members) if ((x.s.rsvps || {})[u] !== "no") busy[u] = x.g.name;
+  }
+  return busy;
+}
+
 function evalGroup(g, d) {
-  const by = { yes: [], maybe: [], no: [], none: [] };
-  for (const u of g.members) (by[dayOf(g, u, d)] || by.none).push(u);
+  const by = { yes: [], maybe: [], no: [], none: [], busy: [] };
+  const busy = busyOn(d, g.id);
+  for (const u of g.members) (busy[u] ? by.busy : by[dayOf(g, u, d)] || by.none).push(u);
+  by.busyWhere = busy;
   const n = need(g);
   const status = by.yes.length >= n ? "ok" : by.yes.length + by.maybe.length >= n ? "maybe" : "no";
   const counted = status === "ok" ? by.yes : [...by.yes, ...by.maybe];
@@ -405,6 +437,28 @@ function allSessions() {
   const out = [];
   for (const g of groupList()) for (const [sid, s] of Object.entries(g.sessions || {})) out.push({ g, sid, s });
   return out.sort((a, b) => (a.s.date + (a.s.time || "")).localeCompare(b.s.date + (b.s.time || "")));
+}
+
+function notifications() {
+  const seen = S.me.seenAt || 0, today = todayStr();
+  return allSessions().filter(x => x.s.confirmedAt && x.s.confirmedBy !== S.me.uid && x.s.date >= today)
+    .map(x => ({ ...x, unread: x.s.confirmedAt > seen }))
+    .sort((a, b) => b.s.confirmedAt - a.s.confirmedAt);
+}
+const sessionText = (g, s) => `Confermato! ${fmtDate(s.date)} alle ${s.time || DEFAULT_TIME} si gioca a ${g.game} (gruppo ${g.name})${s.location ? ", " + s.location : ""}.${s.notes ? " " + s.notes : ""} Conferma la tua presenza su Si gioca?: ${location.origin + location.pathname}`;
+
+// Notifiche del browser per le nuove serate confermate (mentre l'app è aperta)
+let notifiedKeys = null;
+function browserNotify() {
+  if (!S.me) return;
+  const keys = notifications().filter(n => n.unread).map(n => n.g.id + n.sid);
+  if (notifiedKeys === null) { notifiedKeys = new Set(keys); return; }
+  for (const n of notifications()) {
+    const k = n.g.id + n.sid;
+    if (!n.unread || notifiedKeys.has(k)) continue;
+    notifiedKeys.add(k);
+    try { if ("Notification" in window && Notification.permission === "granted") new Notification("Si gioca!", { body: `${fmtShort(n.s.date)} alle ${n.s.time || DEFAULT_TIME}: ${n.g.game} con ${n.g.name}` }); } catch (e) {}
+  }
 }
 
 function inviteLink(g) {
@@ -523,16 +577,18 @@ function renderDemoLogin() {
 function renderShell() {
   const today = todayStr();
   const toAnswer = allSessions().filter(x => x.s.date >= today && !(x.s.rsvps || {})[S.me.uid]).length;
+  const unread = notifications().filter(n => n.unread).length;
   let body = "";
   if (S.tab === "groups") body = S.groupId ? renderGroup(getGroup(S.groupId)) : renderGroups();
   else if (S.tab === "avail") body = renderAvail();
   else if (S.tab === "nights") body = renderNights();
-  else body = renderAgenda();
+  else body = renderPlays();
   const t = (id, label, extra = "") => `<button class="${S.tab === id ? "on" : ""}" data-action="tab" data-tab="${id}">${label}${extra}</button>`;
   return `
   <header class="top"><div class="wrap">
     <div class="brand">Si gioca?</div>
     <div class="who">
+      <button class="btn sm ${unread ? "primary" : ""}" data-action="openNotifs">Avvisi${unread ? ` (${unread})` : ""}</button>
       <button class="btn sm ghost" data-action="rename">${esc(S.me.name || "Profilo")}</button>
       <button class="btn sm" data-action="logout">${store.demo ? "Cambia" : "Esci"}</button>
     </div>
@@ -542,7 +598,7 @@ function renderShell() {
     ${body}
   </div></main>
   <nav class="tabs"><div class="wrap">
-    ${t("groups", "Gruppi")}${t("avail", "Disponibilità")}${t("nights", "Serate")}${t("agenda", "Agenda", toAnswer ? `<span class="count">${toAnswer}</span>` : "")}
+    ${t("groups", "Gruppi")}${t("avail", "Disponibilità")}${t("nights", "Serate")}${t("plays", "Giocate", toAnswer ? `<span class="count">${toAnswer}</span>` : "")}
   </div></nav>`;
 }
 
@@ -575,12 +631,14 @@ function renderGroup(g) {
   const futureMarked = u => Object.entries(u === me ? (S.me.days || {}) : (g.avail?.[u] || {})).filter(([d]) => d >= today).length;
   const link = inviteLink(g);
   const sessions = Object.entries(g.sessions || {}).filter(([, s]) => s.date >= today).sort((a, b) => a[1].date.localeCompare(b[1].date));
+  const admin = isAdmin(g);
   return `
     <button class="back" data-action="closeGroup">&lsaquo; I miei gruppi</button>
     <div class="card">
-      <div class="row between"><h2 style="margin:0">${esc(g.name)}</h2><button class="btn sm" data-action="editGroup">Modifica</button></div>
+      <div class="row between"><h2 style="margin:0">${esc(g.name)}</h2>${admin ? `<button class="btn sm" data-action="editGroup">Modifica</button>` : ""}</div>
       <div class="muted">${esc(g.game)}</div>
       <div class="small" style="margin-top:4px">${ruleText(g)}</div>
+      <div class="small muted" style="margin-top:4px">${admin ? "Sei admin: inviti, gestisci i giocatori e confermi le serate." : `Admin: ${esc(byName(g, adminsOf(g).filter(u => g.members.includes(u))).map(u => nameIn(g, u)).join(", ") || "nessuno")}. Sono loro a confermare le serate.`}</div>
     </div>
 
     <div class="card">
@@ -593,15 +651,21 @@ function renderGroup(g) {
       <h3>Membri (${g.members.length})</h3>
       ${byName(g, g.members).map(u => {
         const n = futureMarked(u);
-        return `<div class="row between" style="padding:6px 0;border-bottom:1px solid var(--line)">
-          <div><strong>${esc(nameIn(g, u))}</strong>${u === me ? " (tu)" : ""}${u === g.createdBy ? ` <span class="muted small">- ha creato il gruppo</span>` : ""}
-            <div class="small muted">${n ? `${n} giorni segnati da oggi in poi` : "Non ha ancora segnato le disponibilità"}</div></div>
-          <span class="chip">${PREFS[prefOf(g, u)]}</span>
+        const uAdmin = isAdmin(g, u);
+        return `<div style="padding:8px 0;border-bottom:1px solid var(--line)">
+          <div class="row between">
+            <div><strong>${esc(nameIn(g, u))}</strong>${u === me ? " (tu)" : ""} ${uAdmin ? `<span class="badge star">Admin</span>` : ""}
+              <div class="small muted">${n ? `${n} giorni segnati da oggi in poi` : "Non ha ancora segnato le disponibilità"}</div></div>
+            <span class="chip">${PREFS[prefOf(g, u)]}</span>
+          </div>
+          ${admin && u !== me ? `<div class="row" style="margin-top:6px">
+            <button class="btn sm" data-action="toggleAdmin" data-u="${u}">${uAdmin ? "Togli admin" : "Rendi admin"}</button>
+            <button class="btn sm ghost danger" data-action="removeMember" data-u="${u}">Rimuovi dal gruppo</button></div>` : ""}
         </div>`;
       }).join("")}
     </div>
 
-    <div class="card stack">
+    ${admin ? `<div class="card stack">
       <h3>Invita qualcuno</h3>
       <p class="small muted" style="margin:0">Chi riceve il link entra nel gruppo dopo aver fatto l'accesso.</p>
       <div class="linkbox">${esc(link)}</div>
@@ -610,14 +674,15 @@ function renderGroup(g) {
         <div class="row"><input id="invEmail" data-keep type="email" placeholder="nome@esempio.it" class="grow" style="flex:1"><button class="btn sm primary" data-action="inviteEmail">Invia</button></div></div>
       <div><label class="f" for="invPhone">Via cellulare</label>
         <div class="row"><input id="invPhone" data-keep type="tel" placeholder="+39 333 1234567" style="flex:1"><button class="btn sm" data-action="inviteSms">SMS</button><button class="btn sm" data-action="inviteWa">WhatsApp</button></div></div>
-    </div>
+      <p class="small muted" style="margin:0">Funziona anche con chi non ha ancora l'app: dal link si registra e entra direttamente nel gruppo.</p>
+    </div>` : `<p class="small muted">Per invitare qualcuno chiedi a un admin del gruppo.</p>`}
 
-    <h4>Serate in programma</h4>
+    <h4>Serate confermate</h4>
     ${sessions.length ? sessions.map(([sid, s]) => renderSessionCard(g, sid, s, false)).join("") : `<p class="muted small">Nessuna serata in programma. Guarda le <a href="#" data-action="tab" data-tab="nights">Serate</a> possibili.</p>`}
 
     <div class="row" style="margin-top:16px">
       <button class="btn sm ghost danger" data-action="leaveGroup">Esci dal gruppo</button>
-      ${g.createdBy === me ? `<button class="btn sm ghost danger" data-action="deleteGroup">Elimina gruppo</button>` : ""}
+      ${admin ? `<button class="btn sm ghost danger" data-action="deleteGroup">Elimina gruppo</button>` : ""}
     </div>`;
 }
 
@@ -678,8 +743,7 @@ function renderNights() {
     const ev = shown.map(g => evalGroup(g, k));
     const rank = { ok: 0, maybe: 1, no: 2 };
     ev.sort((a, b) => rank[a.status] - rank[b.status] || b.pref - a.pref || b.yes.length - a.yes.length || a.g.name.localeCompare(b.g.name));
-    const viable = ev.filter(e => e.status !== "no");
-    if (S.onlyPossible && !viable.length) continue;
+    const viable = ev.filter(e => e.status !== "no" && !sessKey.has(e.g.id + "|" + k));
     const list = S.onlyPossible ? viable : ev;
     const best = viable.length >= 2 ? viable[0].g.id : null;
     let overlapNote = "";
@@ -693,22 +757,14 @@ function renderNights() {
         overlapNote = `<div class="note">${viable.length} gruppi possibili con persone in comune (${esc(names.join(", "))}): si gioca a uno solo. Consigliato <strong>${esc(g0.name)}</strong>, il gruppo con più voglia di giocare.</div>`;
       }
     }
-    const top = viable.some(e => e.status === "ok") ? `<span class="badge go">Si gioca</span>` : viable.length ? `<span class="badge wait">Dipende dai forse</span>` : `<span class="badge stop">Nessun gruppo</span>`;
+    const confirmedHere = allSessions().filter(x => x.s.date === k && (S.nGroup === "all" || x.g.id === S.nGroup));
+    if (S.onlyPossible && !viable.length && !confirmedHere.length) continue;
+    const top = confirmedHere.length ? `<span class="badge go">Confermata</span>` : viable.some(e => e.status === "ok") ? `<span class="badge go">Si può giocare</span>` : viable.length ? `<span class="badge wait">Dipende dai forse</span>` : `<span class="badge stop">Nessun gruppo</span>`;
     cards.push(`<div class="card night">
-      <div class="head"><strong>${fmtShort(k)}</strong>${top}</div>
+      <div class="head"><strong>${fmtShort(k)}</strong><div class="row">${top}<button class="btn sm" data-action="openNight" data-date="${k}">Apri</button></div></div>
+      ${confirmedHere.map(x => `<div class="gr"><span class="badge go">Si gioca</span> <strong>${esc(x.g.game)}</strong> con ${esc(x.g.name)} alle ${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " - " + esc(x.s.location) : ""}</div>`).join("")}
       ${overlapNote ? `<div style="padding:0 14px">${overlapNote}</div>` : ""}
-      ${list.map(e => {
-        const g = e.g;
-        const badge = e.status === "ok" ? `<span class="badge go">Ci sono tutti quelli che servono</span>` : e.status === "maybe" ? `<span class="badge wait">Possibile se i forse confermano</span>` : `<span class="badge stop">Non si può</span>`;
-        const chip = (u, cls) => `<span class="chip ${cls}">${esc(nameIn(g, u))}${cls === "maybe" ? " (forse)" : cls === "none" ? " (?)" : ""}</span>`;
-        const proposed = sessKey.has(g.id + "|" + k);
-        return `<div class="gr ${e.status === "no" ? "dim" : ""}">
-          <div class="row between"><div><h3 style="display:inline">${esc(g.name)}</h3> ${best === g.id ? `<span class="badge star">Consigliato</span>` : ""}<div class="small muted">${esc(g.game)} - servono ${e.n} su ${g.members.length}</div></div>${badge}</div>
-          <div style="margin:6px 0">${byName(g, e.yes).map(u => chip(u, "yes")).join("")}${byName(g, e.maybe).map(u => chip(u, "maybe")).join("")}${byName(g, e.no).map(u => chip(u, "no")).join("")}${byName(g, e.none).map(u => chip(u, "none")).join("")}</div>
-          ${e.status !== "no" ? `<div class="row between"><span class="small muted">Voglia media: ${e.pref.toFixed(1).replace(".", ",")} su 3</span>
-            ${proposed ? `<button class="btn sm" data-action="tab" data-tab="agenda">Serata già proposta</button>` : `<button class="btn sm primary" data-action="propose" data-g="${g.id}" data-date="${k}">Proponi la serata</button>`}</div>` : ""}
-        </div>`;
-      }).join("")}
+      ${list.filter(e => !sessKey.has(e.g.id + "|" + k)).map(e => renderGroupRow(e, k, best === e.g.id)).join("")}
     </div>`);
   }
   return `
@@ -722,13 +778,27 @@ function renderNights() {
     ${cards.length ? cards.join("") : `<p class="muted">Nessuna serata possibile in ${monthLabel(S.nMonth).toLowerCase()}. Servono le disponibilità di tutti: controlla in ogni gruppo chi non ha ancora segnato i suoi giorni, oppure prova un altro mese.</p>`}`;
 }
 
-// ----- PAGINA AGENDA -----
+function renderGroupRow(e, k, recommended) {
+  const g = e.g;
+  const badge = e.status === "ok" ? `<span class="badge go">Ci sono tutti quelli che servono</span>` : e.status === "maybe" ? `<span class="badge wait">Possibile se i forse confermano</span>` : `<span class="badge stop">Non si può</span>`;
+  const chip = (u, cls) => `<span class="chip ${cls}">${esc(nameIn(g, u))}${cls === "maybe" ? " (forse)" : cls === "none" ? " (?)" : cls === "busy" ? ` (gioca a ${esc(e.busyWhere[u])})` : ""}</span>`;
+  const admin = isAdmin(g);
+  return `<div class="gr ${e.status === "no" ? "dim" : ""}">
+    <div class="row between"><div><h3 style="display:inline">${esc(g.name)}</h3> ${recommended ? `<span class="badge star">Consigliato</span>` : ""}<div class="small muted">${esc(g.game)} - servono ${e.n} su ${g.members.length}</div></div>${badge}</div>
+    <div style="margin:6px 0">${byName(g, e.yes).map(u => chip(u, "yes")).join("")}${byName(g, e.maybe).map(u => chip(u, "maybe")).join("")}${byName(g, e.busy).map(u => chip(u, "busy")).join("")}${byName(g, e.no).map(u => chip(u, "no")).join("")}${byName(g, e.none).map(u => chip(u, "none")).join("")}</div>
+    ${e.status !== "no" ? `<div class="row between"><span class="small muted">Voglia media: ${e.pref.toFixed(1).replace(".", ",")} su 3</span>
+      ${admin ? `<button class="btn sm primary" data-action="propose" data-g="${g.id}" data-date="${k}">Conferma questa serata</button>` : `<span class="small muted">Decide un admin</span>`}</div>` : ""}
+  </div>`;
+}
+
+// ----- PAGINA GIOCATE -----
 function renderSessionCard(g, sid, s, past) {
   const i = sessionInfo(g, s);
   const my = (s.rsvps || {})[S.me.uid];
   return `<div class="card">
     <div class="row between"><div><h3>${esc(g.game)}</h3><div class="small muted">Gruppo ${esc(g.name)}</div></div>
-      ${past ? "" : i.go ? `<span class="badge go">Si gioca</span>` : `<span class="badge wait">${i.missing === 1 ? "Manca 1 conferma" : `Mancano ${i.missing} conferme`}</span>`}</div>
+      ${past ? "" : `<span class="badge go">Confermata</span>`}</div>
+    ${past ? "" : `<div class="small muted">Confermata da ${esc(nameIn(g, s.confirmedBy || s.createdBy))}. ${i.pending.length ? `Presenze: ${i.yes.length} sì, ${i.pending.length} da confermare${i.no.length ? `, ${i.no.length} non vengono` : ""}.` : i.no.length ? `${i.no.length} non vengono.` : "Hanno confermato tutti."}</div>`}
     <div style="margin-top:6px"><strong>${fmtDate(s.date)}</strong> alle ${esc(s.time || DEFAULT_TIME)}</div>
     ${s.location ? `<div class="muted">${esc(s.location)}</div>` : ""}
     ${s.notes ? `<div class="small" style="margin-top:4px">${esc(s.notes)}</div>` : ""}
@@ -745,18 +815,44 @@ function renderSessionCard(g, sid, s, past) {
     <div class="row">
       <button class="btn sm" data-action="ics" data-g="${g.id}" data-s="${sid}">Aggiungi al calendario</button>
       <a class="btn sm" href="${esc(gcalLink(g, s))}" target="_blank" rel="noopener">Google Calendar</a>
-      ${s.createdBy === S.me.uid ? `<button class="btn sm ghost danger" data-action="deleteSession" data-g="${g.id}" data-s="${sid}">Annulla</button>` : ""}
+      ${isAdmin(g) ? `<button class="btn sm" data-action="notifyAll" data-g="${g.id}" data-s="${sid}">Avvisa tutti</button><button class="btn sm ghost danger" data-action="deleteSession" data-g="${g.id}" data-s="${sid}">Annulla</button>` : ""}
     </div>`}
   </div>`;
 }
 
-function renderAgenda() {
-  const today = todayStr(), all = allSessions();
-  const up = all.filter(x => x.s.date >= today), past = all.filter(x => x.s.date < today).reverse().slice(0, 10);
+function renderPlays() {
+  const today = todayStr(), me = S.me.uid, all = allSessions();
+  const mineIn = x => (x.s.rsvps || {})[me] !== "no";
+  const up = all.filter(x => x.s.date >= today);
+  const past = all.filter(x => x.s.date < today && mineIn(x)).reverse();
+  const year = today.slice(0, 4);
+  const thisYear = past.filter(x => x.s.date.startsWith(year));
+  const perGame = {};
+  thisYear.forEach(x => { perGame[x.g.game] = (perGame[x.g.game] || 0) + 1; });
+  const topGame = Object.entries(perGame).sort((a, b) => b[1] - a[1])[0];
+  const next = up.find(mineIn);
+  const canConfirm = groupList().some(g => isAdmin(g));
+  const perm = "Notification" in window ? Notification.permission : "unsupported";
+  const months = {};
+  past.forEach(x => { (months[x.s.date.slice(0, 7)] ||= []).push(x); });
   return `
-    <div class="row between" style="margin-bottom:12px"><h2 style="margin:0">Agenda</h2>${groupList().length ? `<button class="btn sm primary" data-action="newSession">Nuova serata</button>` : ""}</div>
-    ${up.length ? up.map(x => renderSessionCard(x.g, x.sid, x.s, false)).join("") : `<p class="muted">Nessuna serata in programma. Proponine una dalle <a href="#" data-action="tab" data-tab="nights">Serate</a>.</p>`}
-    ${past.length ? `<details><summary>Serate passate</summary>${past.map(x => renderSessionCard(x.g, x.sid, x.s, true)).join("")}</details>` : ""}`;
+    <div class="row between" style="margin-bottom:12px"><h2 style="margin:0">Le mie giocate</h2>${canConfirm ? `<button class="btn sm primary" data-action="newSession">Conferma una serata</button>` : ""}</div>
+    <div class="card">
+      <h3>Riepilogo</h3>
+      ${next ? `<p class="small" style="margin:4px 0">Prossima giocata: <strong>${fmtShort(next.s.date)}</strong> alle ${esc(next.s.time || DEFAULT_TIME)}, ${esc(next.g.game)} con ${esc(next.g.name)}.</p>` : `<p class="small muted" style="margin:4px 0">Nessuna giocata in programma.</p>`}
+      <div class="stat">
+        <div><strong>${up.filter(mineIn).length}</strong><span class="small muted">in programma</span></div>
+        <div><strong>${thisYear.length}</strong><span class="small muted">giocate nel ${year}</span></div>
+        <div><strong>${Object.keys(perGame).length}</strong><span class="small muted">giochi diversi</span></div>
+      </div>
+      ${Object.keys(perGame).length ? `<div style="margin-top:10px">${Object.entries(perGame).sort((a, b) => b[1] - a[1]).map(([gm, n]) => `<span class="chip">${esc(gm)}: ${n}</span>`).join("")}</div>` : ""}
+      ${topGame ? `<p class="small muted" style="margin:8px 0 0">Il gioco a cui hai giocato di più quest'anno è ${esc(topGame[0])}.</p>` : ""}
+    </div>
+    ${perm === "default" ? `<div class="note row between"><span>Vuoi un avviso su questo dispositivo quando un admin conferma una serata?</span><button class="btn sm" data-action="enableNotif">Attiva avvisi</button></div>` : ""}
+    <h4>In programma</h4>
+    ${up.length ? up.map(x => renderSessionCard(x.g, x.sid, x.s, false)).join("") : `<p class="muted small">Nessuna serata confermata. Guarda le <a href="#" data-action="tab" data-tab="nights">Serate</a> possibili.</p>`}
+    <h4>Storico</h4>
+    ${past.length ? Object.entries(months).map(([ym, xs]) => `<div class="card"><h3>${monthLabel(ym)}</h3>${xs.map(x => `<div class="hist"><span>${fmtShort(x.s.date)}</span><span><strong>${esc(x.g.game)}</strong> <span class="muted">- ${esc(x.g.name)}${x.s.location ? ", " + esc(x.s.location) : ""}</span></span></div>`).join("")}</div>`).join("") : `<p class="muted small">Le serate giocate compariranno qui.</p>`}`;
 }
 
 // ----- FINESTRE -----
@@ -793,9 +889,46 @@ function renderModal() {
       <input id="pasteInput" data-keep type="text" placeholder="https://...#join=...">
       <div class="err" id="pErr"></div>
       <div class="row"><button class="btn grow" data-action="closeModal">Annulla</button><button class="btn primary grow" data-action="usePaste">Continua</button></div>`;
+  } else if (M.type === "night") {
+    const k = M.date;
+    const ev = groupList().map(g => evalGroup(g, k));
+    const rank = { ok: 0, maybe: 1, no: 2 };
+    const sess = allSessions().filter(x => x.s.date === k);
+    const done = new Set(sess.map(x => x.g.id));
+    const open = ev.filter(e => !done.has(e.g.id)).sort((a, b) => rank[a.status] - rank[b.status] || b.pref - a.pref);
+    const viable = open.filter(e => e.status !== "no");
+    inner = `<h2>${fmtDate(k)}</h2>
+      ${sess.length ? `<h4>Confermate</h4>${sess.map(x => `<div class="note"><strong>${esc(x.g.game)}</strong> con ${esc(x.g.name)} alle ${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " - " + esc(x.s.location) : ""}</div>`).join("")}` : ""}
+      <h4>Giochi possibili questa sera</h4>
+      ${viable.length ? `<p class="small muted" style="margin:0 0 6px">${viable.length > 1 ? "Più giochi sono possibili: l'admin sceglie a cosa giocare. Il consigliato è quello con più voglia di giocare." : "C'è un gioco possibile."}</p>` : `<p class="small muted">Nessun gioco possibile questa sera con le disponibilità attuali.</p>`}
+      <div class="card night" style="margin:0">${open.map((e, i) => renderGroupRow(e, k, viable.length > 1 && e === viable[0])).join("") || `<div class="gr muted small">Tutti i tuoi gruppi hanno già una serata confermata.</div>`}</div>
+      <div class="row" style="margin-top:12px"><span class="small muted" style="width:100%">Tu quella sera:</span>
+        ${["yes", "maybe", "no"].map(v => `<button class="btn sm ${v} ${(S.me.days || {})[k] === v ? "on" : ""}" data-action="setMyDay" data-date="${k}" data-v="${v}">${STATUS[v]}</button>`).join("")}
+      </div>
+      <button class="btn full" style="margin-top:12px" data-action="closeModal">Chiudi</button>`;
+  } else if (M.type === "notifs") {
+    const list = notifications();
+    inner = `<h2>Avvisi</h2>
+      ${list.length ? list.map(n => `<div class="note" style="${n.unread ? "" : "background:var(--surface-2)"}"><strong>${n.unread ? "Nuova: " : ""}${esc(n.g.game)}</strong> - ${fmtShort(n.s.date)} alle ${esc(n.s.time || DEFAULT_TIME)}<div class="small">${esc(nameIn(n.g, n.s.confirmedBy))} ha confermato la serata del gruppo ${esc(n.g.name)}${n.s.location ? ", " + esc(n.s.location) : ""}.</div></div>`).join("") : `<p class="muted">Nessun avviso. Quando un admin conferma una serata di un tuo gruppo, la trovi qui.</p>`}
+      <div class="row" style="margin-top:12px"><button class="btn grow" data-action="closeModal">Chiudi</button><button class="btn primary grow" data-action="tab" data-tab="plays">Vai alle giocate</button></div>`;
+  } else if (M.type === "notify") {
+    const g = getGroup(M.gid), s = g?.sessions?.[M.sid];
+    if (!s) { S.modal = null; return ""; }
+    const others = g.members.filter(u => u !== S.me.uid);
+    const emails = others.map(u => g.emails?.[u]).filter(Boolean);
+    inner = `<h2>Avvisa tutti</h2>
+      <p class="small">Tutti i membri del gruppo vedono già la serata nell'app, tra gli Avvisi e in Giocate. Puoi avvisarli anche fuori dall'app:</p>
+      <div class="linkbox">${esc(sessionText(g, s))}</div>
+      <div class="stack">
+        <a class="btn full" href="https://wa.me/?text=${encodeURIComponent(sessionText(g, s))}" target="_blank" rel="noopener">Invia su WhatsApp</a>
+        ${emails.length ? `<a class="btn full" href="mailto:?bcc=${encodeURIComponent(emails.join(","))}&subject=${encodeURIComponent(`Si gioca: ${g.game} ${fmtShort(s.date)}`)}&body=${encodeURIComponent(sessionText(g, s))}">Invia per email a ${emails.length} ${emails.length === 1 ? "persona" : "persone"}</a>` : ""}
+        <button class="btn full" data-action="copyText" data-text="${esc(sessionText(g, s))}">Copia il messaggio</button>
+        <button class="btn full ghost" data-action="closeModal">Fatto</button>
+      </div>`;
   } else if (M.type === "session") {
-    const groups = groupList();
-    inner = `<h2>Proponi una serata</h2>
+    const groups = groupList().filter(g => isAdmin(g));
+    inner = `<h2>Conferma la serata</h2>
+      <p class="small muted" style="margin-top:-6px">Tutti i membri del gruppo riceveranno l'avviso.</p>
       <div class="stack">
         <div><label class="f" for="sGroup">Gruppo</label><select id="sGroup" data-keep>${groups.map(g => `<option value="${g.id}" ${g.id === M.gid ? "selected" : ""}>${esc(g.name)} - ${esc(g.game)}</option>`).join("")}</select></div>
         <div class="row">
@@ -805,7 +938,7 @@ function renderModal() {
         <div><label class="f" for="sLoc">Dove</label><input id="sLoc" data-keep type="text" placeholder="Es. da Gigi, via Roma 12"></div>
         <div><label class="f" for="sNotes">Note</label><textarea id="sNotes" data-keep placeholder="Es. portate le schede, si cena prima"></textarea></div>
         <div class="err" id="sErr"></div>
-        <div class="row"><button class="btn grow" data-action="closeModal">Annulla</button><button class="btn primary grow" data-action="saveSession">Proponi</button></div>
+        <div class="row"><button class="btn grow" data-action="closeModal">Annulla</button><button class="btn primary grow" data-action="saveSession">Conferma</button></div>
       </div>`;
   }
   return `<div class="overlay" data-action="overlay"><div class="sheet">${inner}</div></div>`;
@@ -842,7 +975,7 @@ async function run(fn) {
 const val = id => (document.getElementById(id)?.value || "").trim();
 function clearPending() { try { sessionStorage.removeItem("gp-join"); } catch (e) {} }
 async function copy(text) {
-  try { await navigator.clipboard.writeText(text); toast("Link copiato."); }
+  try { await navigator.clipboard.writeText(text); toast("Copiato."); }
   catch (e) { prompt("Copia il link:", text); }
 }
 
@@ -882,8 +1015,15 @@ document.addEventListener("click", e => {
       break;
     }
     case "setPref": run(() => store.setPref(S.groupId, +d.v)); break;
-    case "leaveGroup": if (confirm(`Vuoi uscire dal gruppo "${g.name}"?`)) { const id = S.groupId; S.groupId = null; run(() => store.leaveGroup(id)); } break;
+    case "leaveGroup": {
+      const admins = adminsOf(g).filter(u => g.members.includes(u));
+      if (isAdmin(g) && admins.length === 1 && g.members.length > 1) { toast("Sei l'unico admin: prima rendi admin qualcun altro."); break; }
+      if (confirm(`Vuoi uscire dal gruppo "${g.name}"?`)) { const id = S.groupId; S.groupId = null; run(() => g.members.length === 1 ? store.deleteGroup(id) : store.leaveGroup(id)); }
+      break;
+    }
     case "deleteGroup": if (confirm(`Elimini il gruppo "${g.name}" per tutti?`)) { const id = S.groupId; S.groupId = null; run(() => store.deleteGroup(id)); } break;
+    case "toggleAdmin": run(() => store.setAdmin(S.groupId, d.u, !isAdmin(g, d.u))); break;
+    case "removeMember": if (confirm(`Rimuovi ${nameIn(g, d.u)} dal gruppo?`)) run(() => store.removeMember(S.groupId, d.u)); break;
     case "copyLink": copy(inviteLink(g)); break;
     case "shareLink": navigator.share({ title: "Si gioca?", text: inviteText(g) }).catch(() => {}); break;
     case "inviteEmail": {
@@ -951,18 +1091,35 @@ document.addEventListener("click", e => {
 
     // serate
     case "toggleOnly": S.onlyPossible = !S.onlyPossible; render(); break;
+    case "openNight": S.modal = { type: "night", date: d.date }; render(); break;
+    case "setMyDay": {
+      const cur = (S.me.days || {})[d.date];
+      run(() => store.setDays({ [d.date]: cur === d.v ? null : d.v }));
+      break;
+    }
     case "propose": S.modal = { type: "session", gid: d.g, date: d.date }; render(); break;
-    case "newSession": S.modal = { type: "session", gid: groupList()[0]?.id, date: "" }; render(); break;
+    case "newSession": S.modal = { type: "session", gid: groupList().find(x => isAdmin(x))?.id, date: "" }; render(); break;
     case "saveSession": {
       const gid = val("sGroup"), date = val("sDate"), err = document.getElementById("sErr");
-      if (!S.groups[gid]) { err.textContent = "Scegli un gruppo."; break; }
+      if (!S.groups[gid] || !isAdmin(getGroup(gid))) { err.textContent = "Scegli un gruppo di cui sei admin."; break; }
       if (!date || date < todayStr()) { err.textContent = "Scegli un giorno a partire da oggi."; break; }
+      const dup = Object.values(S.groups[gid].sessions || {}).some(s => s.date === date);
+      if (dup) { err.textContent = "Questo gruppo ha già una serata confermata in quel giorno."; break; }
       const data = { date, time: val("sTime") || DEFAULT_TIME, location: val("sLoc"), notes: val("sNotes") };
-      S.modal = null; S.tab = "agenda"; S.groupId = null;
-      run(async () => { await store.createSession(gid, data); toast("Serata proposta: ora tocca agli altri confermare."); });
+      S.modal = null; S.tab = "plays"; S.groupId = null;
+      run(async () => {
+        await store.confirmSession(gid, data);
+        const sid = Object.entries(S.groups[gid]?.sessions || {}).find(([, s]) => s.date === date)?.[0];
+        toast("Serata confermata: i membri del gruppo trovano l'avviso nell'app.");
+        if (sid) { S.modal = { type: "notify", gid, sid }; render(); }
+      });
       render();
       break;
     }
+    case "notifyAll": S.modal = { type: "notify", gid: d.g, sid: d.s }; render(); break;
+    case "copyText": copy(d.text); break;
+    case "openNotifs": S.modal = { type: "notifs" }; render(); if (notifications().some(n => n.unread)) run(() => store.markSeen()); break;
+    case "enableNotif": Notification.requestPermission().then(() => render()); break;
     case "rsvp": {
       const s = S.groups[d.g]?.sessions?.[d.s];
       if (s && (s.rsvps || {})[S.me.uid] !== d.v) run(() => store.rsvp(d.g, d.s, d.v));
@@ -974,7 +1131,7 @@ document.addEventListener("click", e => {
     // profilo
     case "rename": S.modal = { type: "name" }; render(); break;
     case "saveName": { const n = val("nameInput"); if (!n) break; S.modal = null; run(() => store.setName(n)); render(); break; }
-    case "logout": S.modal = null; S.tab = "groups"; S.groupId = null; run(() => store.logout()); break;
+    case "logout": S.modal = null; notifiedKeys = null; S.tab = "groups"; S.groupId = null; run(() => store.logout()); break;
 
     // accesso Firebase
     case "googleIn": S.authErr = ""; store.signInGoogle().catch(e => { S.authErr = authMsg(e); render(); }); break;
@@ -990,7 +1147,7 @@ document.addEventListener("click", e => {
     case "checkVerify": store.checkVerified().then(ok => { if (!ok) { S.authErr = "Non risulta ancora verificata. Apri il link nell'email e riprova."; render(); } }).catch(e => { S.authErr = authMsg(e); render(); }); break;
 
     // demo
-    case "demoAs": store.loginAs(d.u); break;
+    case "demoAs": notifiedKeys = null; store.loginAs(d.u); break;
     case "demoNew": { const n = val("demoName"); if (!n) { toast("Scrivi un nome."); break; } store.createUser(n); break; }
     case "demoSeed": store.seed(); S.tab = "nights"; S.nMonth = "2026-10" >= curMonth() ? "2026-10" : curMonth(); render(); break;
     case "demoReset": if (confirm("Cancello tutti i dati della demo?")) store.reset(); break;
@@ -1020,7 +1177,7 @@ document.addEventListener("keydown", e => {
     $("#app").innerHTML = `<div class="auth"><h1>Ops</h1><p>Non riesco a collegarmi a Firebase. Controlla la configurazione in index.html e la connessione.</p></div>`;
     return;
   }
-  store.start(data => { Object.assign(S, data); render(); });
+  store.start(data => { Object.assign(S, data); render(); browserNotify(); });
 })();
 </script>
 </body>

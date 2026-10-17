@@ -3,6 +3,7 @@ rules_version = '2';
 // Regole di sicurezza per "Si gioca?"
 // Si accede con Google o con email verificata. Ognuno vede solo i gruppi
 // di cui fa parte; si entra in un gruppo solo con il link di invito.
+// Gli admin di un gruppo gestiscono membri e inviti e confermano le serate.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -10,49 +11,73 @@ service cloud.firestore {
     function signedIn() {
       return request.auth != null && request.auth.token.email_verified == true;
     }
-
+    function grp(gid) {
+      return get(/databases/$(database)/documents/groups/$(gid)).data;
+    }
     function isMember(gid) {
-      return request.auth.uid in get(/databases/$(database)/documents/groups/$(gid)).data.members;
+      return request.auth.uid in grp(gid).members;
+    }
+    function isAdmin(gid) {
+      return request.auth.uid in grp(gid).admins;
+    }
+    // Il campo-mappa "field" cambia solo nella voce dell'utente stesso
+    function onlyOwnKey(field) {
+      return request.resource.data.get(field, {}).diff(resource.data.get(field, {})).affectedKeys().hasOnly([request.auth.uid]);
     }
 
-    // Profilo personale (nome e disponibilità): solo il proprietario
+    // Profilo personale (nome, disponibilità, avvisi letti): solo il proprietario
     match /users/{uid} {
       allow read, write: if signedIn() && request.auth.uid == uid;
     }
 
     match /groups/{gid} {
-      // Il gruppo lo vedono solo i suoi membri
       allow read: if signedIn() && request.auth.uid in resource.data.members;
 
-      // Chi crea il gruppo è il primo e unico membro
+      // Chi crea il gruppo è il primo membro e il primo admin
       allow create: if signedIn()
         && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.members == [request.auth.uid];
+        && request.resource.data.members == [request.auth.uid]
+        && request.resource.data.admins == [request.auth.uid];
 
-      // I membri possono modificarlo. Chi non è membro può solo aggiungere
-      // se stesso, e solo con il codice di invito corretto.
       allow update: if signedIn() && (
-        request.auth.uid in resource.data.members
-        || (
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'names', 'prefs', 'joinCode'])
-          && request.resource.data.members == resource.data.members.concat([request.auth.uid])
-          && request.resource.data.joinCode == resource.data.inviteCode
-        )
+        // Admin: possono modificare tutto (nome, regola, membri, admin)
+        request.auth.uid in resource.data.admins
+        // Membro: cambia solo il proprio nome, email e voglia di giocare
+        || (request.auth.uid in resource.data.members
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['names', 'emails', 'prefs'])
+            && onlyOwnKey('names') && onlyOwnKey('emails') && onlyOwnKey('prefs'))
+        // Membro che esce dal gruppo
+        || (request.auth.uid in resource.data.members
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'names', 'emails', 'prefs'])
+            && request.resource.data.members == resource.data.members.removeAll([request.auth.uid])
+            && onlyOwnKey('names') && onlyOwnKey('emails') && onlyOwnKey('prefs'))
+        // Nuovo membro che entra con il codice di invito corretto
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'names', 'emails', 'prefs', 'joinCode'])
+            && request.resource.data.members == resource.data.members.concat([request.auth.uid])
+            && request.resource.data.joinCode == resource.data.inviteCode
+            && onlyOwnKey('names') && onlyOwnKey('emails') && onlyOwnKey('prefs'))
       );
 
-      // Solo chi l'ha creato può eliminarlo
-      allow delete: if signedIn() && resource.data.createdBy == request.auth.uid;
+      allow delete: if signedIn() && request.auth.uid in resource.data.admins;
 
-      // Disponibilità dei membri: le leggono i membri, ognuno scrive solo le sue
+      // Disponibilità dei membri: le leggono i membri, ognuno scrive solo le sue.
+      // Un admin può cancellare quelle di chi rimuove dal gruppo.
       match /availability/{uid} {
         allow read: if signedIn() && isMember(gid);
-        allow write: if signedIn() && request.auth.uid == uid && isMember(gid);
+        allow create, update: if signedIn() && request.auth.uid == uid && isMember(gid);
+        allow delete: if signedIn() && (request.auth.uid == uid || isAdmin(gid));
       }
 
-      // Serate proposte: condivise tra i membri, le annulla solo chi le ha proposte
+      // Serate: le confermano e annullano gli admin; ogni membro conferma solo la propria presenza
       match /sessions/{sid} {
-        allow read, create, update: if signedIn() && isMember(gid);
-        allow delete: if signedIn() && isMember(gid) && resource.data.createdBy == request.auth.uid;
+        allow read: if signedIn() && isMember(gid);
+        allow create, delete: if signedIn() && isAdmin(gid);
+        allow update: if signedIn() && (
+          isAdmin(gid)
+          || (isMember(gid)
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rsvps'])
+              && onlyOwnKey('rsvps'))
+        );
       }
     }
   }
