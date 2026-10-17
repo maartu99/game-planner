@@ -103,7 +103,7 @@ Scheda di benvenuto:
 - Pulsanti: "Crea un gruppo" e "Ho un link di invito".
 
 ELENCO (una scheda per gruppo, in ordine alfabetico; toccando la scheda si apre il dettaglio)
-- Nome del gruppo.
+- Nome del gruppo ed etichetta del tipo di gioco (GDR / Gioco da tavolo / Gioco di carte).
 - Numero di membri: "1 membro" / "N membri".
 - Riga: "[nome del gioco] - [regola]", dove la regola è "Si gioca solo se ci sono tutti" oppure "Si gioca con almeno N membri".
 - Etichette con i nomi dei membri.
@@ -291,6 +291,7 @@ F2. NUOVO GRUPPO / MODIFICA GRUPPO
 - Titolo: "Nuovo gruppo" oppure "Modifica gruppo".
 - Campo "Nome del gruppo o della campagna" (segnaposto "Es. La campagna del giovedì").
 - Campo "Gioco" (segnaposto "Es. Dungeons & Dragons").
+- Menu "Tipo di gioco": "GDR" (predefinito), "Gioco da tavolo", "Gioco di carte", "Altro". Il tipo compare come etichetta sulle schede del gruppo e nello storico (tranne "Altro").
 - "Quando si può giocare", scelta singola:
   - "Solo se ci sono tutti i membri" (predefinita);
   - "Basta un minimo di [menu 2-10] membri".

@@ -3,129 +3,334 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1f2a44">
+<meta name="theme-color" content="#1b6d4f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Game Planner">
 <title>Game Planner</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231f2a44'/%3E%3Ccircle cx='22' cy='22' r='6' fill='%23f4c95d'/%3E%3Ccircle cx='42' cy='42' r='6' fill='%23f4c95d'/%3E%3Ccircle cx='42' cy='22' r='6' fill='%23f4c95d'/%3E%3Ccircle cx='22' cy='42' r='6' fill='%23f4c95d'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231b6d4f'/%3E%3Ccircle cx='22' cy='22' r='6' fill='%23a5f3cd'/%3E%3Ccircle cx='42' cy='42' r='6' fill='%23a5f3cd'/%3E%3Ccircle cx='42' cy='22' r='6' fill='%23a5f3cd'/%3E%3Ccircle cx='22' cy='42' r='6' fill='%23a5f3cd'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block" rel="stylesheet">
 <style>
+/* ===== Design system "Tavolo & Dadi" ===== */
 :root{
-  --bg:#f6f4ef; --surface:#ffffff; --surface-2:#efece4; --text:#1d2230; --muted:#6b7080; --line:#e2ddd2;
-  --accent:#2f4b8a; --accent-text:#ffffff; --accent-soft:#e3e9f7;
-  --yes:#2e9d5b; --yes-bg:#dff3e6; --maybe:#b97c0c; --maybe-bg:#fbefd2; --no:#b5463c; --no-bg:#f6dedb;
-  --radius:14px; --shadow:0 1px 2px rgba(0,0,0,.05),0 4px 14px rgba(0,0,0,.05);
+  --bg:#f8faf9; --surface:#ffffff; --surface-2:#f0f5f2; --surface-3:#e9eef5;
+  --line:#e2e8f0; --line-2:#cbd5e1; --text:#1e2429; --muted:#5b6670; --faint:#94a3b8;
+  --primary:#1b6d4f; --primary-dark:#00533a; --shelf:#124935; --primary-soft:#e3f1ea; --on-primary:#ffffff;
+  --brass:#d9822b; --brass-dark:#8f4e00; --brass-soft:#fef3c7; --brass-line:#f2c48f; --brass-text:#78350f;
+  --indigo:#6352a0; --indigo-soft:#f3f0ff; --indigo-line:#ddd6fe; --indigo-text:#5b21b6;
+  --yes:#10b981; --yes-bg:#ecfdf5; --yes-line:#a7f3d0; --yes-text:#065f46;
+  --maybe:#f59e0b; --maybe-bg:#fffbeb; --maybe-line:#fde68a; --maybe-text:#92400e; --maybe-fill:#fea047; --maybe-on:#4a2700;
+  --no:#e11d48; --no-bg:#fff1f2; --no-line:#fecdd3; --no-text:#9f1239;
+  --busy:#64748b; --busy-bg:#f1f5f9;
+  --sh1:0 1px 3px 0 rgba(30,36,41,.05),0 1px 2px -1px rgba(30,36,41,.05);
+  --sh2:0 8px 16px -4px rgba(27,109,79,.08),0 4px 6px -2px rgba(30,36,41,.04);
+  --sh3:0 20px 25px -5px rgba(30,36,41,.12),0 10px 10px -5px rgba(30,36,41,.04);
 }
 @media (prefers-color-scheme: dark){
   :root{
-    --bg:#14171f; --surface:#1d212c; --surface-2:#262b38; --text:#eceef3; --muted:#9aa0ae; --line:#2e3442;
-    --accent:#8aa6f0; --accent-text:#0f1320; --accent-soft:#25304a;
-    --yes:#4cc27e; --yes-bg:#1b3527; --maybe:#e3a93a; --maybe-bg:#3a2f17; --no:#e0766b; --no-bg:#3b2120;
-    --shadow:none;
+    --bg:#111614; --surface:#1a201d; --surface-2:#212925; --surface-3:#26302b;
+    --line:#2c3632; --line-2:#3a4641; --text:#e8eeeb; --muted:#a2aea8; --faint:#6d7a74;
+    --primary:#3fae84; --primary-dark:#89d6b1; --shelf:#1d5e45; --primary-soft:#1d3329; --on-primary:#06231a;
+    --brass:#f0a25a; --brass-dark:#ffb77a; --brass-soft:#3a2a14; --brass-line:#6d4a1e; --brass-text:#ffd9a8;
+    --indigo:#b3a5f0; --indigo-soft:#2a2540; --indigo-line:#433a6b; --indigo-text:#d6ccff;
+    --yes:#34d399; --yes-bg:#123026; --yes-line:#1f5a45; --yes-text:#9ff0cc;
+    --maybe:#fbbf24; --maybe-bg:#33270f; --maybe-line:#6b4e14; --maybe-text:#fde3a1; --maybe-fill:#e58f3a; --maybe-on:#2b1600;
+    --no:#fb7185; --no-bg:#3a1820; --no-line:#6b2a39; --no-text:#ffc2cc;
+    --busy:#94a3b8; --busy-bg:#262d33;
+    --sh1:none; --sh2:none; --sh3:0 20px 40px rgba(0,0,0,.5);
   }
 }
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%}
+html,body{margin:0;background:var(--bg);color:var(--text);font:400 16px/1.5 "Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
-a{color:var(--accent)}
+a{color:var(--primary)}
+.ms{font-family:"Material Symbols Outlined";font-weight:normal;font-style:normal;font-size:20px;line-height:1;display:inline-block;vertical-align:middle;letter-spacing:normal;text-transform:none;white-space:nowrap;-webkit-font-feature-settings:"liga";font-feature-settings:"liga";font-variation-settings:"FILL" 0,"wght" 500;flex:none}
+.ms.fill{font-variation-settings:"FILL" 1,"wght" 500}
+.ms.s14{font-size:14px}.ms.s16{font-size:16px}.ms.s18{font-size:18px}.ms.s24{font-size:24px}.ms.s28{font-size:28px}
 .wrap{max-width:640px;margin:0 auto;padding:0 16px}
-header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top)}
-header.top .wrap{display:flex;align-items:center;justify-content:space-between;height:56px;gap:8px}
-.brand{font-weight:800;font-size:19px;letter-spacing:-.2px}
-.who{display:flex;gap:6px;align-items:center}
-main{padding:16px 0 110px}
-h2{font-size:20px;margin:4px 0 12px}
-h3{font-size:16px;margin:0 0 4px}
-h4{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:14px 0 6px}
 .muted{color:var(--muted)}
-.small{font-size:13px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);margin-bottom:12px}
-.card.click{cursor:pointer}
+.small{font-size:14px;line-height:20px}
+.xs{font-size:12px;line-height:16px}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .between{justify-content:space-between}
-.stack>*+*{margin-top:10px}
+.nowrap{flex-wrap:nowrap}
 .grow{flex:1;min-width:0}
-.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 14px;font-weight:600;font-size:15px;text-decoration:none;display:inline-block;text-align:center}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-text)}
-.btn.ghost{background:transparent}
-.btn.sm{padding:6px 10px;font-size:13px;border-radius:8px}
-.btn.danger{color:var(--no)}
-.btn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
-.btn.yes.on{background:var(--yes-bg);border-color:var(--yes);color:var(--yes)}
-.btn.maybe.on{background:var(--maybe-bg);border-color:var(--maybe);color:var(--maybe)}
-.btn.no.on{background:var(--no-bg);border-color:var(--no);color:var(--no)}
-.btn:disabled{opacity:.4;cursor:default}
-.full{width:100%}
-input[type=text],input[type=email],input[type=tel],input[type=password],input[type=time],input[type=date],select,textarea{
-  width:100%;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;font-size:16px}
-textarea{min-height:70px;resize:vertical}
-label.f{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:4px}
-.chip{display:inline-block;border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:3px 10px;font-size:13px;margin:2px 4px 2px 0}
-.chip.yes{background:var(--yes-bg);border-color:var(--yes);color:var(--yes)}
-.chip.maybe{background:var(--maybe-bg);border-color:var(--maybe);color:var(--maybe)}
-.chip.no{background:var(--no-bg);border-color:var(--no);color:var(--no)}
-button.chip{cursor:pointer;font-size:13px}
-.chip.none{opacity:.75;border-style:dashed}
-.chip.busy{background:var(--no-bg);border-color:var(--no);color:var(--no);border-style:dashed}
-.stat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
-.stat div{background:var(--surface-2);border-radius:10px;padding:10px;text-align:center}
-.stat strong{display:block;font-size:22px}
-.hist{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
-.hist:last-child{border-bottom:0}
-.badge{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
-.badge.go{background:var(--yes-bg);color:var(--yes)}
-.badge.wait{background:var(--maybe-bg);color:var(--maybe)}
-.badge.stop{background:var(--no-bg);color:var(--no)}
-.badge.star{background:var(--accent);color:var(--accent-text)}
-.banner{background:var(--maybe-bg);color:var(--text);border:1px solid var(--maybe);border-radius:10px;padding:8px 12px;font-size:13px;margin-bottom:12px}
-.note{background:var(--accent-soft);border-radius:10px;padding:8px 12px;font-size:13px;margin:8px 0}
-.err{color:var(--no);font-size:14px;min-height:20px}
-.back{background:none;border:0;color:var(--accent);font-weight:600;padding:0;margin-bottom:10px;font-size:15px}
-.legend{font-size:12px;color:var(--muted);margin-top:10px}
-.choice{display:flex;align-items:center;gap:8px;padding:8px 0}
-.choice input{width:auto;margin:0}
+.stack>*+*{margin-top:12px}
+.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+h1,h2,h3{margin:0;letter-spacing:-.02em}
+.page-title{font-size:26px;line-height:32px;font-weight:800;letter-spacing:-.02em}
+.page-sub{color:var(--muted);font-size:14px;margin:4px 0 16px}
+.t-lg{font-size:18px;line-height:26px;font-weight:700}
+.t-md{font-size:16px;line-height:24px;font-weight:600}
+.label{font-size:11px;line-height:14px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.section{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:24px 0 10px}
+.section h3{font-size:20px;font-weight:800;display:flex;align-items:center;gap:8px}
 
-/* calendario */
-.brushes{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:12px 0}
-.brushes .btn{padding:8px 4px;font-size:13px}
-.dow,.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
-.dow div{text-align:center;font-size:12px;color:var(--muted);font-weight:600;padding-bottom:4px}
-.day{aspect-ratio:1/1;border:1px solid var(--line);background:var(--surface);border-radius:10px;position:relative;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:15px;line-height:1.1}
-.day .t{font-size:9px;font-weight:800;letter-spacing:.3px;margin-top:2px}
-.day.yes{background:var(--yes-bg);border-color:var(--yes);color:var(--yes);font-weight:700}
-.day.maybe{background:var(--maybe-bg);border-color:var(--maybe);color:var(--maybe);font-weight:700}
-.day.no{background:var(--no-bg);border-color:var(--no);color:var(--no)}
-.day.today .n{text-decoration:underline;text-underline-offset:3px;font-weight:800}
-.day:disabled{opacity:.35;cursor:default}
+/* header */
+header.top{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding-top:env(safe-area-inset-top)}
+header.top .wrap{display:flex;align-items:center;justify-content:space-between;height:64px;gap:8px}
+.brandbox{display:flex;align-items:center;gap:10px;min-width:0}
+.logo{width:40px;height:40px;border-radius:12px;background:var(--primary);color:#fff;display:grid;place-items:center;box-shadow:0 2px 0 var(--shelf);flex:none}
+.logo .ms{font-size:24px;color:#a5f3cd}
+.brand{font-weight:800;font-size:18px;line-height:20px;color:var(--primary-dark)}
+.brand-sub{font-size:12px;font-weight:600;color:var(--text)}
+.tag-demo{font-size:10px;font-weight:800;letter-spacing:.06em;background:var(--brass-soft);color:var(--brass-text);border:1px solid var(--brass-line);border-radius:6px;padding:1px 6px;margin-left:6px}
+.hbtn{position:relative;display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 12px;border-radius:12px;border:0;background:var(--surface-3);font-weight:700;font-size:13px}
+.hbtn .dot{min-width:18px;height:18px;border-radius:9px;background:var(--no);color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center;padding:0 5px}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--indigo-soft);color:var(--indigo-text);border:2px solid var(--brass);display:grid;place-items:center;font-weight:800;font-size:15px;padding:0;flex:none}
+.linkbtn{background:none;border:0;padding:4px;color:var(--brass-dark);font-weight:700;font-size:13px;text-decoration:underline;text-underline-offset:3px}
+.demo-bar{background:var(--surface-3);color:var(--text);font-size:12px;font-weight:600;text-align:center;padding:6px 16px;display:flex;align-items:center;justify-content:center;gap:6px}
+.demo-bar .ms{color:var(--no)}
+main{padding:12px 0 110px}
+
+/* cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--sh1);margin-bottom:14px}
+.card.click{cursor:pointer;transition:box-shadow .15s,border-color .15s}
+.card.click:hover{box-shadow:var(--sh2);border-color:color-mix(in srgb,var(--primary) 30%,var(--line))}
+.card.flush{padding:0;overflow:hidden}
+.panel{background:var(--surface-2);border-radius:14px;padding:14px}
+.foot{background:var(--surface-2);border-top:1px solid var(--line);padding:12px 16px}
+.inset{background:var(--surface-3);border-radius:10px;padding:8px 12px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:12px;border:1.5px solid var(--line-2);background:var(--surface);color:var(--text);font-weight:700;font-size:15px;text-decoration:none;text-align:center;line-height:1.2}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--primary-dark);border-color:var(--primary-dark);color:#fff;box-shadow:0 2px 0 var(--shelf)}
+.btn.primary:active{transform:translateY(2px);box-shadow:none}
+.btn.brass{background:var(--brass-dark);border-color:var(--brass-dark);color:#fff;box-shadow:0 2px 0 #5c3200}
+.btn.brass-soft{background:#ffdcc2;border-color:#ffdcc2;color:#4a2400}
+.btn.soft{background:var(--surface-3);border-color:transparent}
+.btn.ghost{background:transparent;border-color:transparent}
+.btn.danger{color:var(--no);border-color:var(--no-line);background:var(--surface)}
+.btn.danger-soft{background:var(--no-bg);border-color:transparent;color:var(--no-text)}
+.btn.sm{min-height:36px;padding:0 12px;font-size:13px;border-radius:10px}
+.btn.lg{min-height:52px;font-size:16px}
+.btn.full{width:100%}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.on{background:var(--primary-dark);border-color:var(--primary-dark);color:#fff}
+.textlink{background:none;border:0;padding:6px;font-weight:700;font-size:14px;color:var(--primary-dark)}
+.textlink.danger{color:var(--no)}
+
+/* chips & badges */
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:4px;border-radius:8px;padding:4px 10px;font-size:13px;font-weight:700;background:var(--surface-3);color:var(--text);border:1px solid transparent;line-height:18px}
+button.chip{cursor:pointer}
+.chip.admin{background:var(--yes-bg);color:var(--yes-text);border-color:var(--yes-line)}
+.chip.yes{background:var(--yes-bg);color:var(--yes-text);border-color:var(--yes-line)}
+.chip.maybe{background:var(--maybe-bg);color:var(--maybe-text);border-color:var(--maybe-line)}
+.chip.no{background:var(--no-bg);color:var(--no-text);border-color:var(--no-line)}
+.chip.busy{background:var(--no-bg);color:var(--no-text);border-color:var(--no-line);border-style:dashed}
+.chip.none{background:transparent;color:var(--muted);border:1px dashed var(--line-2)}
+.chip.sel{background:var(--primary-dark);color:#fff}
+.chip .n{opacity:.7;font-weight:600;margin-left:2px}
+.pill{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;white-space:nowrap;border:1px solid transparent;line-height:16px}
+.pill.ok{background:#a5f3cd;color:var(--primary-dark)}
+.pill.go{background:var(--yes-bg);color:var(--yes-text);border-color:var(--yes-line)}
+.pill.wait{background:var(--maybe-bg);color:var(--maybe-text);border-color:var(--maybe-line)}
+.pill.orange{background:var(--maybe-fill);color:var(--maybe-on)}
+.pill.stop{background:var(--no-bg);color:var(--no-text);border-color:var(--no-line)}
+.pill.star{background:var(--brass-soft);color:var(--brass-text);border-color:var(--brass);text-transform:uppercase;font-size:11px;letter-spacing:.04em;font-weight:800}
+.pill.kind{background:var(--indigo-soft);color:var(--indigo-text);border-color:var(--indigo-line)}
+.pill.kind.board{background:#ffe4cc;color:#7a3d00;border-color:#ffc89a}
+.pill.kind.cards{background:var(--yes-bg);color:var(--yes-text);border-color:var(--yes-line)}
+.pill.count{background:var(--surface);color:var(--text);border-color:var(--line)}
+.pill.fatta{background:#a5f3cd;color:var(--primary-dark);font-weight:800;font-size:11px;letter-spacing:.04em}
+.ctr{display:inline-grid;place-items:center;min-width:24px;height:24px;border-radius:12px;background:var(--surface-3);font-size:13px;font-weight:800;padding:0 7px}
+
+/* notes */
+.tip{display:flex;gap:12px;align-items:flex-start;background:var(--surface-3);border-radius:14px;padding:14px;margin-bottom:14px}
+.tip .ico{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;background:#ffdcc2;color:var(--brass-dark);flex:none}
+.tip .ttl{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--brass-dark)}
+.warn{display:flex;gap:10px;background:#ffeadb;color:#4a2400;border-radius:12px;padding:12px;font-size:14px;line-height:20px}
+.warn .ttl{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.warn .ms{color:var(--brass-dark)}
+@media (prefers-color-scheme: dark){.warn{background:#3a2716;color:#ffdcc2}.tip .ico{background:#4a2e14}}
+.noteblk{background:#fff4e8;border-radius:12px;padding:12px;font-size:14px}
+.noteblk .label{color:var(--brass-dark);display:flex;align-items:center;gap:6px}
+@media (prefers-color-scheme: dark){.noteblk{background:#33261a}}
+.info{background:var(--primary-soft);color:var(--text);border-radius:12px;padding:12px;font-size:14px;display:flex;gap:10px;align-items:flex-start}
+.info .ms{color:var(--primary)}
+.banner-act{display:flex;align-items:center;gap:12px;background:#ffeadb;border-radius:14px;padding:12px;margin-bottom:14px}
+.banner-act .ico{width:40px;height:40px;border-radius:50%;background:var(--maybe-fill);color:#fff;display:grid;place-items:center;flex:none}
+@media (prefers-color-scheme: dark){.banner-act{background:#33261a}}
+.err{color:var(--no);font-size:14px;min-height:20px;font-weight:600}
+
+/* forms */
+label.f{display:block;font-size:14px;font-weight:700;margin-bottom:6px}
+.field{position:relative}
+.field .ms.lead{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.field .trail{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:0;color:var(--muted);padding:6px}
+input[type=text],input[type=email],input[type=tel],input[type=password],input[type=time],input[type=date],select,textarea{
+  width:100%;min-height:48px;border:1.5px solid var(--line);background:var(--surface-3);border-radius:12px;padding:10px 14px;font-size:16px;outline:none}
+.field input{padding-left:42px}
+input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 25%,transparent);background:var(--surface)}
+textarea{min-height:84px;resize:vertical}
+select{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 18px) 21px,calc(100% - 13px) 21px;background-size:5px 5px;background-repeat:no-repeat;padding-right:34px}
+.selbox{background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:6px 12px}
+.selbox .label{display:block;margin-bottom:0}
+.selbox select{border:0;background-color:transparent;min-height:34px;padding:0 30px 0 0;font-size:16px;font-weight:600;background-position:calc(100% - 10px) 14px,calc(100% - 5px) 14px}
+.selbox select:focus{box-shadow:none}
+.choice{display:flex;align-items:center;gap:10px;padding:12px;border:1.5px solid var(--line);border-radius:12px;margin-top:8px;font-weight:600}
+.choice input{width:20px;height:20px;accent-color:var(--primary);margin:0}
+.switch{width:52px;height:30px;border-radius:15px;border:0;background:var(--line-2);position:relative;padding:0;flex:none}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .15s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.switch.on{background:var(--primary-dark)}
+.switch.on::after{left:25px}
+.seg{display:flex;gap:4px;background:var(--surface-3);border-radius:12px;padding:4px}
+.seg button{flex:1;white-space:nowrap;padding:0 6px;border:0;background:transparent;border-radius:9px;min-height:36px;font-weight:700;font-size:13px;display:inline-flex;align-items:center;justify-content:center;gap:4px;color:var(--text)}
+.seg button.on{background:var(--primary-dark);color:#fff;box-shadow:0 2px 0 var(--shelf)}
+.seg button.on.no{background:var(--no);box-shadow:none}
+.seg button.on.maybe{background:var(--maybe-fill);color:var(--maybe-on);box-shadow:none}
+
+/* calendar */
+.calnav{display:flex;gap:8px;align-items:center}
+.calnav .nav{width:40px;height:44px;border-radius:12px;border:0;background:var(--surface-3);display:grid;place-items:center;flex:none}
+.calnav .nav:disabled{opacity:.35}
+.calnav select{flex:1;min-width:0;font-weight:700;font-size:16px;background-color:var(--surface-3);border-color:transparent;padding:0 24px 0 10px;background-position:calc(100% - 14px) 21px,calc(100% - 9px) 21px}
+.today-btn{height:44px;border-radius:12px;border:0;background:#a5f3cd;color:var(--primary-dark);font-weight:700;padding:0 10px;display:inline-flex;align-items:center;gap:6px;flex:none}
+.brushes{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--surface-3);border-radius:14px;padding:4px}
+.brushes button{border:0;background:transparent;border-radius:11px;padding:8px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--text)}
+.brushes button b{display:flex;align-items:center;gap:4px;font-size:14px}
+.brushes button small{font-size:11px;color:var(--muted);font-weight:600}
+.brushes button.on{background:var(--primary-dark);color:#fff;box-shadow:0 2px 0 var(--shelf)}
+.brushes button.on small{color:#c7f0dc}
+.brushes button.on.b-maybe{background:var(--maybe-fill);color:var(--maybe-on);box-shadow:none}
+.brushes button.on.b-maybe small{color:var(--maybe-on)}
+.brushes button.on.b-no{background:var(--no);color:#fff;box-shadow:none}
+.brushes button.on.b-no small{color:#ffe4e9}
+.brushes button.on.b-clear{background:var(--text);color:var(--bg);box-shadow:none}
+.brushes button.on.b-clear small{color:var(--bg)}
+.calcard{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 10px;box-shadow:var(--sh1)}
+.dow,.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.dow div{text-align:center;font-size:13px;color:var(--muted);font-weight:700;padding-bottom:6px}
+.dow div.we{color:var(--brass-dark)}
+.day{min-height:64px;border:0;background:var(--surface-2);border-radius:10px;position:relative;padding:5px 4px;display:flex;flex-direction:column;justify-content:space-between;align-items:stretch;text-align:left;font-size:15px;font-weight:700;color:var(--text)}
+.day.we{background:color-mix(in srgb,var(--surface-3) 70%,var(--surface-2))}
+.day .n{padding-left:3px}
+.day.we .n{color:var(--brass-dark)}
+.day .st{display:block;text-align:center;border-radius:6px;font-size:11px;font-weight:800;letter-spacing:.02em;padding:3px 0}
+.day .st.yes{background:var(--primary-dark);color:#fff}
+.day .st.maybe{background:var(--maybe-fill);color:var(--maybe-on)}
+.day .st.no{background:var(--no-line);color:var(--no-text)}
+.day.today{background:#ffeadb;outline:2px solid var(--brass);outline-offset:-2px}
+@media (prefers-color-scheme: dark){.day.today{background:#3a2716}}
+.day .oggi{position:absolute;top:-7px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:800;background:var(--brass-dark);color:#fff;border-radius:4px;padding:1px 4px}
+.day:disabled{background:transparent;color:var(--faint);cursor:default}
+.day:disabled .n{color:var(--faint)}
+.day:disabled .past{font-size:10px;font-weight:600;text-align:center;color:var(--faint)}
+.day.out{visibility:hidden}
+.bar{height:8px;border-radius:4px;background:var(--surface-3);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--primary-dark);border-radius:4px}
+.legend-dots{display:flex;gap:16px;font-size:13px;font-weight:700;flex-wrap:wrap}
+.legend-dots span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.legend-dots .l-yes::before{background:var(--primary-dark)}
+.legend-dots .l-maybe::before{background:var(--maybe-fill)}
+.legend-dots .l-no::before{background:var(--no)}
+.quick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.quick .btn{background:var(--surface-3);border-color:transparent;min-height:52px}
+
+/* groups */
+.gcard{padding:0;overflow:hidden}
+.gcard .body{padding:16px}
+.gico{width:48px;height:48px;border-radius:12px;display:grid;place-items:center;flex:none}
+.gico .ms{font-size:26px}
+.gico.c0{background:var(--indigo-soft);color:var(--indigo)}
+.gico.c1{background:#ffe4cc;color:var(--brass-dark)}
+.gico.c2{background:#a5f3cd;color:var(--primary-dark)}
+.gico.c3{background:var(--surface-3);color:var(--text)}
+.voglia{font-weight:700;color:var(--brass-dark)}
+.mrow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.mrow:last-child{border-bottom:0}
+.mav{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:800;background:var(--surface-3);flex:none}
+.mav.admin{background:#a5f3cd;color:var(--primary-dark)}
+.linkbox{font-size:13px;word-break:break-all;background:var(--surface-3);border-radius:10px;padding:10px 12px;font-family:ui-monospace,Menlo,monospace}
 
 /* serate */
-.night{padding:0;overflow:hidden}
-.night .head{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px}
-.night .head strong{font-size:16px}
-.gr{padding:12px 14px;border-bottom:1px solid var(--line)}
-.gr:last-child{border-bottom:0}
-.gr.dim{opacity:.6}
+.night{padding:16px}
+.nhead{display:flex;align-items:center;gap:10px}
+.ndot{width:10px;height:10px;border-radius:50%;flex:none;background:var(--faint)}
+.ndot.ok{background:var(--primary)}
+.ndot.maybe{background:var(--maybe-fill)}
+.ndate{font-size:18px;font-weight:800;line-height:24px;flex:1;min-width:0}
+.gbox{background:var(--surface-2);border-radius:14px;padding:14px;margin-top:12px}
+.gbox.dim{opacity:.6}
+.gbox.confirmed{background:var(--surface-2)}
+.vm{font-size:14px;font-weight:600}
+.vm b{font-size:18px;font-weight:800;color:var(--brass-dark)}
+.decide{font-size:13px;font-style:italic;font-weight:600;color:var(--muted);display:inline-flex;align-items:center;gap:4px}
+.filtercard{background:var(--surface-3);border-radius:16px;padding:12px;margin-bottom:14px}
+.filtercard .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+/* giocate */
+.next{display:flex;gap:12px;align-items:center;background:var(--surface-2);border-radius:14px;padding:14px}
+.next .ico{width:44px;height:44px;border-radius:12px;background:#a5f3cd;color:var(--primary-dark);display:grid;place-items:center;flex:none}
+.stat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.stat div{background:var(--surface-3);border-radius:12px;padding:12px 6px;text-align:center}
+.stat strong{display:block;font-size:28px;line-height:34px;font-weight:800}
+.stat .c1{color:var(--primary-dark)}.stat .c2{color:var(--brass-dark)}.stat .c3{color:var(--indigo)}
+.stat span{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.hscroll{display:flex;gap:6px;overflow-x:auto;padding:12px 0 2px;scrollbar-width:none}
+.hscroll::-webkit-scrollbar{display:none}
+.hscroll .chip{white-space:nowrap;border-radius:999px;padding:6px 12px}
+.insight{display:flex;gap:10px;background:var(--surface-3);border-radius:12px;padding:12px;margin-top:12px;font-size:14px}
+.insight .ms{color:var(--brass)}
+.sess-head{background:var(--primary-dark);color:#fff;padding:16px}
+.sess-head .label{color:#a5f3cd}
+.sess-head .ttl{font-size:22px;font-weight:800;line-height:28px}
+.sess-head .meta{font-size:13px;color:#d4f5e4;display:flex;gap:6px;align-items:flex-start;margin-top:8px}
+.sess-head .pill{background:#fff;color:var(--primary-dark)}
+.sess-body{padding:16px}
+.datebox{background:var(--surface-2);border-radius:12px;padding:12px;display:grid;gap:6px}
+.datebox div{display:flex;gap:8px;align-items:center}
+.datebox .ms{color:var(--brass-dark)}
+.monthbar{display:flex;justify-content:space-between;align-items:center;background:var(--surface-3);border-radius:12px;padding:10px 14px;margin:16px 0 10px}
+.monthbar strong{font-size:18px;font-weight:800}
+.hcard{padding:14px 16px}
+.hmeta{display:flex;gap:6px;align-items:center;font-size:14px;color:var(--muted);margin-top:4px}
+.hmeta .ms{color:var(--muted)}
+.withrow{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surface-2);border-radius:10px;padding:8px 12px;margin-top:10px;font-size:13px;font-weight:600}
 
 /* nav */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
 nav.tabs .wrap{display:grid;grid-template-columns:repeat(4,1fr);padding:0 4px}
-nav.tabs button{background:none;border:0;padding:12px 2px 14px;font-size:13px;font-weight:600;color:var(--muted);position:relative}
-nav.tabs button.on{color:var(--accent)}
-nav.tabs button.on::before{content:"";position:absolute;top:0;left:22%;right:22%;height:3px;border-radius:0 0 3px 3px;background:var(--accent)}
-nav.tabs .count{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:var(--accent);color:var(--accent-text);font-size:11px;margin-left:3px}
+nav.tabs button{background:none;border:0;padding:10px 2px 12px;font-size:12px;font-weight:700;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px;position:relative}
+nav.tabs button .ms{font-size:24px}
+nav.tabs button.on{color:var(--primary-dark)}
+nav.tabs button.on .ms{font-variation-settings:"FILL" 1,"wght" 600}
+nav.tabs .count{position:absolute;top:4px;left:calc(50% + 6px);min-width:18px;height:18px;border-radius:9px;background:var(--brass-dark);color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center;padding:0 5px}
 
 /* modal */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center}
-.sheet{background:var(--surface);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto}
-@media (min-width:600px){.overlay{align-items:center}.sheet{border-radius:18px}}
-.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;z-index:30;max-width:90vw}
-.auth{max-width:400px;margin:40px auto;padding:0 16px}
-.auth h1{font-size:30px;margin:0;letter-spacing:-.5px}
-.subtitle{font-size:18px;font-weight:600;color:var(--accent);margin:0 0 6px}
-.divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;margin:14px 0}
+.overlay{position:fixed;inset:0;background:rgba(17,22,20,.5);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:100%;max-width:560px;border-radius:24px 24px 0 0;padding:8px 16px calc(20px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto;box-shadow:var(--sh3)}
+.sheet::before{content:"";display:block;width:40px;height:4px;border-radius:2px;background:var(--line-2);margin:4px auto 14px}
+.sheet h2{font-size:22px;font-weight:800;margin-bottom:6px}
+@media (min-width:600px){.overlay{align-items:center}.sheet{border-radius:24px}.sheet::before{display:none}.sheet{padding-top:20px}}
+.toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:12px 16px;border-radius:12px;font-size:14px;font-weight:600;z-index:30;max-width:90vw;box-shadow:var(--sh3)}
+
+/* auth */
+.auth{max-width:440px;margin:0 auto;padding:28px 16px 40px;text-align:left}
+.hero{text-align:center;margin-bottom:20px}
+.hero .logo{width:72px;height:72px;border-radius:50%;margin:0 auto 14px;box-shadow:0 3px 0 var(--shelf)}
+.hero .logo .ms{font-size:38px}
+.hero h1{font-size:34px;line-height:40px;font-weight:800;letter-spacing:-.03em}
+.hero .subtitle{font-size:20px;font-weight:800;color:var(--primary-dark);margin:4px 0 10px}
+.hero p{color:var(--muted);margin:0}
+.gbtn{background:var(--surface-3);border-color:transparent}
+.divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;margin:16px 0}
 .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
-details summary{cursor:pointer;color:var(--muted);font-weight:600;margin:8px 0}
-.linkbox{font-size:13px;word-break:break-all;background:var(--surface-2);border-radius:8px;padding:8px 10px;margin:6px 0}
+.invite-card{display:flex;gap:12px;align-items:flex-start}
+.invite-card .ico{width:44px;height:44px;border-radius:10px;background:var(--indigo-soft);color:var(--indigo);display:grid;place-items:center;flex:none}
+.tag-invite{background:var(--indigo);color:#fff;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:800;letter-spacing:.04em}
+.democard{background:var(--surface-3);border-radius:18px;padding:16px}
+.democard .ico{width:40px;height:40px;border-radius:10px;background:var(--maybe-fill);color:#fff;display:grid;place-items:center;flex:none}
+.pchip{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;min-height:44px;padding:0 18px;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.pchip.on{background:var(--primary-dark);border-color:var(--primary-dark);color:#fff}
+.footer-note{text-align:center;font-size:13px;font-weight:700;color:var(--muted);margin-top:22px}
+@media (max-width:420px){.hide-xs{display:none}}
+details summary{cursor:pointer;color:var(--muted);font-weight:700;margin:8px 0}
 </style>
 </head>
 <body>
@@ -277,7 +482,7 @@ function makeLocalStore() {
           const [y, m, d] = date.split("-").map(Number);
           sessions[gid + "p" + i] = { date, time: "21:00", location: place, notes: "", createdBy: ids[admins[0]], confirmedBy: ids[admins[0]], confirmedAt: Date.UTC(y, m - 1, d - 3), rsvps };
         });
-        db.groups[gid] = { name, game, rule: "all", min: 2, members, admins: admins.map(n => ids[n]), prefs: p, inviteCode: "demo" + gid, createdBy: ids[admins[0]], sessions };
+        db.groups[gid] = { name, game, kind: gid === "gSB" || gid === "gFM" ? "board" : "gdr", rule: "all", min: 2, members, admins: admins.map(n => ids[n]), prefs: p, inviteCode: "demo" + gid, createdBy: ids[admins[0]], sessions };
       };
       mk("gLUT", "L'Ultima Torcia", "Ultima Torcia", ["Gigi", "Mattia", "Roberto", "Iole", "Gian"], [3, 3, 2, 3, 2], ["Mattia"],
         [["2025-11-14", "da Gigi"], ["2025-12-05", "da Iole"], ["2026-02-20", "da Gigi"], ["2026-04-17", "da Roberto", "Gian"], ["2026-06-12", "da Iole"], ["2026-10-05", "da Gigi"], ["2026-10-12", "da Iole"]]);
@@ -547,47 +752,79 @@ function render() {
   if (focusId) { const el = document.getElementById(focusId); if (el) { el.focus({ preventScroll: true }); try { if (sel != null) el.setSelectionRange(sel, sel); } catch (e) {} } }
 }
 
-const inviteBanner = () => S.pendingJoin ? `<div class="note">Sei stato invitato nel gruppo <strong>${esc(S.pendingJoin.name || "")}</strong>. Accedi per unirti.</div>` : "";
+const ic = (n, cls = "") => `<span class="ms ${cls}" aria-hidden="true">${n}</span>`;
+const KINDS = { gdr: "GDR", board: "Gioco da tavolo", cards: "Gioco di carte", other: "Altro" };
+const kindPill = g => g.kind && g.kind !== "other" ? `<span class="pill kind ${g.kind}">${ic(g.kind === "gdr" ? "shield" : g.kind === "cards" ? "playing_cards" : "casino", "s14")} ${KINDS[g.kind]}</span>` : "";
+const hashStr = s => [...String(s || "")].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+const GICONS = ["auto_stories", "forest", "local_fire_department", "rocket_launch", "castle", "extension", "diamond", "swords"];
+const gIcon = g => { const h = hashStr(g.id || g.name); return `<div class="gico c${h % 4}">${ic(GICONS[h % GICONS.length])}</div>`; };
+const initial = n => esc((String(n || "?").trim()[0] || "?").toUpperCase());
+const fmtTiny = s => cap(parseYmd(s).toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short" }).replace(/\./g, ""));
+const PREF_ICON = { 3: "local_fire_department", 2: "casino", 1: "hourglass_empty" };
+const prefLabel = v => `${PREFS[v]} ${ic(PREF_ICON[v], "s16")}`;
+const statusPill = st => st === "ok" ? `<span class="pill ok">${ic("check_circle", "s14")} Ci sono tutti quelli che servono</span>`
+  : st === "maybe" ? `<span class="pill orange">Possibile se i forse confermano</span>` : `<span class="pill stop">Non si può</span>`;
+
+const inviteBanner = () => S.pendingJoin ? `<div class="card invite-card">
+    <div class="ico">${ic("swords")}</div>
+    <div><span class="tag-invite">INVITO</span>
+    <div style="margin-top:6px">Sei stato invitato nel gruppo <strong style="color:var(--indigo)">${esc(S.pendingJoin.name || "")}</strong>. Accedi per unirti.</div></div>
+  </div>` : "";
+
+const hero = () => `<div class="hero">
+    <div class="logo">${ic("casino", "fill")}</div>
+    <h1>Game Planner</h1>
+    <div class="subtitle">Quando si gioca?</div>
+    <p>Crea i gruppi delle tue campagne, segna quando ci sei, scopri quando si gioca.</p>
+  </div>`;
 
 function renderLogin() {
-  return `<div class="auth stack">
-    <h1>Game Planner</h1>
-    <p class="subtitle">Quando si gioca?</p>
-    <p class="muted">Crea i gruppi delle tue campagne, segna quando ci sei, scopri quando si gioca.</p>
+  return `<div class="auth">
+    ${hero()}
     ${inviteBanner()}
-    <button class="btn primary full" data-action="googleIn">Entra con Google</button>
-    <div class="divider">oppure con email</div>
-    <div><label class="f" for="authEmail">Email</label><input id="authEmail" data-keep type="email" autocomplete="email"></div>
-    <div><label class="f" for="authPw">Password</label><input id="authPw" data-keep type="password" autocomplete="current-password"></div>
-    <div class="err">${esc(S.authErr)}</div>
-    <div class="row"><button class="btn primary grow" data-action="emailIn">Entra</button><button class="btn grow" data-action="emailUp">Crea account</button></div>
-    <button class="btn ghost sm" data-action="resetPw">Password dimenticata?</button>
+    <div class="card stack">
+      <button class="btn full lg gbtn" data-action="googleIn"><svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.8 6C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 2.9-2.2 5.4-4.7 7.1l7.3 5.7c4.3-4 7.2-9.9 7.2-17.3z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.2.8-4.7l-7.8-6C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.8-6z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.3-5.7c-2 1.4-4.7 2.3-8.6 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.8 6C6.6 42.6 14.6 48 24 48z"/></svg> Entra con Google</button>
+      <div class="divider" style="margin:4px 0">oppure con email</div>
+      <div><label class="f" for="authEmail">Email</label>
+        <div class="field">${ic("mail", "lead")}<input id="authEmail" data-keep type="email" autocomplete="email" placeholder="nome@esempio.it"></div></div>
+      <div><div class="row between"><label class="f" for="authPw">Password</label><button class="textlink" style="margin-top:-6px" data-action="resetPw">Password dimenticata?</button></div>
+        <div class="field">${ic("lock", "lead")}<input id="authPw" data-keep type="password" autocomplete="current-password"><button class="trail" data-action="togglePw" aria-label="Mostra password">${ic("visibility")}</button></div></div>
+      <div class="err">${esc(S.authErr)}</div>
+      <div class="row nowrap"><button class="btn primary lg grow" data-action="emailIn">Entra ${ic("login")}</button><button class="btn soft lg grow" data-action="emailUp">Crea account</button></div>
+    </div>
+    <div class="footer-note">Tavolo da gioco italiano</div>
   </div>`;
 }
 
 function renderUnverified() {
-  return `<div class="auth stack">
-    <h1>Quasi fatto</h1>
-    <p>Ti abbiamo mandato un'email per verificare l'indirizzo. Apri il link (controlla anche lo spam), poi torna qui.</p>
-    <div class="err">${esc(S.authErr)}</div>
-    <button class="btn primary full" data-action="checkVerify">Ho verificato, entra</button>
-    <div class="row"><button class="btn grow" data-action="resendVerify">Rinvia email</button><button class="btn grow" data-action="logout">Esci</button></div>
+  return `<div class="auth">
+    ${hero()}
+    <div class="card stack">
+      <div class="row nowrap" style="align-items:flex-start;gap:12px"><div class="gico c2">${ic("mark_email_read")}</div>
+        <div><div class="t-lg">Quasi fatto</div><p class="small muted" style="margin:4px 0 0">Ti abbiamo mandato un'email per verificare l'indirizzo. Apri il link (controlla anche lo spam), poi torna qui.</p></div></div>
+      <div class="err">${esc(S.authErr)}</div>
+      <button class="btn primary lg full" data-action="checkVerify">${ic("verified_user")} Ho verificato, entra</button>
+      <div class="row nowrap"><button class="btn grow" data-action="resendVerify">${ic("refresh")} Rinvia email</button><button class="btn grow" data-action="logout">Esci</button></div>
+    </div>
   </div>`;
 }
 
 function renderDemoLogin() {
   const users = S.demoUsers || [];
-  return `<div class="auth stack">
-    <h1>Game Planner</h1>
-    <p class="subtitle">Quando si gioca?</p>
-    <div class="banner">Modalità demo: i dati restano solo su questo dispositivo. Puoi creare più giocatori e passare dall'uno all'altro per provare gruppi, inviti e incroci.</div>
+  return `<div class="auth">
+    ${hero()}
     ${inviteBanner()}
-    ${users.length ? `<div><label class="f">Entra come</label><div class="row">${users.map(u => `<button class="btn" data-action="demoAs" data-u="${u.id}">${esc(u.name)}</button>`).join("")}</div></div>` : ""}
-    <div><label class="f" for="demoName">Nuovo giocatore</label><input id="demoName" data-keep type="text" placeholder="Il tuo nome"></div>
-    <button class="btn primary full" data-action="demoNew">Entra</button>
-    <div class="divider">per provare al volo</div>
-    <button class="btn full" data-action="demoSeed">Carica l'esempio (dati del foglio di ottobre)</button>
-    ${users.length ? `<button class="btn ghost sm danger" data-action="demoReset">Cancella tutti i dati demo</button>` : ""}
+    <div class="democard stack">
+      <div class="row nowrap" style="align-items:flex-start;gap:12px"><div class="ico">${ic("science")}</div>
+        <div><div class="row"><span class="t-lg">Modalità demo</span><span class="pill kind board">Locale</span></div>
+        <p class="small muted" style="margin:4px 0 0">I dati restano solo su questo dispositivo. Puoi creare più giocatori e passare dall'uno all'altro per provare gruppi, inviti e incroci.</p></div></div>
+      ${users.length ? `<div><label class="f">Entra come:</label><div class="chips">${users.map(u => `<button class="pchip" data-action="demoAs" data-u="${u.id}">${esc(u.name)}</button>`).join("")}</div></div>` : ""}
+      <div><label class="f" for="demoName">Nuovo giocatore</label>
+        <div class="row nowrap"><input id="demoName" data-keep type="text" placeholder="Il tuo nome" style="background:var(--surface)"><button class="btn primary" data-action="demoNew">Entra</button></div></div>
+      <button class="btn full lg brass-soft" data-action="demoSeed">${ic("table_view")} Carica l'esempio (dati del foglio di ottobre)</button>
+      ${users.length ? `<div style="text-align:center"><button class="textlink danger" data-action="demoReset">${ic("delete_sweep", "s18")} Cancella tutti i dati demo</button></div>` : ""}
+    </div>
+    <div class="footer-note">Tavolo da gioco italiano</div>
   </div>`;
 }
 
@@ -600,46 +837,68 @@ function renderShell() {
   else if (S.tab === "avail") body = renderAvail();
   else if (S.tab === "nights") body = renderNights();
   else body = renderPlays();
-  const t = (id, label, extra = "") => `<button class="${S.tab === id ? "on" : ""}" data-action="tab" data-tab="${id}">${label}${extra}</button>`;
+  const t = (id, icon, label, extra = "") => `<button class="${S.tab === id ? "on" : ""}" data-action="tab" data-tab="${id}">${ic(icon)}<span>${label}</span>${extra}</button>`;
   return `
   <header class="top"><div class="wrap">
-    <div class="brand">Game Planner</div>
-    <div class="who">
-      <button class="btn sm ${unread ? "primary" : ""}" data-action="openNotifs">Avvisi${unread ? ` (${unread})` : ""}</button>
-      <button class="btn sm ghost" data-action="rename">${esc(S.me.name || "Profilo")}</button>
-      <button class="btn sm" data-action="logout">${store.demo ? "Cambia" : "Esci"}</button>
+    <div class="brandbox">
+      <div class="logo">${ic("casino", "fill")}</div>
+      <div style="min-width:0"><div class="brand ell">Game Planner</div><div class="brand-sub ell">Quando si gioca?${store.demo ? `<span class="tag-demo">DEMO</span>` : ""}</div></div>
     </div>
-  </div></header>
-  <main><div class="wrap">
-    ${store.demo ? `<div class="banner">Modalità demo - i dati restano su questo dispositivo.</div>` : ""}
-    ${body}
-  </div></main>
+    <div class="row nowrap" style="gap:6px">
+      <button class="hbtn" data-action="openNotifs" aria-label="Avvisi">${ic("notifications")}<span class="hide-xs">Avvisi</span>${unread ? `<span class="dot">${unread}</span>` : ""}</button>
+      <button class="avatar" data-action="rename" title="${esc(S.me.name || "Profilo")}">${initial(S.me.name)}</button>
+      <button class="linkbtn" data-action="logout">${store.demo ? "Cambia" : "Esci"}</button>
+    </div>
+  </div>
+  ${store.demo ? `<div class="demo-bar">${ic("info", "s16")} Modalità demo - i dati restano su questo dispositivo.</div>` : ""}
+  </header>
+  <main><div class="wrap">${body}</div></main>
   <nav class="tabs"><div class="wrap">
-    ${t("groups", "Gruppi")}${t("avail", "Disponibilità")}${t("nights", "Serate")}${t("plays", "Giocate", toAnswer ? `<span class="count">${toAnswer}</span>` : "")}
+    ${t("groups", "groups", "Gruppi")}${t("avail", "event_available", "Disponibilità")}${t("nights", "casino", "Serate")}${t("plays", "playing_cards", "Giocate", toAnswer ? `<span class="count">${toAnswer}</span>` : "")}
   </div></nav>`;
 }
 
 // ----- PAGINA GRUPPI -----
+function tipHidden() { try { return localStorage.getItem("gp-tip") === "1"; } catch (e) { return false; } }
+
 function renderGroups() {
   const list = groupList();
   const today = todayStr();
-  const head = `<div class="row between" style="margin-bottom:12px"><h2 style="margin:0">I miei gruppi</h2>
-    <div class="row"><button class="btn sm" data-action="pasteInvite">Ho un invito</button><button class="btn sm primary" data-action="newGroup">Crea gruppo</button></div></div>`;
-  if (!list.length) return head + `<div class="card stack">
-      <h3>Benvenuto!</h3>
-      <p class="small">Tutto parte da un gruppo: una campagna di un gioco con le persone che ci giocano. Puoi far parte di più gruppi.</p>
-      <p class="small">Crea il primo gruppo e invita gli altri via email, SMS o WhatsApp, oppure apri il link di invito che ti hanno mandato.</p>
-      <div class="row"><button class="btn primary grow" data-action="newGroup">Crea un gruppo</button><button class="btn grow" data-action="pasteInvite">Ho un link di invito</button></div>
+  const head = `<div class="row between" style="margin-bottom:14px;align-items:center;row-gap:10px">
+      <div class="row nowrap" style="gap:8px"><h1 class="page-title" style="white-space:nowrap">I miei gruppi</h1>${list.length ? `<span class="ctr">${list.length}</span>` : ""}</div>
+      <div class="row nowrap" style="gap:6px"><button class="btn sm" data-action="pasteInvite">${ic("mail", "s18")} Ho un invito</button><button class="btn sm primary" data-action="newGroup">${ic("add", "s18")} Crea gruppo</button></div>
     </div>`;
-  return head + list.map(g => {
-    const next = Object.values(g.sessions || {}).filter(s => s.date >= today).sort((a, b) => a.date.localeCompare(b.date))[0];
-    return `<div class="card click" data-action="openGroup" data-g="${g.id}">
-      <div class="row between"><h3>${esc(g.name)}</h3><span class="muted small">${g.members.length} ${g.members.length === 1 ? "membro" : "membri"}</span></div>
-      <div class="muted small">${esc(g.game)} - ${ruleText(g)}</div>
-      <div style="margin-top:6px">${byName(g, g.members).map(u => `<span class="chip">${esc(nameIn(g, u))}</span>`).join("")}</div>
-      <div class="small" style="margin-top:6px">La tua voglia: <strong>${PREFS[prefOf(g, S.me.uid)]}</strong>${next ? ` - Prossima serata: <strong>${fmtShort(next.date)}</strong>` : ""}</div>
+  if (!list.length) return head + `<div class="card stack" style="text-align:center;padding:24px 18px">
+      <div class="gico c2" style="margin:0 auto;width:64px;height:64px">${ic("groups", "s28")}</div>
+      <div class="t-lg">Benvenuto!</div>
+      <p class="small muted" style="margin:0">Tutto parte da un gruppo: una campagna di un gioco con le persone che ci giocano. Puoi far parte di più gruppi.</p>
+      <p class="small muted" style="margin:0">Crea il primo gruppo e invita gli altri via email, SMS o WhatsApp, oppure apri il link di invito che ti hanno mandato.</p>
+      <button class="btn primary lg full" data-action="newGroup">${ic("add")} Crea un gruppo</button>
+      <button class="btn lg full" data-action="pasteInvite">${ic("mail")} Ho un link di invito</button>
     </div>`;
-  }).join("");
+  return head + (tipHidden() ? "" : `<div class="tip"><div class="ico">${ic("lightbulb")}</div>
+      <div class="grow"><div class="ttl">Lo sapevi?</div><div class="small">Tutto parte da un gruppo: una campagna o un gioco da tavolo con le persone che ci giocano regolarmente.</div></div>
+      <button class="textlink" style="color:var(--muted);padding:0" data-action="dismissTip" aria-label="Chiudi">${ic("close")}</button></div>`)
+    + list.map(g => {
+      const next = Object.values(g.sessions || {}).filter(s => s.date >= today).sort((a, b) => a.date.localeCompare(b.date))[0];
+      const admins = adminsOf(g);
+      const mem = byName(g, g.members).sort((a, b) => (admins.includes(b) ? 1 : 0) - (admins.includes(a) ? 1 : 0));
+      return `<div class="card click gcard" data-action="openGroup" data-g="${g.id}">
+        <div class="body">
+          <div class="row nowrap" style="align-items:flex-start;gap:12px">
+            ${gIcon(g)}
+            <div class="grow"><div class="row between nowrap" style="align-items:flex-start"><div class="t-lg ell">${esc(g.name)}</div>${kindPill(g)}</div>
+            <div class="small muted" style="font-weight:600">${g.members.length} ${g.members.length === 1 ? "membro" : "membri"}</div></div>
+          </div>
+          <div class="inset" style="margin:12px 0">${ic("groups", "s18")}<span class="ell">${esc(g.game)} &bull; ${ruleText(g)}</span></div>
+          <div class="chips">${mem.map(u => admins.includes(u) ? `<span class="chip admin">${ic("verified_user", "s14")} ${esc(nameIn(g, u))} (admin)</span>` : `<span class="chip">${esc(nameIn(g, u))}</span>`).join("")}</div>
+        </div>
+        <div class="foot small">
+          <div><strong>La tua voglia:</strong> <span class="voglia">${prefLabel(prefOf(g, S.me.uid))}</span></div>
+          <div style="margin-top:4px;font-weight:600;color:${next ? "var(--primary-dark)" : "var(--muted)"}">${next ? `${ic("event", "s16")} Prossima serata: ${fmtTiny(next.date)}` : `${ic("hourglass_empty", "s16")} Nessuna data fissata`}</div>
+        </div>
+      </div>`;
+    }).join("");
 }
 
 function renderGroup(g) {
@@ -650,56 +909,59 @@ function renderGroup(g) {
   const sessions = Object.entries(g.sessions || {}).filter(([, s]) => s.date >= today).sort((a, b) => a[1].date.localeCompare(b[1].date));
   const admin = isAdmin(g);
   return `
-    <button class="back" data-action="closeGroup">&lsaquo; I miei gruppi</button>
+    <button class="textlink" style="padding:0 0 10px" data-action="closeGroup">${ic("arrow_back", "s18")} I miei gruppi</button>
     <div class="card">
-      <div class="row between"><h2 style="margin:0">${esc(g.name)}</h2>${admin ? `<button class="btn sm" data-action="editGroup">Modifica</button>` : ""}</div>
-      <div class="muted">${esc(g.game)}</div>
-      <div class="small" style="margin-top:4px">${ruleText(g)}</div>
-      <div class="small muted" style="margin-top:4px">${admin ? "Sei admin: inviti, gestisci i giocatori e confermi le serate." : `Admin: ${esc(byName(g, adminsOf(g).filter(u => g.members.includes(u))).map(u => nameIn(g, u)).join(", ") || "nessuno")}. Sono loro a confermare le serate.`}</div>
+      <div class="row nowrap" style="align-items:flex-start;gap:12px">
+        ${gIcon(g)}
+        <div class="grow"><div class="row between nowrap" style="align-items:flex-start"><h1 class="page-title" style="font-size:24px">${esc(g.name)}</h1>${admin ? `<button class="btn sm" data-action="editGroup">${ic("edit", "s16")} Modifica</button>` : ""}</div>
+          <div class="row" style="margin-top:4px">${kindPill(g)}<span class="small muted" style="font-weight:600">${esc(g.game)}</span></div></div>
+      </div>
+      <div class="inset" style="margin-top:12px">${ic("rule", "s18")} ${ruleText(g)}</div>
+      <div class="info" style="margin-top:10px">${ic(admin ? "verified_user" : "shield")}<span>${admin ? "Sei admin: inviti, gestisci i giocatori e confermi le serate." : `Admin: <strong>${esc(byName(g, adminsOf(g).filter(u => g.members.includes(u))).map(u => nameIn(g, u)).join(", ") || "nessuno")}</strong>. Sono loro a confermare le serate.`}</span></div>
     </div>
 
     <div class="card">
-      <h3>La tua voglia di giocare con questo gruppo</h3>
-      <p class="small muted" style="margin:0 0 8px">Serve a scegliere quale gruppo consigliare quando la stessa sera si potrebbe giocare a più giochi.</p>
-      <div class="row">${[3, 2, 1].map(v => `<button class="btn sm ${mine === v ? "on" : ""}" data-action="setPref" data-v="${v}">${PREFS[v]}</button>`).join("")}</div>
+      <div class="t-md">La tua voglia di giocare con questo gruppo</div>
+      <p class="small muted" style="margin:4px 0 12px">Serve a scegliere quale gruppo consigliare quando la stessa sera si potrebbe giocare a più giochi.</p>
+      <div class="seg">${[3, 2, 1].map(v => `<button class="${mine === v ? "on" : ""}" data-action="setPref" data-v="${v}">${ic(PREF_ICON[v], "s16")} ${PREFS[v]}</button>`).join("")}</div>
     </div>
 
     <div class="card">
-      <h3>Membri (${g.members.length})</h3>
+      <div class="row between"><div class="t-lg">Membri</div><span class="ctr">${g.members.length}</span></div>
       ${byName(g, g.members).map(u => {
-        const n = futureMarked(u);
-        const uAdmin = isAdmin(g, u);
-        return `<div style="padding:8px 0;border-bottom:1px solid var(--line)">
-          <div class="row between">
-            <div><strong>${esc(nameIn(g, u))}</strong>${u === me ? " (tu)" : ""} ${uAdmin ? `<span class="badge star">Admin</span>` : ""}
-              <div class="small muted">${n ? `${n} giorni segnati da oggi in poi` : "Non ha ancora segnato le disponibilità"}</div></div>
-            <span class="chip">${PREFS[prefOf(g, u)]}</span>
+        const n = futureMarked(u), uAdmin = isAdmin(g, u);
+        return `<div class="mrow">
+          <div class="mav ${uAdmin ? "admin" : ""}">${initial(nameIn(g, u))}</div>
+          <div class="grow">
+            <div class="row" style="gap:6px"><strong>${esc(nameIn(g, u))}</strong>${u === me ? `<span class="small muted">(tu)</span>` : ""}${uAdmin ? `<span class="chip admin" style="padding:1px 8px;font-size:12px">${ic("verified_user", "s14")} Admin</span>` : ""}</div>
+            <div class="xs muted" style="font-weight:600">${n ? `${ic("event_available", "s14")} ${n} giorni segnati da oggi in poi` : `${ic("event_busy", "s14")} Non ha ancora segnato le disponibilità`}</div>
+            <div class="xs voglia" style="margin-top:2px">${prefLabel(prefOf(g, u))}</div>
+            ${admin && u !== me ? `<div class="row" style="margin-top:8px;gap:6px">
+              <button class="btn sm" data-action="toggleAdmin" data-u="${u}">${ic(uAdmin ? "remove_moderator" : "add_moderator", "s16")} ${uAdmin ? "Togli admin" : "Rendi admin"}</button>
+              <button class="btn sm danger" data-action="removeMember" data-u="${u}">${ic("person_remove", "s16")} Rimuovi</button></div>` : ""}
           </div>
-          ${admin && u !== me ? `<div class="row" style="margin-top:6px">
-            <button class="btn sm" data-action="toggleAdmin" data-u="${u}">${uAdmin ? "Togli admin" : "Rendi admin"}</button>
-            <button class="btn sm ghost danger" data-action="removeMember" data-u="${u}">Rimuovi dal gruppo</button></div>` : ""}
         </div>`;
       }).join("")}
     </div>
 
     ${admin ? `<div class="card stack">
-      <h3>Invita qualcuno</h3>
-      <p class="small muted" style="margin:0">Chi riceve il link entra nel gruppo dopo aver fatto l'accesso.</p>
+      <div class="row nowrap" style="gap:10px"><div class="gico c0" style="width:40px;height:40px">${ic("person_add")}</div><div><div class="t-lg">Invita qualcuno</div><div class="small muted">Chi riceve il link entra nel gruppo dopo aver fatto l'accesso.</div></div></div>
       <div class="linkbox">${esc(link)}</div>
-      <div class="row"><button class="btn sm" data-action="copyLink">Copia link</button>${navigator.share ? `<button class="btn sm" data-action="shareLink">Condividi...</button>` : ""}</div>
+      <div class="row"><button class="btn sm" data-action="copyLink">${ic("content_copy", "s16")} Copia link</button>${navigator.share ? `<button class="btn sm" data-action="shareLink">${ic("share", "s16")} Condividi...</button>` : ""}</div>
       <div><label class="f" for="invEmail">Via email</label>
-        <div class="row"><input id="invEmail" data-keep type="email" placeholder="nome@esempio.it" class="grow" style="flex:1"><button class="btn sm primary" data-action="inviteEmail">Invia</button></div></div>
+        <div class="row nowrap"><div class="field grow">${ic("mail", "lead")}<input id="invEmail" data-keep type="email" placeholder="nome@esempio.it"></div><button class="btn primary" data-action="inviteEmail">Invia</button></div></div>
       <div><label class="f" for="invPhone">Via cellulare</label>
-        <div class="row"><input id="invPhone" data-keep type="tel" placeholder="+39 333 1234567" style="flex:1"><button class="btn sm" data-action="inviteSms">SMS</button><button class="btn sm" data-action="inviteWa">WhatsApp</button></div></div>
-      <p class="small muted" style="margin:0">Funziona anche con chi non ha ancora l'app: dal link si registra e entra direttamente nel gruppo.</p>
-    </div>` : `<p class="small muted">Per invitare qualcuno chiedi a un admin del gruppo.</p>`}
+        <div class="field">${ic("smartphone", "lead")}<input id="invPhone" data-keep type="tel" placeholder="+39 333 1234567"></div>
+        <div class="row nowrap" style="margin-top:8px"><button class="btn grow" data-action="inviteSms">${ic("sms", "s18")} SMS</button><button class="btn grow" data-action="inviteWa">${ic("chat", "s18")} WhatsApp</button></div></div>
+      <p class="xs muted" style="margin:0">Funziona anche con chi non ha ancora l'app: dal link si registra e entra direttamente nel gruppo.</p>
+    </div>` : `<div class="info" style="margin-bottom:14px">${ic("info")}<span>Per invitare qualcuno chiedi a un admin del gruppo.</span></div>`}
 
-    <h4>Serate confermate</h4>
+    <div class="section"><h3>${ic("event_available")} Serate confermate</h3>${sessions.length ? `<span class="pill go">${sessions.length}</span>` : ""}</div>
     ${sessions.length ? sessions.map(([sid, s]) => renderSessionCard(g, sid, s, false)).join("") : `<p class="muted small">Nessuna serata in programma. Guarda le <a href="#" data-action="tab" data-tab="nights">Serate</a> possibili.</p>`}
 
-    <div class="row" style="margin-top:16px">
-      <button class="btn sm ghost danger" data-action="leaveGroup">Esci dal gruppo</button>
-      ${admin ? `<button class="btn sm ghost danger" data-action="deleteGroup">Elimina gruppo</button>` : ""}
+    <div class="row" style="margin-top:20px;justify-content:center">
+      <button class="btn sm danger" data-action="leaveGroup">${ic("logout", "s16")} Esci dal gruppo</button>
+      ${admin ? `<button class="btn sm danger-soft" data-action="deleteGroup">${ic("delete", "s16")} Elimina gruppo</button>` : ""}
     </div>`;
 }
 
@@ -716,36 +978,60 @@ function renderAvail() {
   const offset = (new Date(y, m, 1).getDay() + 6) % 7;
   const dim = new Date(y, m + 1, 0).getDate();
   const today = todayStr();
-  let cells = "", marked = 0, future = 0;
-  for (let i = 0; i < offset; i++) cells += `<div></div>`;
+  let cells = "", future = 0; const cnt = { yes: 0, maybe: 0, no: 0 };
+  for (let i = 0; i < offset; i++) cells += `<div class="day out"></div>`;
   for (let d = 1; d <= dim; d++) {
     const k = `${y}-${pad(m + 1)}-${pad(d)}`, st = mine[k] || "";
-    if (k >= today) { future++; if (st) marked++; }
-    const tag = st === "yes" ? "SI" : st === "maybe" ? "FORSE" : st === "no" ? "NO" : "";
-    cells += `<button class="day ${st} ${k === today ? "today" : ""}" data-action="day" data-date="${k}" ${k < today ? "disabled" : ""} aria-label="${k}"><span class="n">${d}</span>${tag ? `<span class="t">${tag}</span>` : ""}</button>`;
+    const w = new Date(y, m, d).getDay(), we = w === 0 || w === 6;
+    if (k >= today) { future++; if (st) cnt[st]++; }
+    const lab = st === "yes" ? "SÌ" : st === "maybe" ? "FORSE" : st === "no" ? "NO" : "";
+    if (k < today) cells += `<button class="day" disabled aria-label="${k}"><span class="n">${d}</span><span class="past">Passato</span></button>`;
+    else cells += `<button class="day ${we ? "we" : ""} ${k === today ? "today" : ""}" data-action="day" data-date="${k}" aria-label="${k}"><span class="n">${d}</span>${k === today ? `<span class="oggi">OGGI</span>` : ""}${lab ? `<span class="st ${st}">${lab}</span>` : "<span></span>"}</button>`;
   }
-  const b = (id, label) => `<button class="btn ${id === "clear" ? "" : id} ${S.brush === id ? "on" : ""}" data-action="brush" data-b="${id}">${label}</button>`;
+  const marked = cnt.yes + cnt.maybe + cnt.no, pct = future ? Math.round(marked / future * 100) : 0;
+  const first = opts[0], last = opts[opts.length - 1];
+  const b = (id, icon, label, sub) => `<button class="b-${id} ${S.brush === id ? "on" : ""}" data-action="brush" data-b="${id}"><b>${ic(icon, "s18")} ${label}</b><small>${sub}</small></button>`;
+  const groups = groupList();
   return `
-    <h2>Le mie disponibilità</h2>
-    <p class="small muted" style="margin-top:-6px">Valgono per tutti i tuoi gruppi.</p>
-    ${monthSelect("monthSel", S.month)}
-    <div class="brushes">${b("yes", "SI")}${b("maybe", "FORSE")}${b("no", "NO")}${b("clear", "Cancella")}</div>
-    <div class="dow">${DOW.map(d => `<div>${d}</div>`).join("")}</div>
-    <div class="grid">${cells}</div>
-    <p class="small" style="margin:10px 0 0">Hai segnato <strong>${marked}</strong> giorni su ${future} da qui a fine mese.</p>
-    <div class="row" style="margin-top:10px">
-      <button class="btn sm" data-action="fillEmpty">Applica ai giorni vuoti</button>
-      <button class="btn sm" data-action="bulkWeekend">Applica ai weekend</button>
-      <button class="btn sm ghost" data-action="clearMonth">Svuota mese</button>
+    <h1 class="page-title">Le mie disponibilità</h1>
+    <p class="page-sub">Valgono per tutti i tuoi gruppi.</p>
+    <div class="filtercard stack">
+      <div class="calnav">
+        <button class="nav" data-action="monthPrev" ${S.month === first ? "disabled" : ""} aria-label="Mese precedente">${ic("chevron_left")}</button>
+        ${monthSelect("monthSel", S.month)}
+        <button class="nav" data-action="monthNext" ${S.month === last ? "disabled" : ""} aria-label="Mese successivo">${ic("chevron_right")}</button>
+        <button class="today-btn" data-action="monthToday">Oggi</button>
+      </div>
+      <div><div class="label" style="margin-bottom:6px">Seleziona pennello:</div>
+      <div class="brushes">${b("yes", "check_circle", "SÌ", "Libero")}${b("maybe", "help", "FORSE", "In dubbio")}${b("no", "cancel", "NO", "Occupato")}${b("clear", "ink_eraser", "Gomma", "Azzera")}</div></div>
     </div>
-    <p class="legend">Scegli SI, FORSE o NO e tocca i giorni. Toccando di nuovo un giorno con lo stesso stato lo cancelli.</p>
-    ${groupList().length ? "" : `<div class="card"><strong>Ricorda:</strong> per vedere quando si gioca devi far parte di almeno un gruppo. Vai su <a href="#" data-action="tab" data-tab="groups">Gruppi</a>.</div>`}`;
+    <div class="calcard">
+      <div class="dow">${DOW.map((d, i) => `<div class="${i > 4 ? "we" : ""}">${d}</div>`).join("")}</div>
+      <div class="grid">${cells}</div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div class="row between"><div class="t-lg">${ic("fact_check")} Riepilogo mese</div><strong style="color:var(--primary-dark)">${pct}%</strong></div>
+      <p class="small" style="margin:6px 0 10px">Hai segnato <strong>${marked}</strong> giorni su ${future} da qui a fine mese.</p>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="legend-dots" style="margin-top:12px"><span class="l-yes">${cnt.yes} SÌ</span><span class="l-maybe">${cnt.maybe} FORSE</span><span class="l-no">${cnt.no} NO</span></div>
+    </div>
+    <div class="label" style="margin:18px 0 8px">Azioni rapide</div>
+    <div class="quick">
+      <button class="btn" data-action="fillEmpty">${ic("auto_fix_high")} Applica ai vuoti</button>
+      <button class="btn" data-action="bulkWeekend">${ic("weekend")} Applica ai weekend</button>
+    </div>
+    <div style="text-align:center;margin:10px 0"><button class="textlink danger" data-action="clearMonth">${ic("delete_sweep", "s18")} Svuota mese</button></div>
+    <div class="card"><div class="row nowrap" style="gap:8px">${ic("touch_app")}<strong>Come funziona</strong></div>
+      <p class="small" style="margin:6px 0 0">Scegli <strong>SÌ</strong>, <strong>FORSE</strong> o <strong>NO</strong> e tocca i giorni. Toccando di nuovo un giorno con lo stesso stato lo cancelli.</p></div>
+    ${groups.length ? `<div class="banner-act" style="align-items:flex-start"><div class="ico" style="background:#ffdcc2;color:var(--brass-dark)">${ic("groups")}</div>
+      <div><div class="t-md">Ricorda</div><p class="small" style="margin:2px 0 0">Le disponibilità sono <strong>uniche</strong> e condivise con tutti i tuoi <strong>${groups.length} ${groups.length === 1 ? "gruppo" : "gruppi"}</strong> (${esc(groups.map(g => g.name).join(", "))}).</p></div></div>`
+      : `<div class="banner-act"><div class="ico">${ic("groups")}</div><div class="small"><strong>Ricorda:</strong> per vedere quando si gioca devi far parte di almeno un gruppo. Vai su <a href="#" data-action="tab" data-tab="groups">Gruppi</a>.</div></div>`}`;
 }
 
 // ----- PAGINA SERATE -----
 function renderNights() {
   const groups = groupList();
-  if (!groups.length) return `<h2>Serate</h2><p class="muted">Qui vedrai in quali serate si può giocare e con quale gruppo. Prima <a href="#" data-action="tab" data-tab="groups">crea o entra in un gruppo</a>.</p>`;
+  if (!groups.length) return `<h1 class="page-title">Serate</h1><p class="page-sub">Qui vedrai in quali serate si può giocare e con quale gruppo. Prima <a href="#" data-action="tab" data-tab="groups">crea o entra in un gruppo</a>.</p>`;
   const opts = monthOptions();
   if (!opts.includes(S.nMonth)) S.nMonth = opts[0];
   if (S.nGroup !== "all" && !S.groups[S.nGroup]) S.nGroup = "all";
@@ -769,42 +1055,58 @@ function renderNights() {
       viable.forEach(e => e.counted.forEach(u => { count[u] = (count[u] || 0) + 1; }));
       const shared = Object.keys(count).filter(u => count[u] > 1);
       if (shared.length) {
-        const g0 = viable[0].g;
         const names = shared.map(u => nameIn(viable.find(e => e.counted.includes(u)).g, u)).sort();
-        overlapNote = `<div class="note">${viable.length} gruppi possibili con persone in comune (${esc(names.join(", "))}): si gioca a uno solo. Consigliato <strong>${esc(g0.name)}</strong>, il gruppo con più voglia di giocare.</div>`;
+        overlapNote = `<div class="warn" style="margin-top:12px">${ic("warning")}<div><div class="ttl">Sovrapposizione rilevata</div>${viable.length} gruppi possibili con persone in comune (<strong>${esc(names.join(", "))}</strong>): si gioca a uno solo. Consigliato <strong>${esc(viable[0].g.name)}</strong>, il gruppo con più voglia di giocare.</div></div>`;
       }
     }
     const confirmedHere = allSessions().filter(x => x.s.date === k && (S.nGroup === "all" || x.g.id === S.nGroup));
     if (S.onlyPossible && !viable.length && !confirmedHere.length) continue;
-    const top = confirmedHere.length ? `<span class="badge go">Confermata</span>` : viable.some(e => e.status === "ok") ? `<span class="badge go">Si può giocare</span>` : viable.length ? `<span class="badge wait">Dipende dai forse</span>` : `<span class="badge stop">Nessun gruppo</span>`;
+    const anyOk = viable.some(e => e.status === "ok");
+    const top = confirmedHere.length ? `<span class="pill go">${ic("check_circle", "s14")} Confermata</span>` : anyOk ? `<span class="pill ok">${ic("casino", "s14")} Si può giocare</span>` : viable.length ? `<span class="pill orange">Dipende dai forse</span>` : `<span class="pill stop">Nessun gruppo</span>`;
+    const dot = confirmedHere.length || anyOk ? "ok" : viable.length ? "maybe" : "";
     cards.push(`<div class="card night">
-      <div class="head"><strong>${fmtShort(k)}</strong><div class="row">${top}<button class="btn sm" data-action="openNight" data-date="${k}">Apri</button></div></div>
-      ${confirmedHere.map(x => `<div class="gr"><span class="badge go">Si gioca</span> <strong>${esc(x.g.game)}</strong> con ${esc(x.g.name)} alle ${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " - " + esc(x.s.location) : ""}</div>`).join("")}
-      ${overlapNote ? `<div style="padding:0 14px">${overlapNote}</div>` : ""}
+      <div class="nhead"><span class="ndot ${dot}"></span><div class="ndate">${fmtShort(k)}</div>${top}<button class="btn sm soft" data-action="openNight" data-date="${k}">Apri</button></div>
+      ${confirmedHere.map(x => `<div class="gbox confirmed">
+          <div class="row nowrap" style="gap:8px">${ic("castle")}<div class="t-md grow ell">${esc(x.g.name)}</div><span class="pill count">${esc(x.g.game)}</span></div>
+          <div class="hmeta">${ic("schedule", "s16")} Ore ${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? ` &bull; ${ic("location_on", "s16")} ${esc(x.s.location)}` : ""}</div>
+          <div style="text-align:right;margin-top:8px"><button class="btn sm soft" data-action="tab" data-tab="plays">Dettagli ${ic("arrow_forward", "s16")}</button></div>
+        </div>`).join("")}
+      ${overlapNote}
       ${list.filter(e => !sessKey.has(e.g.id + "|" + k)).map(e => renderGroupRow(e, k, best === e.g.id)).join("")}
     </div>`);
   }
   return `
-    <h2>Serate</h2>
-    <p class="small muted" style="margin-top:-6px">Incrocia le disponibilità di tutti i membri dei tuoi gruppi, sera per sera.</p>
-    <div class="row" style="margin-bottom:8px">
-      <div style="flex:1;min-width:150px">${monthSelect("nMonthSel", S.nMonth)}</div>
-      <div style="flex:1;min-width:150px"><select id="nGroupSel" data-action-change="nGroupSel"><option value="all">Tutti i miei gruppi</option>${groups.map(g => `<option value="${g.id}" ${S.nGroup === g.id ? "selected" : ""}>${esc(g.name)}</option>`).join("")}</select></div>
+    <h1 class="page-title">Serate</h1>
+    <p class="page-sub">Incrocia le disponibilità di tutti i membri dei tuoi gruppi, sera per sera.</p>
+    <div class="filtercard">
+      <div class="grid2">
+        <div class="selbox"><span class="label">Periodo</span>${monthSelect("nMonthSel", S.nMonth)}</div>
+        <div class="selbox"><span class="label">Gruppo</span><select id="nGroupSel" data-action-change="nGroupSel"><option value="all">Tutti (${groups.length})</option>${groups.map(g => `<option value="${g.id}" ${S.nGroup === g.id ? "selected" : ""}>${esc(g.name)}</option>`).join("")}</select></div>
+      </div>
+      <div class="row between nowrap" style="margin-top:12px"><span class="small" style="font-weight:600">${ic("verified", "s18")} Solo le serate possibili</span><button class="switch ${S.onlyPossible ? "on" : ""}" role="switch" aria-checked="${S.onlyPossible}" data-action="toggleOnly" aria-label="Solo le serate possibili"></button></div>
     </div>
-    <div class="row" style="margin-bottom:14px"><button class="btn sm ${S.onlyPossible ? "on" : ""}" data-action="toggleOnly">Solo le serate possibili</button></div>
-    ${cards.length ? cards.join("") : `<p class="muted">Nessuna serata possibile in ${monthLabel(S.nMonth).toLowerCase()}. Servono le disponibilità di tutti: controlla in ogni gruppo chi non ha ancora segnato i suoi giorni, oppure prova un altro mese.</p>`}`;
+    ${cards.length ? cards.join("") : `<div class="card" style="text-align:center"><div class="gico c3" style="margin:0 auto 10px">${ic("event_busy")}</div><p class="small muted" style="margin:0">Nessuna serata possibile in ${monthLabel(S.nMonth).toLowerCase()}. Servono le disponibilità di tutti: controlla in ogni gruppo chi non ha ancora segnato i suoi giorni, oppure prova un altro mese.</p></div>`}
+    ${cards.length ? `<div class="footer-note">${ic("casino", "s16")} IL DESTINO DEL TAVOLO È NELLE VOSTRE MANI</div>` : ""}`;
 }
 
 function renderGroupRow(e, k, recommended) {
   const g = e.g;
-  const badge = e.status === "ok" ? `<span class="badge go">Ci sono tutti quelli che servono</span>` : e.status === "maybe" ? `<span class="badge wait">Possibile se i forse confermano</span>` : `<span class="badge stop">Non si può</span>`;
-  const chip = (u, cls) => `<span class="chip ${cls}">${esc(nameIn(g, u))}${cls === "maybe" ? " (forse)" : cls === "none" ? " (?)" : cls === "busy" ? ` (gioca a ${esc(e.busyWhere[u])})` : ""}</span>`;
   const admin = isAdmin(g);
-  return `<div class="gr ${e.status === "no" ? "dim" : ""}">
-    <div class="row between"><div><h3 style="display:inline">${esc(g.name)}</h3> ${recommended ? `<span class="badge star">Consigliato</span>` : ""}<div class="small muted">${esc(g.game)} - servono ${e.n} su ${g.members.length}</div></div>${badge}</div>
-    <div style="margin:6px 0">${byName(g, e.yes).map(u => chip(u, "yes")).join("")}${byName(g, e.maybe).map(u => chip(u, "maybe")).join("")}${byName(g, e.busy).map(u => chip(u, "busy")).join("")}${byName(g, e.no).map(u => chip(u, "no")).join("")}${byName(g, e.none).map(u => chip(u, "none")).join("")}</div>
-    ${e.status !== "no" ? `<div class="row between"><span class="small muted">Voglia media: ${e.pref.toFixed(1).replace(".", ",")} su 3</span>
-      ${admin ? `<button class="btn sm primary" data-action="propose" data-g="${g.id}" data-date="${k}">Conferma questa serata</button>` : `<span class="small muted">Decide un admin</span>`}</div>` : ""}
+  const chip = (u, cls) => {
+    const n = esc(nameIn(g, u));
+    if (cls === "yes") return `<span class="chip yes">${ic("check", "s14")} ${n} (SÌ)</span>`;
+    if (cls === "maybe") return `<span class="chip maybe">${ic("help", "s14")} ${n} (FORSE)</span>`;
+    if (cls === "busy") return `<span class="chip busy">${ic("block", "s14")} ${n} (occupato: ${esc(e.busyWhere[u])})</span>`;
+    if (cls === "no") return `<span class="chip no">${ic("close", "s14")} ${n} (NO)</span>`;
+    return `<span class="chip none">${n} (?)</span>`;
+  };
+  return `<div class="gbox ${e.status === "no" ? "dim" : ""}">
+    <div class="row between" style="align-items:flex-start"><div class="row" style="gap:8px"><span class="t-lg">${esc(g.name)}</span>${recommended ? `<span class="pill star">${ic("star", "s14 fill")} Consigliato</span>` : ""}</div></div>
+    <div style="margin:6px 0">${statusPill(e.status)}</div>
+    <div class="row between small" style="margin:8px 0;color:var(--muted)"><span>${esc(g.game)}</span><span>Servono ${e.n} su ${g.members.length}</span></div>
+    <div class="chips">${byName(g, e.yes).map(u => chip(u, "yes")).join("")}${byName(g, e.maybe).map(u => chip(u, "maybe")).join("")}${byName(g, e.busy).map(u => chip(u, "busy")).join("")}${byName(g, e.no).map(u => chip(u, "no")).join("")}${byName(g, e.none).map(u => chip(u, "none")).join("")}</div>
+    ${e.status !== "no" ? `<div class="row between" style="margin-top:12px"><span class="vm">Voglia media: <b>${e.pref.toFixed(1).replace(".", ",")} / 3</b></span>${admin ? "" : `<span class="decide">${ic("shield", "s16")} Decide un admin</span>`}</div>
+      ${admin ? `<button class="btn primary lg full" style="margin-top:12px" data-action="propose" data-g="${g.id}" data-date="${k}">${ic("event_available")} Conferma questa serata</button>` : ""}` : ""}
   </div>`;
 }
 
@@ -812,28 +1114,39 @@ function renderGroupRow(e, k, recommended) {
 function renderSessionCard(g, sid, s, past) {
   const i = sessionInfo(g, s);
   const my = (s.rsvps || {})[S.me.uid];
-  return `<div class="card">
-    <div class="row between"><div><h3>${esc(g.game)}</h3><div class="small muted">Gruppo ${esc(g.name)}</div></div>
-      ${past ? "" : `<span class="badge go">Confermata</span>`}</div>
-    ${past ? "" : `<div class="small muted">Confermata da ${esc(nameIn(g, s.confirmedBy || s.createdBy))}. ${i.pending.length ? `Presenze: ${i.yes.length} sì, ${i.pending.length} da confermare${i.no.length ? `, ${i.no.length} non vengono` : ""}.` : i.no.length ? `${i.no.length} non vengono.` : "Hanno confermato tutti."}</div>`}
-    <div style="margin-top:6px"><strong>${fmtDate(s.date)}</strong> alle ${esc(s.time || DEFAULT_TIME)}</div>
-    ${s.location ? `<div class="muted">${esc(s.location)}</div>` : ""}
-    ${s.notes ? `<div class="small" style="margin-top:4px">${esc(s.notes)}</div>` : ""}
-    <div style="margin:10px 0">
-      ${byName(g, i.yes).map(u => `<span class="chip yes">${esc(nameIn(g, u))}</span>`).join("")}
-      ${byName(g, i.pending).map(u => `<span class="chip">${esc(nameIn(g, u))} - in attesa</span>`).join("")}
-      ${byName(g, i.no).map(u => `<span class="chip no">${esc(nameIn(g, u))} - non viene</span>`).join("")}
+  const pres = i.pending.length ? `Presenze: ${i.yes.length} sì, ${i.pending.length} da confermare${i.no.length ? `, ${i.no.length} non vengono` : ""}.` : i.no.length ? `${i.no.length} non vengono.` : "Hanno confermato tutti.";
+  const adminTag = isAdmin(g, s.confirmedBy || s.createdBy) ? " (admin)" : "";
+  return `<div class="card flush">
+    <div class="sess-head">
+      <div class="row between nowrap" style="align-items:flex-start"><div class="grow" style="min-width:0"><div class="label">Gruppo "${esc(g.name)}"</div><div class="ttl">${esc(g.game)}</div></div>${past ? "" : `<span class="pill">${ic("check_circle", "s14")} Confermata</span>`}</div>
+      ${past ? "" : `<div class="meta">${ic("verified_user", "s16")}<span>Confermata da ${esc(nameIn(g, s.confirmedBy || s.createdBy))}${adminTag}. ${pres}</span></div>`}
     </div>
-    ${past ? "" : `
-    <div class="row" style="margin-bottom:8px">
-      <button class="btn sm yes ${my === "yes" ? "on" : ""}" data-action="rsvp" data-g="${g.id}" data-s="${sid}" data-v="yes">Ci sono</button>
-      <button class="btn sm no ${my === "no" ? "on" : ""}" data-action="rsvp" data-g="${g.id}" data-s="${sid}" data-v="no">Non posso</button>
+    <div class="sess-body stack">
+      <div class="datebox">
+        <div>${ic("event")}<strong>${fmtDate(s.date)} alle ${esc(s.time || DEFAULT_TIME)}</strong></div>
+        ${s.location ? `<div>${ic("location_on")}<span>${esc(s.location)}</span></div>` : ""}
+      </div>
+      ${s.notes ? `<div class="noteblk"><div class="label">${ic("sticky_note_2", "s16")} Note di serata</div><div style="margin-top:4px">"${esc(s.notes)}"</div></div>` : ""}
+      <div><div class="label" style="margin-bottom:6px">Stato partecipanti</div>
+        <div class="chips">
+          ${byName(g, i.yes).map(u => `<span class="chip yes">${esc(nameIn(g, u))}${u === S.me.uid ? " (tu)" : ""} ${ic("check", "s14")}</span>`).join("")}
+          ${byName(g, i.pending).map(u => `<span class="chip maybe">${esc(nameIn(g, u))} - in attesa ${ic("hourglass_empty", "s14")}</span>`).join("")}
+          ${byName(g, i.no).map(u => `<span class="chip no">${esc(nameIn(g, u))} - non viene</span>`).join("")}
+        </div></div>
+      ${past ? "" : `
+      <div class="row nowrap" style="background:var(--surface-2);border-radius:12px;padding:6px 6px 6px 12px"><span class="small" style="font-weight:600;white-space:nowrap">La tua risposta:</span>
+        <div class="seg grow" style="background:transparent">
+          <button class="${my === "yes" ? "on" : ""}" data-action="rsvp" data-g="${g.id}" data-s="${sid}" data-v="yes">${ic("check", "s16")} Ci sono</button>
+          <button class="${my === "no" ? "on no" : ""}" data-action="rsvp" data-g="${g.id}" data-s="${sid}" data-v="no">${ic("close", "s16")} Non posso</button>
+        </div></div>
+      <div class="row nowrap">
+        <button class="btn grow soft" style="white-space:nowrap;padding:0 10px" data-action="ics" data-g="${g.id}" data-s="${sid}">${ic("calendar_add_on", "s18")} Aggiungi (.ics)</button>
+        <a class="btn grow soft" style="white-space:nowrap;padding:0 10px" href="${esc(gcalLink(g, s))}" target="_blank" rel="noopener">${ic("edit_calendar", "s18")} G-Calendar</a>
+      </div>
+      ${isAdmin(g) ? `<div class="row nowrap">
+        <button class="btn brass grow" data-action="notifyAll" data-g="${g.id}" data-s="${sid}">${ic("campaign", "s18")} Avvisa tutti</button>
+        <button class="btn danger-soft" data-action="deleteSession" data-g="${g.id}" data-s="${sid}">Annulla</button></div>` : ""}`}
     </div>
-    <div class="row">
-      <button class="btn sm" data-action="ics" data-g="${g.id}" data-s="${sid}">Aggiungi al calendario</button>
-      <a class="btn sm" href="${esc(gcalLink(g, s))}" target="_blank" rel="noopener">Google Calendar</a>
-      ${isAdmin(g) ? `<button class="btn sm" data-action="notifyAll" data-g="${g.id}" data-s="${sid}">Avvisa tutti</button><button class="btn sm ghost danger" data-action="deleteSession" data-g="${g.id}" data-s="${sid}">Annulla</button>` : ""}
-    </div>`}
   </div>`;
 }
 
@@ -850,7 +1163,6 @@ function renderPlays() {
   const canConfirm = groupList().some(g => isAdmin(g));
   const perm = "Notification" in window ? Notification.permission : "unsupported";
 
-  // filtri dello storico
   const years = [...new Set(played.map(x => x.s.date.slice(0, 4)))].sort().reverse();
   const groupsP = [...new Map(played.map(x => [x.g.id, x.g.name])).entries()].sort((a, b) => a[1].localeCompare(b[1]));
   if (S.hGame !== "all" && !games.includes(S.hGame)) S.hGame = "all";
@@ -859,87 +1171,97 @@ function renderPlays() {
   const list = played.filter(x => (S.hGame === "all" || x.g.game === S.hGame) && (S.hYear === "all" || x.s.date.startsWith(S.hYear))
     && (S.hMonth === "all" || x.s.date.slice(5, 7) === S.hMonth) && (S.hGroup === "all" || x.g.id === S.hGroup));
   const filtered = S.hGame !== "all" || S.hYear !== "all" || S.hMonth !== "all" || S.hGroup !== "all";
+  const limit = S.hLimit || 10;
+  const shownList = list.slice(0, limit);
   const months = {};
-  list.forEach(x => { (months[x.s.date.slice(0, 7)] ||= []).push(x); });
-  const sel = (id, label, opts) => `<div style="flex:1;min-width:140px"><label class="f" for="${id}">${label}</label><select id="${id}" data-action-change="${id}">${opts}</select></div>`;
+  shownList.forEach(x => { (months[x.s.date.slice(0, 7)] ||= []).push(x); });
+  const monthCount = {};
+  list.forEach(x => { const k = x.s.date.slice(0, 7); monthCount[k] = (monthCount[k] || 0) + 1; });
+  const sel = (id, label, opts) => `<div><div class="label" style="margin-bottom:4px">${label}</div><select id="${id}" data-action-change="${id}" style="background-color:var(--surface)">${opts}</select></div>`;
   const opt = (v, t, cur) => `<option value="${esc(v)}" ${v === cur ? "selected" : ""}>${esc(t)}</option>`;
   const present = x => byName(x.g, x.g.members.filter(u => (x.s.rsvps || {})[u] === "yes"));
+  const firstDate = played.length ? played[played.length - 1].s.date : null;
 
   return `
-    <div class="row between" style="margin-bottom:12px"><h2 style="margin:0">Le mie giocate</h2>${canConfirm ? `<button class="btn sm primary" data-action="newSession">Conferma una serata</button>` : ""}</div>
+    <div class="row between nowrap" style="align-items:flex-start;margin-bottom:12px">
+      <div><h1 class="page-title">Le mie giocate</h1><div class="small muted">Archivio e prossimi appuntamenti al tavolo</div></div>
+      ${canConfirm ? `<button class="btn sm primary" data-action="newSession">${ic("event_available", "s16")} Conferma</button>` : ""}
+    </div>
+    ${perm === "default" ? `<div class="banner-act"><div class="ico">${ic("notifications_active")}</div><div class="grow small"><strong>Notifiche serate</strong><div class="muted xs">Avviso immediato quando un admin conferma una serata.</div></div><button class="btn sm primary" data-action="enableNotif">Attiva avvisi</button></div>` : ""}
     <div class="card">
-      <h3>Riepilogo</h3>
-      ${next ? `<p class="small" style="margin:4px 0">Prossima giocata: <strong>${fmtShort(next.s.date)}</strong> alle ${esc(next.s.time || DEFAULT_TIME)}, ${esc(next.g.game)} con ${esc(next.g.name)}.</p>` : `<p class="small muted" style="margin:4px 0">Nessuna giocata in programma.</p>`}
+      <div class="next"><div class="ico">${ic("rocket_launch")}</div>
+        <div class="grow" style="min-width:0">${next ? `<div class="label" style="color:var(--brass-dark)">Prossima giocata</div><div class="t-lg">${fmtShort(next.s.date)} alle ${esc(next.s.time || DEFAULT_TIME)}</div><div class="small ell"><strong>${esc(next.g.game)}</strong> con gruppo <em>${esc(next.g.name)}</em></div>` : `<div class="label">Prossima giocata</div><div class="small muted">Nessuna giocata in programma.</div>`}</div></div>
       <div class="stat">
-        <div><strong>${up.filter(mineIn).length}</strong><span class="small muted">in programma</span></div>
-        <div><strong>${played.length}</strong><span class="small muted">giocate in totale</span></div>
-        <div><strong>${games.length}</strong><span class="small muted">giochi provati</span></div>
+        <div><strong class="c1">${up.filter(mineIn).length}</strong><span>In programma</span></div>
+        <div><strong class="c2">${played.length}</strong><span>Giocate totali</span></div>
+        <div><strong class="c3">${games.length}</strong><span>Giochi provati</span></div>
       </div>
-      ${games.length ? `<div style="margin-top:10px">${Object.entries(perGame).sort((a, b) => b[1] - a[1]).map(([gm, n]) => `<button class="chip ${S.hGame === gm ? "yes" : ""}" data-action="filterPlayed" data-game="${esc(gm)}">${esc(gm)}: ${n}</button>`).join("")}</div>` : ""}
-      ${topGame ? `<p class="small muted" style="margin:8px 0 0">Il gioco a cui hai giocato di più è ${esc(topGame[0])}${played.length ? `; la prima giocata registrata è del ${fmtDate(played[played.length - 1].s.date).replace(/^\S+ /, "")}` : ""}.</p>` : ""}
+      ${games.length ? `<div class="hscroll"><button class="chip ${S.hGame === "all" ? "sel" : ""}" data-action="filterPlayed" data-game="all">Tutti</button>${Object.entries(perGame).sort((a, b) => b[1] - a[1]).map(([gm, n]) => `<button class="chip ${S.hGame === gm ? "sel" : ""}" data-action="filterPlayed" data-game="${esc(gm)}">${esc(gm)} <span class="n">${n}</span></button>`).join("")}</div>` : ""}
+      ${topGame ? `<div class="insight">${ic("auto_awesome")}<span>Il gioco a cui hai giocato di più è <strong>${esc(topGame[0])}</strong>; la prima giocata registrata è del ${fmtDate(firstDate).replace(/^\S+ /, "")}.</span></div>` : ""}
     </div>
-    ${perm === "default" ? `<div class="note row between"><span>Vuoi un avviso su questo dispositivo quando un admin conferma una serata?</span><button class="btn sm" data-action="enableNotif">Attiva avvisi</button></div>` : ""}
-    <h4>In programma</h4>
+
+    <div class="section"><h3>${ic("event_upcoming")} In programma</h3>${up.length ? `<span class="pill ok">${up.length} ${up.length === 1 ? "CONFERMATA" : "CONFERMATE"}</span>` : ""}</div>
     ${up.length ? up.map(x => renderSessionCard(x.g, x.sid, x.s, false)).join("") : `<p class="muted small">Nessuna serata confermata. Guarda le <a href="#" data-action="tab" data-tab="nights">Serate</a> possibili.</p>`}
-    <h4>Storico delle giocate</h4>
+
+    <div class="section" style="margin-bottom:2px"><h3>${ic("inventory_2")} Storico delle giocate</h3></div>
     ${played.length ? `
-    <div class="card">
-      <div class="row">
-        ${sel("hGame", "Gioco", opt("all", "Tutti i giochi", S.hGame) + games.map(g => opt(g, g, S.hGame)).join(""))}
-        ${sel("hGroup", "Gruppo", opt("all", "Tutti i gruppi", S.hGroup) + groupsP.map(([id, n]) => opt(id, n, S.hGroup)).join(""))}
-      </div>
-      <div class="row" style="margin-top:8px">
-        ${sel("hYear", "Anno", opt("all", "Tutti gli anni", S.hYear) + years.map(y => opt(y, y, S.hYear)).join(""))}
-        ${sel("hMonth", "Mese", opt("all", "Tutti i mesi", S.hMonth) + MONTHS.map((m, i) => opt(pad(i + 1), m, S.hMonth)).join(""))}
-      </div>
-      <div class="row between" style="margin-top:10px">
-        <span class="small"><strong>${list.length}</strong> ${list.length === 1 ? "giocata trovata" : "giocate trovate"}${filtered ? "" : " in totale"}</span>
-        ${filtered ? `<button class="btn sm ghost" data-action="resetPlayed">Togli i filtri</button>` : ""}
-      </div>
-    </div>
-    ${list.length ? Object.entries(months).map(([ym, xs]) => `<div class="card"><div class="row between"><h3>${monthLabel(ym)}</h3><span class="small muted">${xs.length} ${xs.length === 1 ? "giocata" : "giocate"}</span></div>
-      ${xs.map(x => `<div class="hist" style="display:block">
-        <div class="row between"><strong>${esc(x.g.game)}</strong><span class="small">${fmtDate(x.s.date)}</span></div>
-        <div class="small muted">Gruppo ${esc(x.g.name)} - ore ${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " - " + esc(x.s.location) : ""}</div>
-        <div class="small muted">Con: ${esc(present(x).filter(u => u !== me).map(u => nameIn(x.g, u)).join(", ") || "nessun altro")}</div>
-        ${x.s.notes ? `<div class="small">${esc(x.s.notes)}</div>` : ""}
-      </div>`).join("")}</div>`).join("") : `<p class="muted small">Nessuna giocata con questi filtri.</p>`}` : `<p class="muted small">Le serate giocate compariranno qui, con data, gioco, gruppo e chi c'era.</p>`}`;
+    <div class="small" style="font-weight:700;margin-bottom:10px">${list.length} ${list.length === 1 ? "giocata trovata" : "giocate trovate"}${filtered ? "" : " in totale"}${filtered ? ` &bull; <button class="textlink" style="padding:0" data-action="resetPlayed">Togli i filtri</button>` : ""}</div>
+    <div class="filtercard"><div class="grid2">
+      ${sel("hGame", "Gioco", opt("all", "Tutti", S.hGame) + games.map(g => opt(g, g, S.hGame)).join(""))}
+      ${sel("hGroup", "Gruppo", opt("all", "Tutti", S.hGroup) + groupsP.map(([id, n]) => opt(id, n, S.hGroup)).join(""))}
+      ${sel("hYear", "Anno", opt("all", "Tutti", S.hYear) + years.map(y => opt(y, y, S.hYear)).join(""))}
+      ${sel("hMonth", "Mese", opt("all", "Tutti", S.hMonth) + MONTHS.map((m, i) => opt(pad(i + 1), m, S.hMonth)).join(""))}
+    </div></div>
+    ${shownList.length ? Object.entries(months).map(([ym, xs]) => `<div class="monthbar"><strong>${monthLabel(ym)}</strong><span class="pill count">${monthCount[ym]} ${monthCount[ym] === 1 ? "giocata" : "giocate"}</span></div>
+      ${xs.map(x => `<div class="card hcard">
+        <div class="row between nowrap" style="align-items:flex-start"><div class="grow" style="min-width:0">
+          <div class="row" style="gap:6px">${kindPill(x.g)}<span class="xs muted" style="font-weight:600">Gruppo ${esc(x.g.name)}</span></div>
+          <div class="t-lg" style="font-size:20px;margin-top:4px">${esc(x.g.game)}</div></div>${gIcon(x.g).replace('class="gico', 'style="width:36px;height:36px" class="gico')}</div>
+        <div class="hmeta">${ic("schedule", "s16")} ${fmtDate(x.s.date)} &bull; ore ${esc(x.s.time || DEFAULT_TIME)}</div>
+        ${x.s.location ? `<div class="hmeta">${ic("home", "s16")} ${esc(x.s.location)}</div>` : ""}
+        ${x.s.notes ? `<div class="small" style="margin-top:6px">"${esc(x.s.notes)}"</div>` : ""}
+        <div class="withrow"><span>${ic("group", "s16")} Con: ${esc(present(x).filter(u => u !== me).map(u => nameIn(x.g, u)).join(", ") || "nessun altro")}</span><span class="pill fatta">FATTA</span></div>
+      </div>`).join("")}`).join("")
+      + (list.length > shownList.length ? `<button class="btn full soft" data-action="morePlayed">Mostra altre giocate precedenti (${list.length - shownList.length}) ${ic("expand_more", "s18")}</button>` : "")
+      : `<p class="muted small">Nessuna giocata con questi filtri.</p>`}` : `<p class="muted small">Le serate giocate compariranno qui, con data, gioco, gruppo e chi c'era.</p>`}`;
 }
 
 // ----- FINESTRE -----
 function renderModal() {
   const M = S.modal;
   let inner = "";
+  const actions = (a, b) => `<div class="row nowrap" style="margin-top:16px">${a}${b}</div>`;
   if (M.type === "name") {
-    inner = `<h2>Il tuo nome</h2><p class="muted small">È il nome che vedono gli altri nei tuoi gruppi.</p>
-      <input id="nameInput" data-keep type="text" value="${esc(S.me.name || "")}">
-      <div class="row" style="margin-top:14px"><button class="btn grow" data-action="closeModal">Annulla</button><button class="btn primary grow" data-action="saveName">Salva</button></div>`;
+    inner = `<h2>Il tuo nome</h2><p class="small muted" style="margin:0 0 12px">È il nome che vedono gli altri nei tuoi gruppi.</p>
+      <div class="field">${ic("person", "lead")}<input id="nameInput" data-keep type="text" value="${esc(S.me.name || "")}"></div>
+      ${actions(`<button class="btn grow" data-action="closeModal">Annulla</button>`, `<button class="btn primary grow" data-action="saveName">Salva</button>`)}`;
   } else if (M.type === "group") {
     const g = M.gid ? getGroup(M.gid) : null;
-    const rule = g?.rule || "all", min = g?.min || 3;
+    const rule = g?.rule || "all", min = g?.min || 3, kind = g?.kind || "gdr";
     inner = `<h2>${g ? "Modifica gruppo" : "Nuovo gruppo"}</h2>
       <div class="stack">
         <div><label class="f" for="gName">Nome del gruppo o della campagna</label><input id="gName" data-keep type="text" placeholder="Es. La campagna del giovedì" value="${esc(g?.name || "")}"></div>
         <div><label class="f" for="gGame">Gioco</label><input id="gGame" data-keep type="text" placeholder="Es. Dungeons & Dragons" value="${esc(g?.game || "")}"></div>
+        <div><label class="f" for="gKind">Tipo di gioco</label><select id="gKind" data-keep>${Object.entries(KINDS).map(([k, v]) => `<option value="${k}" ${k === kind ? "selected" : ""}>${v}</option>`).join("")}</select></div>
         <div><label class="f">Quando si può giocare</label>
           <label class="choice"><input type="radio" name="gRule" id="gRuleAll" data-keep value="all" ${rule === "all" ? "checked" : ""}> Solo se ci sono tutti i membri</label>
           <label class="choice"><input type="radio" name="gRule" id="gRuleMin" data-keep value="min" ${rule === "min" ? "checked" : ""}> Basta un minimo di
-            <select id="gMin" data-keep style="width:auto;padding:6px 10px">${[2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `<option ${n === min ? "selected" : ""}>${n}</option>`).join("")}</select> membri</label>
+            <select id="gMin" data-keep style="width:auto;min-height:36px;padding:4px 30px 4px 10px;background-position:calc(100% - 16px) 15px,calc(100% - 11px) 15px">${[2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `<option ${n === min ? "selected" : ""}>${n}</option>`).join("")}</select> membri</label>
         </div>
         <div class="err" id="gErr"></div>
-        <div class="row"><button class="btn grow" data-action="closeModal">Annulla</button><button class="btn primary grow" data-action="saveGroup">${g ? "Salva" : "Crea gruppo"}</button></div>
-      </div>`;
+      </div>
+      ${actions(`<button class="btn grow" data-action="closeModal">Annulla</button>`, `<button class="btn primary grow" data-action="saveGroup">${g ? "Salva" : "Crea gruppo"}</button>`)}`;
   } else if (M.type === "join") {
     const p = S.pendingJoin || {};
-    inner = `<h2>Invito</h2><p>Sei stato invitato nel gruppo <strong>${esc(p.name || "senza nome")}</strong>.</p>
+    inner = `<div class="invite-card"><div class="ico">${ic("swords")}</div><div><span class="tag-invite">INVITO</span><h2 style="margin-top:6px">Sei stato invitato nel gruppo ${esc(p.name || "senza nome")}</h2></div></div>
       <p class="small muted">Entrando, gli altri membri vedranno il tuo nome e le tue disponibilità.</p>
       <div class="err" id="jErr"></div>
-      <div class="row"><button class="btn grow" data-action="ignoreJoin">Non ora</button><button class="btn primary grow" data-action="doJoin">Unisciti</button></div>`;
+      ${actions(`<button class="btn grow" data-action="ignoreJoin">Non ora</button>`, `<button class="btn primary grow" data-action="doJoin">${ic("how_to_reg")} Unisciti</button>`)}`;
   } else if (M.type === "paste") {
-    inner = `<h2>Ho un invito</h2><p class="small muted">Incolla qui il link che ti hanno mandato.</p>
-      <input id="pasteInput" data-keep type="text" placeholder="https://...#join=...">
-      <div class="err" id="pErr"></div>
-      <div class="row"><button class="btn grow" data-action="closeModal">Annulla</button><button class="btn primary grow" data-action="usePaste">Continua</button></div>`;
+    inner = `<h2>Ho un invito</h2><p class="small muted" style="margin:0 0 12px">Incolla qui il link che ti hanno mandato.</p>
+      <div class="field">${ic("link", "lead")}<input id="pasteInput" data-keep type="text" placeholder="https://...#join=..."></div>
+      <div class="err" id="pErr" style="margin-top:6px"></div>
+      ${actions(`<button class="btn grow" data-action="closeModal">Annulla</button>`, `<button class="btn primary grow" data-action="usePaste">Continua</button>`)}`;
   } else if (M.type === "night") {
     const k = M.date;
     const ev = groupList().map(g => evalGroup(g, k));
@@ -948,49 +1270,53 @@ function renderModal() {
     const done = new Set(sess.map(x => x.g.id));
     const open = ev.filter(e => !done.has(e.g.id)).sort((a, b) => rank[a.status] - rank[b.status] || b.pref - a.pref);
     const viable = open.filter(e => e.status !== "no");
+    const my = (S.me.days || {})[k];
     inner = `<h2>${fmtDate(k)}</h2>
-      ${sess.length ? `<h4>Confermate</h4>${sess.map(x => `<div class="note"><strong>${esc(x.g.game)}</strong> con ${esc(x.g.name)} alle ${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " - " + esc(x.s.location) : ""}</div>`).join("")}` : ""}
-      <h4>Giochi possibili questa sera</h4>
-      ${viable.length ? `<p class="small muted" style="margin:0 0 6px">${viable.length > 1 ? "Più giochi sono possibili: l'admin sceglie a cosa giocare. Il consigliato è quello con più voglia di giocare." : "C'è un gioco possibile."}</p>` : `<p class="small muted">Nessun gioco possibile questa sera con le disponibilità attuali.</p>`}
-      <div class="card night" style="margin:0">${open.map((e, i) => renderGroupRow(e, k, viable.length > 1 && e === viable[0])).join("") || `<div class="gr muted small">Tutti i tuoi gruppi hanno già una serata confermata.</div>`}</div>
-      <div class="row" style="margin-top:12px"><span class="small muted" style="width:100%">Tu quella sera:</span>
-        ${["yes", "maybe", "no"].map(v => `<button class="btn sm ${v} ${(S.me.days || {})[k] === v ? "on" : ""}" data-action="setMyDay" data-date="${k}" data-v="${v}">${STATUS[v]}</button>`).join("")}
-      </div>
-      <button class="btn full" style="margin-top:12px" data-action="closeModal">Chiudi</button>`;
+      ${sess.length ? `<div class="label" style="margin:12px 0 6px">Confermate</div>${sess.map(x => `<div class="gbox" style="margin-top:6px"><div class="row nowrap" style="gap:8px">${ic("check_circle")}<strong class="grow">${esc(x.g.game)}</strong><span class="pill go">Confermata</span></div><div class="hmeta">con ${esc(x.g.name)} &bull; ore ${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " &bull; " + esc(x.s.location) : ""}</div></div>`).join("")}` : ""}
+      <div class="label" style="margin:16px 0 6px">Giochi possibili questa sera</div>
+      <p class="small muted" style="margin:0">${viable.length ? (viable.length > 1 ? "Più giochi sono possibili: l'admin sceglie a cosa giocare. Il consigliato è quello con più voglia di giocare." : "C'è un gioco possibile.") : "Nessun gioco possibile questa sera con le disponibilità attuali."}</p>
+      ${open.map(e => renderGroupRow(e, k, viable.length > 1 && e === viable[0])).join("") || `<div class="gbox small muted">Tutti i tuoi gruppi hanno già una serata confermata.</div>`}
+      <div class="label" style="margin:16px 0 6px">Tu quella sera</div>
+      <div class="seg">${[["yes", "check_circle", "Ci sono"], ["maybe", "help", "Forse"], ["no", "cancel", "Non ci sono"]].map(([v, i, l]) => `<button class="${my === v ? "on " + v : ""}" data-action="setMyDay" data-date="${k}" data-v="${v}">${ic(i, "s16")} ${l}</button>`).join("")}</div>
+      <button class="btn full" style="margin-top:16px" data-action="closeModal">Chiudi</button>`;
   } else if (M.type === "notifs") {
     const list = notifications();
     inner = `<h2>Avvisi</h2>
-      ${list.length ? list.map(n => `<div class="note" style="${n.unread ? "" : "background:var(--surface-2)"}"><strong>${n.unread ? "Nuova: " : ""}${esc(n.g.game)}</strong> - ${fmtShort(n.s.date)} alle ${esc(n.s.time || DEFAULT_TIME)}<div class="small">${esc(nameIn(n.g, n.s.confirmedBy))} ha confermato la serata del gruppo ${esc(n.g.name)}${n.s.location ? ", " + esc(n.s.location) : ""}.</div></div>`).join("") : `<p class="muted">Nessun avviso. Quando un admin conferma una serata di un tuo gruppo, la trovi qui.</p>`}
-      <div class="row" style="margin-top:12px"><button class="btn grow" data-action="closeModal">Chiudi</button><button class="btn primary grow" data-action="tab" data-tab="plays">Vai alle giocate</button></div>`;
+      ${list.length ? list.map(n => `<div class="gbox" style="${n.unread ? "border:1.5px solid var(--primary)" : ""}">
+          <div class="row nowrap" style="gap:8px">${ic(n.unread ? "notifications_active" : "notifications", n.unread ? "fill" : "")}<strong class="grow">${esc(n.g.game)}</strong>${n.unread ? `<span class="pill ok">Nuova</span>` : ""}</div>
+          <div class="small" style="margin-top:4px"><strong>${fmtShort(n.s.date)} alle ${esc(n.s.time || DEFAULT_TIME)}</strong></div>
+          <div class="small muted">${esc(nameIn(n.g, n.s.confirmedBy))} ha confermato la serata del gruppo ${esc(n.g.name)}${n.s.location ? ", " + esc(n.s.location) : ""}.</div>
+        </div>`).join("") : `<div class="gbox small muted" style="text-align:center">Nessun avviso. Quando un admin conferma una serata di un tuo gruppo, la trovi qui.</div>`}
+      ${actions(`<button class="btn grow" data-action="closeModal">Chiudi</button>`, `<button class="btn primary grow" data-action="tab" data-tab="plays">Vai alle giocate</button>`)}`;
   } else if (M.type === "notify") {
     const g = getGroup(M.gid), s = g?.sessions?.[M.sid];
     if (!s) { S.modal = null; return ""; }
     const others = g.members.filter(u => u !== S.me.uid);
     const emails = others.map(u => g.emails?.[u]).filter(Boolean);
     inner = `<h2>Avvisa tutti</h2>
-      <p class="small">Tutti i membri del gruppo vedono già la serata nell'app, tra gli Avvisi e in Giocate. Puoi avvisarli anche fuori dall'app:</p>
-      <div class="linkbox">${esc(sessionText(g, s))}</div>
-      <div class="stack">
-        <a class="btn full" href="https://wa.me/?text=${encodeURIComponent(sessionText(g, s))}" target="_blank" rel="noopener">Invia su WhatsApp</a>
-        ${emails.length ? `<a class="btn full" href="mailto:?bcc=${encodeURIComponent(emails.join(","))}&subject=${encodeURIComponent(`Game Planner - si gioca: ${g.game} ${fmtShort(s.date)}`)}&body=${encodeURIComponent(sessionText(g, s))}">Invia per email a ${emails.length} ${emails.length === 1 ? "persona" : "persone"}</a>` : ""}
-        <button class="btn full" data-action="copyText" data-text="${esc(sessionText(g, s))}">Copia il messaggio</button>
+      <p class="small muted" style="margin:0 0 12px">Tutti i membri del gruppo vedono già la serata nell'app, tra gli Avvisi e in Giocate. Puoi avvisarli anche fuori dall'app:</p>
+      <div class="noteblk">${esc(sessionText(g, s))}</div>
+      <div class="stack" style="margin-top:14px">
+        <a class="btn full primary" href="https://wa.me/?text=${encodeURIComponent(sessionText(g, s))}" target="_blank" rel="noopener">${ic("chat")} Invia su WhatsApp</a>
+        ${emails.length ? `<a class="btn full" href="mailto:?bcc=${encodeURIComponent(emails.join(","))}&subject=${encodeURIComponent(`Game Planner - si gioca: ${g.game} ${fmtShort(s.date)}`)}&body=${encodeURIComponent(sessionText(g, s))}">${ic("mail")} Invia per email a ${emails.length} ${emails.length === 1 ? "persona" : "persone"}</a>` : ""}
+        <button class="btn full" data-action="copyText" data-text="${esc(sessionText(g, s))}">${ic("content_copy")} Copia il messaggio</button>
         <button class="btn full ghost" data-action="closeModal">Fatto</button>
       </div>`;
   } else if (M.type === "session") {
     const groups = groupList().filter(g => isAdmin(g));
     inner = `<h2>Conferma la serata</h2>
-      <p class="small muted" style="margin-top:-6px">Tutti i membri del gruppo riceveranno l'avviso.</p>
+      <p class="small muted" style="margin:0 0 12px">Tutti i membri del gruppo riceveranno l'avviso.</p>
       <div class="stack">
         <div><label class="f" for="sGroup">Gruppo</label><select id="sGroup" data-keep>${groups.map(g => `<option value="${g.id}" ${g.id === M.gid ? "selected" : ""}>${esc(g.name)} - ${esc(g.game)}</option>`).join("")}</select></div>
-        <div class="row">
+        <div class="row nowrap">
           <div style="flex:1.4"><label class="f" for="sDate">Giorno</label><input id="sDate" data-keep type="date" min="${todayStr()}" max="${LAST_DAY}" value="${esc(M.date || "")}"></div>
           <div style="flex:1"><label class="f" for="sTime">Ora</label><input id="sTime" data-keep type="time" value="${DEFAULT_TIME}"></div>
         </div>
-        <div><label class="f" for="sLoc">Dove</label><input id="sLoc" data-keep type="text" placeholder="Es. da Gigi, via Roma 12"></div>
+        <div><label class="f" for="sLoc">Dove</label><div class="field">${ic("location_on", "lead")}<input id="sLoc" data-keep type="text" placeholder="Es. da Gigi, via Roma 12"></div></div>
         <div><label class="f" for="sNotes">Note</label><textarea id="sNotes" data-keep placeholder="Es. portate le schede, si cena prima"></textarea></div>
         <div class="err" id="sErr"></div>
-        <div class="row"><button class="btn grow" data-action="closeModal">Annulla</button><button class="btn primary grow" data-action="saveSession">Conferma</button></div>
-      </div>`;
+      </div>
+      ${actions(`<button class="btn grow" data-action="closeModal">Annulla</button>`, `<button class="btn primary grow" data-action="saveSession">${ic("event_available")} Conferma</button>`)}`;
   }
   return `<div class="overlay" data-action="overlay"><div class="sheet">${inner}</div></div>`;
 }
@@ -1035,7 +1361,7 @@ document.addEventListener("change", e => {
   if (id === "monthSel") { S.month = e.target.value; render(); }
   if (id === "nMonthSel") { S.nMonth = e.target.value; render(); }
   if (id === "nGroupSel") { S.nGroup = e.target.value; render(); }
-  if (["hGame", "hYear", "hMonth", "hGroup"].includes(id)) { S[id] = e.target.value; render(); }
+  if (["hGame", "hYear", "hMonth", "hGroup"].includes(id)) { S[id] = e.target.value; S.hLimit = 10; render(); }
 });
 
 document.addEventListener("click", e => {
@@ -1059,10 +1385,11 @@ document.addEventListener("click", e => {
     case "editGroup": S.modal = { type: "group", gid: S.groupId }; render(); break;
     case "saveGroup": {
       const name = val("gName"), game = val("gGame"), rule = document.getElementById("gRuleMin").checked ? "min" : "all", min = +val("gMin") || 3;
+      const kind = val("gKind") || "other";
       if (!name || !game) { document.getElementById("gErr").textContent = "Scrivi il nome del gruppo e il gioco."; break; }
       const gid = S.modal.gid; S.modal = null;
-      if (gid) run(() => store.updateGroup(gid, { name, game, rule, min }));
-      else run(async () => { const id = await store.createGroup({ name, game, rule, min }); S.tab = "groups"; S.groupId = id; render(); toast("Gruppo creato: ora invita gli altri."); });
+      if (gid) run(() => store.updateGroup(gid, { name, game, rule, min, kind }));
+      else run(async () => { const id = await store.createGroup({ name, game, rule, min, kind }); S.tab = "groups"; S.groupId = id; render(); toast("Gruppo creato: ora invita gli altri."); });
       render();
       break;
     }
@@ -1117,6 +1444,15 @@ document.addEventListener("click", e => {
 
     // disponibilità
     case "brush": S.brush = d.b; render(); break;
+    case "monthPrev": case "monthNext": {
+      const o = monthOptions(), i = o.indexOf(S.month) + (a === "monthNext" ? 1 : -1);
+      if (o[i]) { S.month = o[i]; render(); }
+      break;
+    }
+    case "monthToday": S.month = curMonth(); render(); break;
+    case "dismissTip": try { localStorage.setItem("gp-tip", "1"); } catch (err) {} e.stopPropagation(); render(); break;
+    case "morePlayed": S.hLimit = (S.hLimit || 10) + 10; render(); break;
+    case "togglePw": { const f = document.getElementById("authPw"); if (f) f.type = f.type === "password" ? "text" : "password"; break; }
     case "day": {
       const cur = (S.me.days || {})[d.date];
       run(() => store.setDays({ [d.date]: S.brush === "clear" || cur === S.brush ? null : S.brush }));
@@ -1168,8 +1504,8 @@ document.addEventListener("click", e => {
       render();
       break;
     }
-    case "filterPlayed": S.hGame = S.hGame === d.game ? "all" : d.game; render(); break;
-    case "resetPlayed": S.hGame = S.hYear = S.hMonth = S.hGroup = "all"; render(); break;
+    case "filterPlayed": S.hGame = d.game === "all" || S.hGame === d.game ? "all" : d.game; S.hLimit = 10; render(); break;
+    case "resetPlayed": S.hGame = S.hYear = S.hMonth = S.hGroup = "all"; S.hLimit = 10; render(); break;
     case "notifyAll": S.modal = { type: "notify", gid: d.g, sid: d.s }; render(); break;
     case "copyText": copy(d.text); break;
     case "openNotifs": S.modal = { type: "notifs" }; render(); if (notifications().some(n => n.unread)) run(() => store.markSeen()); break;
