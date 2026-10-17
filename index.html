@@ -770,9 +770,26 @@ const hero = () => `<div class="hero">
 const inviteNote = () => S.pendingJoin ? `<div class="lav-card"><p class="t13">Sei stato invitato nel gruppo <strong>${esc(S.pendingJoin.name || "")}</strong>. Accedi per unirti.</p></div>` : "";
 const errBox = msg => msg ? `<div class="err-box">${esc(msg)}</div>` : "";
 
+// Browser interni di app (Instagram, Facebook, Telegram...): Google blocca lì l'accesso con Google
+const IN_APP = /Instagram|FBAN|FBAV|FB_IAB|FBIOS|Messenger|LinkedInApp|Line\/|Twitter|TikTok|musical_ly|Bytedance|Snapchat|Telegram|Pinterest|; wv\)/i.test(navigator.userAgent);
+const IS_ANDROID = /Android/i.test(navigator.userAgent);
+function shareableUrl() {
+  const p = S.pendingJoin, base = location.origin + location.pathname;
+  return p ? `${base}#join=${p.gid}.${p.code}&n=${encodeURIComponent(p.name || "")}` : base;
+}
+const inAppNote = () => IN_APP ? `<div class="peach-box stack g8">
+    <strong style="font-size:14px">Sei nel browser interno di un'altra app</strong>
+    <span>Qui l'accesso con Google non funziona. Apri questa pagina in ${IS_ANDROID ? "Chrome" : "Safari o Chrome"}, oppure entra con email e password.</span>
+    <div class="row" style="gap:6px;flex-wrap:wrap">
+      <button class="btn sm" data-action="copyAppLink">${ic("content_copy", "s16")}Copia link</button>
+      ${IS_ANDROID ? `<a class="btn sm" href="intent://${location.host}${location.pathname}${S.pendingJoin ? "?join=" + S.pendingJoin.gid + "." + S.pendingJoin.code + "&n=" + encodeURIComponent(S.pendingJoin.name || "") : ""}#Intent;scheme=https;package=com.android.chrome;end">Apri in Chrome</a>` : `<span class="t12">Poi incollalo nella barra degli indirizzi.</span>`}
+    </div>
+  </div>` : "";
+
 function renderLogin() {
   return `<div class="auth">
     ${hero()}
+    ${inAppNote()}
     ${inviteNote()}
     <div class="card stack g14">
       <button class="btn gbtn" data-action="googleIn"><span class="g">G</span>Entra con Google</button>
@@ -866,16 +883,15 @@ function renderMenu() {
 // ----- GRUPPI -----
 function renderGroups() {
   const list = groupList(), today = todayStr();
+  const inviteLinkSmall = `<p class="t13 muted" style="text-align:center;margin:10px 0 18px">Hai ricevuto un link di invito? <a data-action="openF3">Incollalo qui</a></p>`;
   return `<h1 class="h1 mb14">I miei gruppi</h1>
-    <div class="grid2 mb18">
-      <button class="btn" data-action="openF3">${ic("link")}Ho un invito</button>
-      <button class="btn p" data-action="openF2">${ic("add")}Crea gruppo</button>
-    </div>
+    ${list.length ? `<button class="btn p full" data-action="openF2">${ic("add")}Crea gruppo</button>${inviteLinkSmall}` : ""}
     ${list.length ? "" : `<div class="card stack g10" style="padding:20px">
       <h2 class="h2b">Benvenuto!</h2>
       <p class="sub">Tutto parte da un gruppo: una campagna di un gioco con le persone che ci giocano. Puoi far parte di più gruppi.</p>
       <p class="sub">Crea il primo gruppo e invita gli altri via email, SMS o WhatsApp, oppure apri il link di invito che ti hanno mandato.</p>
-      <div class="grid2" style="margin-top:4px"><button class="btn p" style="font-size:13px" data-action="openF2">Crea un gruppo</button><button class="btn" style="font-size:13px" data-action="openF3">Ho un link di invito</button></div>
+      <button class="btn p full" style="margin-top:4px" data-action="openF2">${ic("add")}Crea un gruppo</button>
+      <p class="t13 muted" style="text-align:center">Hai ricevuto un link di invito? <a data-action="openF3">Incollalo qui</a></p>
     </div>`}
     <div class="stack g12">${list.map(g => {
       const next = Object.values(g.sessions || {}).filter(s => s.date >= today).sort((a, b) => a.date.localeCompare(b.date))[0];
@@ -1460,6 +1476,7 @@ document.addEventListener("click", e => {
 
     // inviti
     case "openF3": S.modal = { type: "f3" }; render(); break;
+    case "copyAppLink": copy(shareableUrl()); break;
     case "usePaste": {
       const inv = parseInvite(val("pasteInput"));
       if (!inv) { showErr("pErr", "Questo non sembra un link di invito valido."); break; }
@@ -1595,8 +1612,8 @@ document.addEventListener("keydown", e => {
 //  AVVIO
 // ---------------------------------------------------------------------
 (async () => {
-  let inv = parseInvite(location.hash);
-  if (inv) { try { sessionStorage.setItem("gp-join", JSON.stringify(inv)); } catch (e) {} history.replaceState(null, "", location.pathname + location.search); }
+  let inv = parseInvite(location.hash) || parseInvite(location.search);
+  if (inv) { try { sessionStorage.setItem("gp-join", JSON.stringify(inv)); } catch (e) {} history.replaceState(null, "", location.pathname); }
   else { try { inv = JSON.parse(sessionStorage.getItem("gp-join") || "null"); } catch (e) {} }
   S.pendingJoin = inv;
   try { store = FIREBASE_CONFIG ? await makeFirebaseStore(FIREBASE_CONFIG) : makeLocalStore(); }
