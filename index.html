@@ -1152,11 +1152,11 @@ function renderGiocate() {
   const filtered = hist.filter(x => (S.fGame === "all" || x.g.game === S.fGame) && (S.fGroup === "all" || x.g.id === S.fGroup) && (S.fYear === "all" || x.s.date.startsWith(S.fYear)) && (S.fMonth === "all" || x.s.date.slice(5, 7) === S.fMonth));
   const hasF = [S.fGame, S.fGroup, S.fYear, S.fMonth].some(v => v !== "all");
   const secs = []; filtered.forEach(x => { const lab = monthLabel(x.s.date.slice(0, 7)); let sc = secs.find(z => z.label === lab); if (!sc) secs.push(sc = { label: lab, items: [] }); sc.items.push(x); });
-  const N = filtered.length, anyAdmin = groupList().some(g => isAdmin(g));
+  const N = filtered.length;
   const notifAsk = "Notification" in window && Notification.permission === "default";
   const sel = (id, label, opts) => `<select id="${id}" class="sel small" data-change="${id}" aria-label="${label}">${opts.map(([v, l]) => `<option value="${esc(v)}" ${S[id] === v ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
   const pd = topFirst && parseYmd(topFirst);
-  return `<div class="row between mb16"><h1 class="h1">Le mie giocate</h1>${anyAdmin ? `<button class="btn p sm" style="min-height:40px" data-action="openF5">${ic("add", "s18")}Conferma una serata</button>` : ""}</div>
+  return `<h1 class="h1 mb16">Le mie giocate</h1>
     <div class="card stack g12 mb16">
       <h2 class="h2">Riepilogo</h2>
       <p style="font-size:14px;line-height:20px">${nx ? L(`Prossima giocata: ${longDate(nx.s.date)} alle ${esc(nx.s.time || DEFAULT_TIME)}, ${esc(nx.g.game)} con ${esc(nx.g.name)}.`, `Next game: ${longDate(nx.s.date)} at ${esc(nx.s.time || DEFAULT_TIME)}, ${esc(nx.g.game)} with ${esc(nx.g.name)}.`) : "Nessuna giocata in programma."}</p>
@@ -1485,7 +1485,6 @@ const EN = {
 
   // giocate
   "Le mie giocate": "My games played",
-  "Conferma una serata": "Confirm a night",
   "Riepilogo": "Summary",
   "Nessuna giocata in programma.": "Nothing scheduled.",
   "in programma": "scheduled",
