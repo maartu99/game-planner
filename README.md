@@ -26,11 +26,11 @@ App online: https://maartu99.github.io/game-planner/
 
 Finché la configurazione Firebase non è impostata, l'app gira in modalità demo: i dati restano sul dispositivo. "Carica l'esempio" crea Gigi, Mattia, Roberto, Iole, Gian e Fabiola con le disponibilità di ottobre 2026 del foglio "QUANDO GIOCARE" e quattro gruppi (L'Ultima Torcia, Set Base, Campagna D&D, Fan Made). Con "Cambia" passi da un giocatore all'altro, anche per provare gli inviti.
 
-## Metterla online per il gruppo
+## Configurazione Firebase (già fatta)
 
 Tempo stimato: 20-30 minuti, da computer.
 
-1. **Progetto Firebase**: su https://console.firebase.google.com crea un progetto (Analytics non serve), aggiungi un'app Web, copia il blocco `firebaseConfig` e incollalo in `index.html` al posto di `null` in `const FIREBASE_CONFIG = null;`. La `apiKey` non è un segreto: la protezione vera sono le regole.
+1. **Progetto Firebase** (già fatto: progetto `game-planner-e876c`): su https://console.firebase.google.com crea un progetto, aggiungi un'app Web, copia il blocco `firebaseConfig` e incollalo in `index.html` in `const FIREBASE_CONFIG`. La `apiKey` non è un segreto: la protezione vera sono le regole.
 2. **Login**: Authentication > Sign-in method > abilita Google ed Email/Password.
 3. **Database**: Firestore Database > Crea database in modalità produzione, località in Europa (es. `europe-west8` Milano). Nella scheda Regole incolla `firestore.rules` e pubblica.
 4. **Dominio**: Authentication > Settings > Domini autorizzati > aggiungi `maartu99.github.io`.
