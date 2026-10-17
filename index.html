@@ -236,7 +236,15 @@ select.in,select.sel{-webkit-appearance:none;appearance:none;background-image:ur
 .sel{height:44px;min-height:44px;width:100%;min-width:0;border:1.5px solid var(--line);border-radius:8px;background-color:var(--card);padding:0 32px 0 8px;font-size:14px;font-weight:700;color:var(--text);outline:none}
 .sel.big{height:48px;font-size:16px;padding-left:12px}
 .sel.small{font-size:13px;font-weight:600}
-input[type=date].in,input[type=time].in{-webkit-appearance:none;appearance:none;text-align:left;display:block}
+/* iPhone: niente zoom automatico (campi da 16px) e campi data/ora che restano nella loro cella */
+.in,.sel,.sel.small,.sel.big,.radio select,.in.m44{font-size:16px}
+input[type=date].in,input[type=time].in{-webkit-appearance:none;appearance:none;display:block;width:100%;min-width:0;max-width:100%;height:48px;min-height:48px;line-height:45px;padding:0 12px;text-align:left;background-color:var(--card)}
+input[type=date].in::-webkit-date-and-time-value,input[type=time].in::-webkit-date-and-time-value{text-align:left;margin:0;line-height:45px;min-height:45px}
+input[type=date].in::-webkit-datetime-edit,input[type=time].in::-webkit-datetime-edit{padding:0;line-height:45px}
+input[type=date].in::-webkit-calendar-picker-indicator{margin-left:auto}
+.app,.sheet,.dialog,.auth{max-width:min(480px,100vw);overflow-x:clip}
+.sheet .stack>*,.card>*,.lbl>*{min-width:0;max-width:100%}
+.grid2>*{min-width:0}
 .radio{min-height:48px;border-radius:8px;padding:0 12px;display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;text-align:left;background:var(--card);border:1.5px solid var(--line);color:var(--text);cursor:pointer;width:100%}
 .radio.on{border-color:var(--primary)}
 .radio .ms{color:var(--primary)}
