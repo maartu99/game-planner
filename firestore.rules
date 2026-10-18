@@ -114,6 +114,10 @@ service cloud.firestore {
         allow delete: if signedIn() && isMember(gid) && (resource.data.by == request.auth.uid || isAdmin(gid));
         // Un admin che revoca una serata la rimette tra le proposte a nome di chi l'aveva confermata
         allow create: if signedIn() && isAdmin(gid);
+        // Ogni membro risponde alla proposta solo per sé (Sì / Forse / No)
+        allow update: if signedIn() && isMember(gid)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answers'])
+          && onlyOwnKey('answers');
       }
 
       // Serate confermate: le confermano, revocano e annullano gli admin;

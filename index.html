@@ -453,17 +453,19 @@ function makeLocalStore() {
     setPref(gid, v) { G(gid).prefs[db.current] = v; save(); },
     markSeen() { me().seenAt = Date.now(); save(); },
     confirmSession(gid, data, propId) {
-      const g = G(gid); g.sessions["s" + id()] = { ...data, createdBy: db.current, confirmedBy: db.current, confirmedAt: Date.now(), rsvps: { [db.current]: "yes" } };
+      const g = G(gid), ans = (propId && g.proposals?.[propId]?.answers) || {};
+      g.sessions["s" + id()] = { ...data, createdBy: db.current, confirmedBy: db.current, confirmedAt: Date.now(), rsvps: { ...ans, [db.current]: "yes" } };
       if (propId) delete g.proposals[propId]; save();
     },
     rsvp(gid, sid, v) { G(gid).sessions[sid].rsvps[db.current] = v; save(); },
     deleteSession(gid, sid) { delete G(gid).sessions[sid]; save(); },
     revokeSession(gid, sid) {
       const g = G(gid), s = g.sessions[sid];
-      (g.proposals ||= {})["p" + id()] = { date: s.date, time: s.time || "", place: s.location || "", desc: s.notes || "", by: s.confirmedBy || s.createdBy, createdAt: Date.now() };
+      (g.proposals ||= {})["p" + id()] = { date: s.date, time: s.time || "", place: s.location || "", desc: s.notes || "", by: s.confirmedBy || s.createdBy, answers: { ...(s.rsvps || {}) }, createdAt: Date.now() };
       delete g.sessions[sid]; save();
     },
-    createProposal(gid, data) { (G(gid).proposals ||= {})["p" + id()] = { ...data, by: db.current, createdAt: Date.now() }; (me().days ||= {})[data.date] = "yes"; save(); },
+    createProposal(gid, data) { (G(gid).proposals ||= {})["p" + id()] = { ...data, by: db.current, answers: { [db.current]: "yes" }, createdAt: Date.now() }; save(); },
+    propAnswer(gid, pid, v) { const a = (G(gid).proposals[pid].answers ||= {}); if (v) a[db.current] = v; else delete a[db.current]; save(); },
     deleteProposal(gid, pid) { delete G(gid).proposals[pid]; save(); },
     renameGame(oldN, newN) {
       me().games = (me().games || []).map(x => x === oldN ? newN : x);
@@ -508,7 +510,7 @@ function makeLocalStore() {
         g.sessions["e" + i] = { date, time, location: place, notes, createdBy: by, confirmedBy: by, confirmedAt: parseYmd(date).getTime() - 4 * 864e5, rsvps };
       });
       db.groups.torcia.sessions.e99 = { date: addDays(today, 5), time: "21:00", location: "da Gigi, via Roma 12", notes: "Portate le schede aggiornate.", createdBy: "gigi", confirmedBy: "gigi", confirmedAt: Date.now() - 3600e3, rsvps: { gigi: "yes", roberto: "yes", fabiola: "yes" } };
-      db.groups.set.proposals.p1 = { date: addDays(today, 14), time: "20:30", place: "da Iole", desc: "Partita completa con le espansioni, si comincia presto.", by: "gigi", createdAt: Date.now() - 1800e3 };
+      db.groups.set.proposals.p1 = { date: addDays(today, 14), time: "20:30", place: "da Iole", desc: "Partita completa con le espansioni, si comincia presto.", by: "gigi", answers: { gigi: "yes" }, createdAt: Date.now() - 1800e3 };
       save();
     },
   };
@@ -698,20 +700,21 @@ async function makeFirebaseStore(cfg) {
     setPref: (gid, v) => F.updateDoc(F.doc(db, "groups", gid), { ["prefs." + uid]: v }),
     markSeen: () => F.updateDoc(F.doc(db, "users", uid), { seenAt: Date.now() }),
     async confirmSession(gid, d, propId) {
-      await F.addDoc(F.collection(db, "groups", gid, "sessions"), { ...d, createdBy: uid, confirmedBy: uid, confirmedAt: Date.now(), rsvps: { [uid]: "yes" } });
+      const ans = (propId && raw[gid]?.proposals?.[propId]?.answers) || {};
+      await F.addDoc(F.collection(db, "groups", gid, "sessions"), { ...d, createdBy: uid, confirmedBy: uid, confirmedAt: Date.now(), rsvps: { ...ans, [uid]: "yes" } });
       if (propId) await F.deleteDoc(F.doc(db, "groups", gid, "proposals", propId));
     },
     rsvp: (gid, sid, v) => F.updateDoc(F.doc(db, "groups", gid, "sessions", sid), { ["rsvps." + uid]: v }),
     deleteSession: (gid, sid) => F.deleteDoc(F.doc(db, "groups", gid, "sessions", sid)),
     async revokeSession(gid, sid) {
       const s = raw[gid]?.sessions?.[sid]; if (!s) return;
-      await F.addDoc(F.collection(db, "groups", gid, "proposals"), { date: s.date, time: s.time || "", place: s.location || "", desc: s.notes || "", by: s.confirmedBy || s.createdBy || uid, createdAt: Date.now() });
+      await F.addDoc(F.collection(db, "groups", gid, "proposals"), { date: s.date, time: s.time || "", place: s.location || "", desc: s.notes || "", by: s.confirmedBy || s.createdBy || uid, answers: { ...(s.rsvps || {}) }, createdAt: Date.now() });
       await F.deleteDoc(F.doc(db, "groups", gid, "sessions", sid));
     },
     async createProposal(gid, d) {
-      await F.addDoc(F.collection(db, "groups", gid, "proposals"), { ...d, by: uid, createdAt: Date.now() });
-      await writeDays({ [d.date]: "yes" });
+      await F.addDoc(F.collection(db, "groups", gid, "proposals"), { ...d, by: uid, answers: { [uid]: "yes" }, createdAt: Date.now() });
     },
+    propAnswer: (gid, pid, v) => F.updateDoc(F.doc(db, "groups", gid, "proposals", pid), { ["answers." + uid]: v || F.deleteField() }),
     deleteProposal: (gid, pid) => F.deleteDoc(F.doc(db, "groups", gid, "proposals", pid)),
     async renameGame(oldN, newN) {
       const b = F.writeBatch(db);
@@ -729,6 +732,8 @@ async function makeFirebaseStore(cfg) {
 const groupList = () => Object.entries(S.groups).map(([id, g]) => ({ id, ...g })).sort((a, b) => byNameStr(a.name || "", b.name || ""));
 const getGroup = id => S.groups[id] ? { id, ...S.groups[id] } : null;
 const nameIn = (g, u) => u === S.me.uid ? (S.me.name || L("Tu", "You")) : (g.names?.[u] || L("Qualcuno", "Someone"));
+// Risposta di una persona a una proposta: ogni proposta ha le sue risposte
+const ansOf = (p, u) => (p.answers || {})[u];
 const prefOf = (g, u) => g.prefs?.[u] || 2;
 const dayOf = (g, u, d) => u === S.me.uid ? (S.me.days || {})[d] : (g.avail?.[u] || {})[d];
 const adminsOf = g => (g.admins && g.admins.length ? g.admins : [g.createdBy]).filter(u => g.members.includes(u));
@@ -990,7 +995,7 @@ const avatarHtml = (cls = "") => {
 function renderApp() {
   const today = todayStr(), me = S.me.uid;
   const pendingEv = allSessions().filter(x => x.s.date >= today && !rsvpOf(x.g, x.s, me)).length;
-  const pendingProp = allProposals().filter(x => !dayOf(x.g, me, x.p.date)).length;
+  const pendingProp = allProposals().filter(x => !ansOf(x.p, me)).length;
   const unread = notifications().filter(n => n.unread).length + (S.invIn || []).length;
   let body;
   if (S.tab === "gruppi") body = S.groupId ? renderGroup(getGroup(S.groupId)) : renderGroups();
@@ -1188,8 +1193,8 @@ function renderRow(e, k, isRec) {
   </div>`;
 }
 function renderProposal(x, inline) {
-  const g = x.g, p = x.p, me = S.me.uid, myV = dayOf(g, me, p.date);
-  const mem = byName(g, g.members).map(u => ({ u, name: nameIn(g, u), v: dayOf(g, u, p.date) }));
+  const g = x.g, p = x.p, me = S.me.uid, myV = ansOf(p, me);
+  const mem = byName(g, g.members).map(u => ({ u, name: nameIn(g, u), v: ansOf(p, u) }));
   const chip = m => m.v === "yes" ? `<span class="chip c-green">${esc(m.name)}</span>` : m.v === "maybe" ? `<span class="chip c-peach">${esc(m.name)} (${L("forse", "maybe")})</span>` : m.v === "no" ? `<span class="chip c-err">${esc(m.name)} · no</span>` : `<span class="chip c-grey">${esc(m.name)} · ${L("in attesa", "waiting")}</span>`;
   const yesN = mem.filter(m => m.v === "yes").length, ok = yesN === mem.length, admin = isAdmin(g);
   return `<div class="${inline ? "row-g prop-in" : "card prop stack g10"}">
@@ -1199,7 +1204,7 @@ function renderProposal(x, inline) {
     ${p.desc ? `<p class="t13" style="background:var(--bg);border-radius:8px;padding:8px 10px">${esc(p.desc)}</p>` : ""}
     <span class="t12 muted">${L("Proposta da", "Proposed by")} ${esc(nameIn(g, p.by))}.</span>
     <div class="chips">${mem.map(chip).join("")}</div>
-    <div class="stack g6"><span class="t12" style="font-weight:700">La tua risposta</span>${answersSeg(myV, "setMyDay", `data-date="${p.date}"`, ["Sì", "Forse", "No"])}</div>
+    <div class="stack g6"><span class="t12" style="font-weight:700">La tua risposta</span>${answersSeg(myV, "propAnswer", `data-g="${g.id}" data-pid="${x.pid}"`, ["Sì", "Forse", "No"])}</div>
     ${admin ? `<div class="stack g4"><button class="btn p m44" style="font-size:14px" data-action="openF5" data-g="${g.id}" data-date="${p.date}" data-pid="${x.pid}" ${ok ? "" : "disabled"}>Conferma la serata</button>${ok ? "" : `<span class="t12 muted" style="text-align:center">${L(`Si attiva quando tutti dicono Sì (${yesN} su ${mem.length}).`, `Available when everyone says Yes (${yesN} of ${mem.length}).`)}</span>`}</div>` : ""}
     ${p.by === me || admin ? `<button class="btn redtxt sm" style="min-height:40px" data-action="withdrawProp" data-g="${g.id}" data-pid="${x.pid}">Ritira la proposta</button>` : ""}
   </div>`;
@@ -1213,10 +1218,10 @@ function renderSerate() {
   if (S.sGroup !== "all" && !S.groups[S.sGroup]) S.sGroup = "all";
   const sF = S.sFilter, keys = monthKeys(S.sMonth), me = S.me.uid;
   const props = allProposals();
-  const propPending = props.filter(x => !dayOf(x.g, me, x.p.date)).length;
+  const propPending = props.filter(x => !ansOf(x.p, me)).length;
   const propsIn = props.filter(x => keys.includes(x.p.date) && (S.sGroup === "all" || x.g.id === S.sGroup));
   // Una proposta a cui hai già risposto non resta da sola: entra nella card della sua serata
-  const answered = x => !!dayOf(x.g, me, x.p.date);
+  const answered = x => !!ansOf(x.p, me);
   const propsShown = sF === "conf" ? [] : sF === "prop" ? propsIn : propsIn.filter(x => !answered(x));
   const inNight = k => sF === "all" ? propsIn.filter(x => x.p.date === k && answered(x)) : [];
   const nights = sF === "prop" ? [] : keys.map(k => night(k, S.sGroup)).filter(n => sF === "conf" ? n.confirmed.length : (n.possible.length || n.confirmed.length || inNight(n.k).length || !S.onlyPossible));
@@ -2029,6 +2034,7 @@ document.addEventListener("click", e => {
       render(); window.scrollTo(0, 0);
       break;
     }
+    case "propAnswer": { const p = S.groups[d.g]?.proposals?.[d.pid]; if (p) run(() => store.propAnswer(d.g, d.pid, ansOf(p, me) === d.v ? null : d.v)); break; }
     case "withdrawProp": ask("Ritiri questa proposta per tutto il gruppo?", "Ritira", () => run(() => store.deleteProposal(d.g, d.pid))); break;
 
     // serate
