@@ -270,6 +270,16 @@ input[type=date].in::-webkit-calendar-picker-indicator{margin-left:auto}
 .day.yes{background:var(--day-yes)}.day.maybe{background:var(--day-maybe)}.day.no{background:var(--day-no)}
 .day:disabled{opacity:.4;cursor:default}
 .day.pad{visibility:hidden}
+.day{position:relative}
+.day.s-ok{background:var(--day-yes)}.day.s-maybe{background:var(--day-maybe)}
+.mks{display:flex;gap:3px;min-height:7px;align-items:center}
+.mks.abs{position:absolute;top:4px;right:4px}
+.mk{display:inline-block;width:7px;height:7px;border-radius:9999px}
+.mk.conf{background:var(--primary)}.mk.prop{background:var(--indigo)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.seg.c2{grid-template-columns:1fr 1fr}
+.seg button .ms{margin-right:4px}
 .dpill{font-size:9px;font-weight:800;letter-spacing:.02em;border-radius:4px;padding:1px 4px}
 .dpill.yes{background:#1b6d4f;color:#fff}.dpill.maybe{background:var(--orange);color:var(--orange-t)}.dpill.no{background:var(--err-bg);color:var(--err-t)}
 
@@ -767,6 +777,9 @@ const groupList = () => Object.entries(S.groups).map(([id, g]) => ({ id, ...g })
 const getGroup = id => S.groups[id] ? { id, ...S.groups[id] } : null;
 const nameIn = (g, u) => u === S.me.uid ? (S.me.name || L("Tu", "You")) : (g.names?.[u] || L("Qualcuno", "Someone"));
 // Risposta di una persona a una proposta: ogni proposta ha le sue risposte
+// Scelte di visualizzazione salvate nel profilo
+const sView = () => S.me?.sView === "cal" ? "cal" : "list";
+const onlyPoss = () => S.me?.onlyPossible !== false;
 const ansOf = (p, u) => (p.answers || {})[u];
 const prefOf = (g, u) => g.prefs?.[u] || 2;
 // Disponibilità di una persona per un gruppo in un giorno: il NO del calendario vale per tutto,
@@ -1313,9 +1326,9 @@ function renderSerate() {
     const keys = monthKeys(S.sMonth);
     const openProp = (g, k) => props.find(x => x.g.id === g.id && x.p.date === k);
     const nights = keys.map(k => night(k, S.sGroup)).map(n => ({ ...n, props: props.filter(x => x.p.date === n.k) }))
-      .filter(n => n.possible.length || n.confirmed.length || n.props.length || !S.onlyPossible);
+      .filter(n => n.possible.length || n.confirmed.length || n.props.length || !onlyPoss());
     list = nights.map(n => {
-      const rows = (S.onlyPossible ? n.possible : n.evals).filter(e => !openProp(e.g, n.k));
+      const rows = (onlyPoss() ? n.possible : n.evals).filter(e => !openProp(e.g, n.k));
       const b = n.possible.some(e => e.status === "ok") ? ["Si può giocare", "c-mint"] : n.possible.length ? ["Dipende dai forse", "c-peach"] : n.confirmed.length ? ["Confermata", "c-green"] : n.props.length ? ["Proposta", "c-lav"] : ["Nessun gruppo", "c-grey"];
       return `<div class="card night tap stack g10" data-action="openF4" data-date="${n.k}">
         <div class="row"><div class="grow stack" style="min-width:0"><h2 style="font-size:17px;line-height:22px;font-weight:700">${dayMonth(n.k)}</h2><span class="t13 muted" style="font-weight:600">${DOWS()[parseYmd(n.k).getDay()]}</span></div><span class="tag ${b[1]}">${b[0]}</span></div>
@@ -1324,8 +1337,28 @@ function renderSerate() {
         ${rows.map(e => renderRow(e, n.k, false)).join("")}
       </div>`;
     });
-    top = `<div class="grid2">${monthSel("sMonthSel", S.sMonth, "")}${groupSel}</div>
-      <button class="toggle" data-action="toggleOnly">Solo le sessioni possibili<span class="sw ${S.onlyPossible ? "on" : ""}"><i></i></span></button>`;
+    const viewSeg = `<div class="row" style="gap:8px"><div class="seg c2 h40 grow">${[["list", "view_agenda", "Lista"], ["cal", "calendar_month", "Calendario"]].map(([v, icn, lab]) => `<button class="${sView() === v ? "on" : ""}" data-action="setSView" data-v="${v}">${ic(icn, "s18")}${lab}</button>`).join("")}</div><button class="btn sm" style="min-height:40px" data-action="goToday">${L("Oggi", "Today")}</button></div>`;
+    top = `${viewSeg}<div class="grid2">${monthSel("sMonthSel", S.sMonth, "")}${groupSel}</div>
+      ${sView() === "list" ? `<button class="toggle" data-action="toggleOnly">Solo le sessioni possibili<span class="sw ${onlyPoss() ? "on" : ""}"><i></i></span></button>` : ""}`;
+    if (sView() === "cal") {
+      // Calendario del mese: ogni giorno mostra quanti giochi si possono fare; toccandolo si apre il dettaglio
+      const [y, m] = S.sMonth.split("-").map(Number), lead = (new Date(y, m - 1, 1).getDay() + 6) % 7, dim = new Date(y, m, 0).getDate();
+      let cells = ""; for (let i = 0; i < lead; i++) cells += `<span class="day pad"></span>`;
+      for (let d = 1; d <= dim; d++) {
+        const k = `${y}-${pad(m)}-${pad(d)}`, past = k < today;
+        if (past) { cells += `<button class="day" disabled><span class="n">${d}</span></button>`; continue; }
+        const n = night(k, S.sGroup), pr = props.filter(x => x.p.date === k), okN = n.possible.filter(e => e.status === "ok").length, mayN = n.possible.length - okN;
+        const cls = okN ? "s-ok" : mayN ? "s-maybe" : "";
+        const marks = `${n.confirmed.length ? `<i class="mk conf"></i>` : ""}${pr.length ? `<i class="mk prop"></i>` : ""}`;
+        cells += `<button class="day ${cls} ${k === today ? "today" : ""}" data-action="openF4" data-date="${k}" aria-label="${longDate(k)}"><span class="n">${d}</span>${n.possible.length ? `<span class="dpill ${okN ? "yes" : "maybe"}">${n.possible.length}</span>` : `<span class="mks">${marks}</span>`}${n.possible.length && marks ? `<span class="mks abs">${marks}</span>` : ""}</button>`;
+      }
+      list = [`<div class="cal">
+          <div class="cal-h">${L(["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"], ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]).map(w => `<span>${w}</span>`).join("")}</div>
+          <div class="cal-g">${cells}</div>
+        </div>
+        <div class="legend"><span><b class="dpill yes">2</b>${L("giochi possibili", "possible games")}</span><span><b class="dpill maybe">1</b>${L("dipende dai forse", "depends on maybes")}</span><span><i class="mk conf"></i>${L("in programma", "scheduled")}</span><span><i class="mk prop"></i>${L("proposta", "proposal")}</span></div>
+        <p class="t12 muted">${L("Tocca un giorno per vedere i giochi possibili, rispondere per ogni gioco e confermare.", "Tap a day to see the possible games, answer for each game and confirm.")}</p>`];
+    }
     if (!list.length) list = [`<div class="card dashed">${L(`Nessuna sessione possibile in ${monthLabel(S.sMonth)}. Servono le disponibilità di tutti: controlla in ogni gruppo chi non ha ancora segnato i suoi giorni, oppure prova un altro mese.`, `No possible sessions in ${monthLabel(S.sMonth)}. Everyone's availability is needed: check in each group who hasn't marked their days yet, or try another month.`)}</div>`];
   } else if (sF === "prop") {
     // prima quelle a cui devi rispondere, poi quelle aperte, in fondo quelle che non si possono fare
@@ -1515,9 +1548,10 @@ function renderModal() {
     const myGameSeg = myV === "no" || !S.me.uid ? null : e => e.g.members.includes(S.me.uid) && !e.st.find(x => x.u === S.me.uid && x.v === "busy") ? `<div class="stack g4"><span class="t12" style="font-weight:700">${L("Tu per", "You for")} ${esc(e.g.game)}</span>${answersSeg(dayOf(e.g, S.me.uid, M.date), "setGameDay", `data-g="${e.g.id}" data-date="${M.date}"`, ["Sì", "Forse", "No"])}</div>` : "";
     inner = `<h3>${longDate(M.date, true)}</h3>
       ${n.confirmed.length ? `<div class="stack g6"><span class="caps">CONFERMATE</span>${n.confirmed.map(x => `<button class="conf-item" data-action="openEv" data-g="${x.g.id}" data-s="${x.sid}">${esc(x.g.game)} ${L("con", "with")} ${esc(x.g.name)}${L(" alle ", " at ")}${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " · " + esc(x.s.location) : ""}</button>`).join("")}</div>` : ""}
+      ${allProposals().filter(x => x.p.date === M.date).length ? `<div class="stack g8"><span class="caps">${L("PROPOSTE", "PROPOSALS")}</span>${allProposals().filter(x => x.p.date === M.date).map(x => renderProposal(x, true)).join("")}</div>` : ""}
       <div class="stack g8"><span class="caps">GIOCHI POSSIBILI QUESTO GIORNO</span>
         <p class="t13 muted">${n.possible.length >= 2 ? "Più giochi sono possibili: l'admin sceglie a cosa giocare." : n.possible.length === 1 ? "C'è un gioco possibile." : "Nessun gioco possibile in questo giorno con le disponibilità attuali."}</p>
-        ${[...n.evals].sort((a, b) => byNameStr(a.g.name, b.g.name)).map(e => renderRow(e, M.date, false, myGameSeg)).join("")}
+        ${[...n.evals].filter(e => !allProposals().some(x => x.p.date === M.date && x.g.id === e.g.id)).sort((a, b) => byNameStr(a.g.name, b.g.name)).map(e => renderRow(e, M.date, false, myGameSeg)).join("")}
         ${n.allConf ? `<p class="t13 muted">Tutti i tuoi gruppi hanno già una sessione confermata.</p>` : ""}</div>
       ${myV === "no" ? `<p class="t13 muted">${L("Nel calendario hai segnato NO per questo giorno: vale per tutti i giochi. Per cambiarlo vai in Disponibilità.", "In your calendar you marked NO for this day: it applies to every game. To change it go to Availability.")}</p>` : `<p class="t12 muted">${L("Puoi rispondere per ogni gioco: vale solo per questo giorno. Il resto lo gestisci dal calendario in Disponibilità.", "You can answer for each game: it only applies to this day. Everything else is managed from the calendar in Availability.")}</p>`}
       <button class="btn" data-action="closeModal">Chiudi</button>`;
@@ -1873,6 +1907,7 @@ const EN = {
   "Email inviata di nuovo.": "Email sent again.",
   "Non risulta ancora verificata. Apri il link nell'email e riprova.": "Not verified yet. Open the link in the email and try again.",
   "Scrivi un nome.": "Enter a name.",
+  "Lista": "List",
   "Calendario": "Calendar",
   "Storico": "History",
   "Possibili": "Possible",
@@ -2135,7 +2170,9 @@ document.addEventListener("click", e => {
 
     // sessioni
     case "sFilter": S.sFilter = d.v; render(); break;
-    case "toggleOnly": S.onlyPossible = !S.onlyPossible; render(); break;
+    case "toggleOnly": { const v = !onlyPoss(); S.me.onlyPossible = v; render(); run(() => store.setProfile({ onlyPossible: v })); break; }
+    case "setSView": { if (sView() === d.v) break; S.me.sView = d.v; render(); run(() => store.setProfile({ sView: d.v })); break; }
+    case "goToday": { S.sMonth = curMonth(); S.modal = { type: "f4", date: todayStr() }; render(); break; }
     case "openF4": S.modal = { type: "f4", date: d.date }; render(); break;
     case "openEv": S.modal = { type: "ev", gid: d.g, sid: d.s }; render(); break;
     case "openF5": {
