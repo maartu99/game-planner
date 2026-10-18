@@ -538,12 +538,30 @@ async function makeFirebaseStore(cfg) {
     } catch (e) { console.error(e); authState = "error"; return emit(); }
     authState = "ready";
     base.push(F.onSnapshot(ref, s => { meDoc = s.data() || {}; emit(); }, onErr));
-    base.push(F.onSnapshot(F.query(F.collection(db, "groups"), F.where("members", "array-contains", uid)), s => {
+    watchGroups();
+    emit();
+  }
+  // Elenco dei gruppi di cui si è membri, in tempo reale
+  let groupsUnsub = null;
+  function watchGroups() {
+    if (groupsUnsub) { groupsUnsub(); base = base.filter(u => u !== groupsUnsub); }
+    groupsUnsub = F.onSnapshot(F.query(F.collection(db, "groups"), F.where("members", "array-contains", uid)), s => {
       const ids = new Set();
       s.forEach(d => { ids.add(d.id); (raw[d.id] ||= { avail: {}, sessions: {}, proposals: {} }).doc = d.data(); watchGroup(d.id); });
-      for (const g of Object.keys(raw)) if (!ids.has(g)) dropGroup(g);
+      // Una lettura dalla cache del dispositivo può non conoscere ancora un gruppo appena raggiunto
+      if (!s.metadata.fromCache) for (const g of Object.keys(raw)) if (!ids.has(g)) dropGroup(g);
       emit();
-    }, onErr));
+    }, onErr);
+    base.push(groupsUnsub);
+  }
+  // Appena entrati in un gruppo: lo si legge subito e si riavvia l'ascolto,
+  // così compare senza dover ricaricare la pagina
+  async function loadJoined(gid) {
+    try {
+      const d = await F.getDoc(F.doc(db, "groups", gid));
+      if (d.exists() && (d.data().members || []).includes(uid)) { (raw[gid] ||= { avail: {}, sessions: {}, proposals: {} }).doc = d.data(); watchGroup(gid); }
+    } catch (e) { console.error(e); }
+    watchGroups();
     emit();
   }
   const myIds = () => Object.keys(raw).filter(g => raw[g].doc);
@@ -590,6 +608,7 @@ async function makeFirebaseStore(cfg) {
       const ref = F.doc(F.collection(db, "groups"));
       await F.setDoc(ref, { ...data, members: [uid], admins: [uid], names: { [uid]: meDoc?.name || "" }, emails: { [uid]: email }, phones: meDoc?.phone ? { [uid]: meDoc.phone } : {}, prefs: { [uid]: 2 }, inviteCode: rid(), createdBy: uid, createdAt: F.serverTimestamp() });
       await F.setDoc(F.doc(db, "groups", ref.id, "availability", uid), { days: meDoc?.days || {} });
+      await loadJoined(ref.id);
       return ref.id;
     },
     updateGroup: (gid, p) => F.updateDoc(F.doc(db, "groups", gid), p),
@@ -599,6 +618,7 @@ async function makeFirebaseStore(cfg) {
       try { await F.updateDoc(F.doc(db, "groups", gid), patch); }
       catch (e) { throw new Error(e.code === "permission-denied" || e.code === "not-found" ? "Invito non valido o gruppo non più esistente." : e.message); }
       await F.setDoc(F.doc(db, "groups", gid, "availability", uid), { days: meDoc?.days || {} });
+      await loadJoined(gid);
     },
     async removeMember(gid, u) {
       await F.deleteDoc(F.doc(db, "groups", gid, "availability", u));
