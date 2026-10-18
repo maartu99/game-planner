@@ -226,6 +226,8 @@ h1,h2,h3{margin:0}
 :root[data-theme="dark"] .gchip.on{background:#1b6d4f;color:#fff}
 .lav-card{background:var(--lav);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;color:var(--lav-t)}
 .hist{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:3px}
+.hist.up{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.hist.up:active{border-color:var(--mint-line)}
 .toggle{min-height:44px;border:none;background:transparent;padding:0 2px;display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:700;color:var(--text);width:100%}
 .toggle .sw{width:48px;height:28px;border-radius:9999px;padding:3px;display:flex;background:var(--line3);justify-content:flex-start}
 .toggle .sw.on{background:#1b6d4f;justify-content:flex-end}
@@ -817,7 +819,9 @@ function rsvpOf(g, s, u) {
 }
 // Sessione confermata che non arriva più al minimo di giocatori
 const yesCount = (g, s) => g.members.filter(u => rsvpOf(g, s, u) === "yes").length;
-const atRisk = (g, s) => s.date >= todayStr() && yesCount(g, s) < need(g);
+const startMs = s => { const [h, m] = (s.time || DEFAULT_TIME).split(":").map(Number), d = parseYmd(s.date); d.setHours(h || 0, m || 0, 0, 0); return d.getTime(); };
+const ended = s => Date.now() >= startMs(s) + 3600e3;
+const atRisk = (g, s) => !ended(s) && yesCount(g, s) < need(g);
 const sessTag = (g, s) => atRisk(g, s) ? `<span class="tag c-peach">${L("A rischio", "At risk")} · ${yesCount(g, s)} ${L("su", "of")} ${g.members.length}</span>` : `<span class="tag c-green">Confermata</span>`;
 // Proposta che non può più raggiungere il minimo: troppi No
 const propImpossible = (g, p) => g.members.length - g.members.filter(u => ansOf(p, u) === "no").length < need(g);
@@ -1085,7 +1089,7 @@ const avatarHtml = (cls = "") => {
 
 function renderApp() {
   const today = todayStr(), me = S.me.uid;
-  const pendingEv = allSessions().filter(x => x.s.date >= today && !rsvpOf(x.g, x.s, me)).length;
+  const pendingEv = allSessions().filter(x => !ended(x.s) && !rsvpOf(x.g, x.s, me)).length;
   const riskN = allSessions().filter(x => isAdmin(x.g) && atRisk(x.g, x.s)).length;
   const pendingProp = allProposals().filter(x => !ansOf(x.p, me)).length;
   const unread = notifications().filter(n => n.unread).length + (S.invIn || []).length + allSessions().filter(x => isAdmin(x.g) && atRisk(x.g, x.s)).length;
@@ -1317,7 +1321,7 @@ function renderSerate() {
   const sF = S.sFilter, me = S.me.uid, today = todayStr(), inG = g => S.sGroup === "all" || g.id === S.sGroup;
   const props = allProposals().filter(x => inG(x.g));
   const propPending = props.filter(x => !ansOf(x.p, me) && !propImpossible(x.g, x.p)).length;
-  const upcoming = allSessions().filter(x => x.s.date >= today && inG(x.g));
+  const upcoming = allSessions().filter(x => !ended(x.s) && inG(x.g));
   const progPending = upcoming.filter(x => !rsvpOf(x.g, x.s, me) || (isAdmin(x.g) && atRisk(x.g, x.s))).length;
   const tabB = (v, label, badge) => `<button class="${sF === v ? "on" : ""}" data-action="sFilter" data-v="${v}">${label}${badge ? `<span class="cnt">${badge}</span>` : ""}</button>`;
   const groupSel = `<select id="sGroupSel" class="sel" data-change="sGroupSel"><option value="all">Tutti i miei gruppi</option>${groups.map(g => `<option value="${g.id}" ${S.sGroup === g.id ? "selected" : ""}>${esc(g.name)}</option>`).join("")}</select>`;
@@ -1399,24 +1403,29 @@ function eventCard(g, sid, s) {
   </div>`;
 }
 function renderGiocate() {
-  const today = todayStr(), me = S.me.uid, all = allSessions();
-  const upcoming = all.filter(x => x.s.date >= today);
-  const inProg = upcoming.filter(x => (x.s.rsvps || {})[me] !== "no"), nx = inProg[0];
-  const hist = all.filter(x => x.s.date < today && (x.s.rsvps || {})[me] !== "no").reverse();
+  const me = S.me.uid, all = allSessions();
+  const upcomingAll = all.filter(x => !ended(x.s));
+  const inProg = upcomingAll.filter(x => rsvpOf(x.g, x.s, me) !== "no"), nx = inProg[0];
+  const hist = all.filter(x => ended(x.s) && rsvpOf(x.g, x.s, me) !== "no").reverse();
   const counts = {}; hist.forEach(x => { counts[x.g.game] = (counts[x.g.game] || 0) + 1; });
   const ranked = Object.entries(counts).sort((a, b) => b[1] - a[1] || byNameStr(a[0], b[0]));
   const top = ranked[0]?.[0], topFirst = top && hist.filter(x => x.g.game === top).map(x => x.s.date).sort()[0];
-  const years = [...new Set(hist.map(x => x.s.date.slice(0, 4)))].sort().reverse();
-  const grpOpts = [...new Map(hist.map(x => [x.g.id, x.g.name]))].sort((a, b) => byNameStr(a[1], b[1]));
-  if (S.fGame !== "all" && !counts[S.fGame]) S.fGame = "all";
+  // i filtri valgono sia per le sessioni in arrivo sia per quelle giocate
+  const pool = [...upcomingAll, ...hist];
+  const games = [...new Set(pool.map(x => x.g.game))].sort(byNameStr);
+  const years = [...new Set(pool.map(x => x.s.date.slice(0, 4)))].sort().reverse();
+  const grpOpts = [...new Map(pool.map(x => [x.g.id, x.g.name]))].sort((a, b) => byNameStr(a[1], b[1]));
+  if (S.fGame !== "all" && !games.includes(S.fGame)) S.fGame = "all";
   if (S.fYear !== "all" && !years.includes(S.fYear)) S.fYear = "all";
   if (S.fGroup !== "all" && !grpOpts.some(([id]) => id === S.fGroup)) S.fGroup = "all";
-  const filtered = hist.filter(x => (S.fGame === "all" || x.g.game === S.fGame) && (S.fGroup === "all" || x.g.id === S.fGroup) && (S.fYear === "all" || x.s.date.startsWith(S.fYear)) && (S.fMonth === "all" || x.s.date.slice(5, 7) === S.fMonth));
+  const pass = x => (S.fGame === "all" || x.g.game === S.fGame) && (S.fGroup === "all" || x.g.id === S.fGroup) && (S.fYear === "all" || x.s.date.startsWith(S.fYear)) && (S.fMonth === "all" || x.s.date.slice(5, 7) === S.fMonth);
+  const filtered = hist.filter(pass), upF = upcomingAll.filter(pass);
   const hasF = [S.fGame, S.fGroup, S.fYear, S.fMonth].some(v => v !== "all");
   const secs = []; filtered.forEach(x => { const lab = monthLabel(x.s.date.slice(0, 7)); let sc = secs.find(z => z.label === lab); if (!sc) secs.push(sc = { label: lab, items: [] }); sc.items.push(x); });
   const N = filtered.length;
   const sel = (id, label, opts) => `<select id="${id}" class="sel small" data-change="${id}" aria-label="${label}">${opts.map(([v, l]) => `<option value="${esc(v)}" ${S[id] === v ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
   const pd = topFirst && parseYmd(topFirst);
+  const myTag = x => { const v = rsvpOf(x.g, x.s, me); return v === "yes" ? `<span class="tag c-mint">Ci sono</span>` : v === "maybe" ? `<span class="tag c-peach">Forse</span>` : v === "no" ? `<span class="tag c-err">Non posso</span>` : `<span class="tag c-grey">${L("Da rispondere", "To answer")}</span>`; };
   return `<h1 class="h1 mb16">Storico</h1>
     <div class="card stack g12 mb16">
       <h2 class="h2">Riepilogo</h2>
@@ -1425,18 +1434,26 @@ function renderGiocate() {
       ${ranked.length ? `<div class="chips" style="gap:6px">${ranked.map(([gm, c]) => `<button class="gchip ${S.fGame === gm ? "on" : ""}" data-action="fGameChip" data-game="${esc(gm)}">${esc(gm)}: ${c}</button>`).join("")}</div>` : ""}
       ${top ? `<p class="t13 muted">${L(`Il gioco a cui hai giocato di più è ${esc(top)}; la prima giocata registrata è del ${pd.getDate()} ${MONTHS()[pd.getMonth()]} ${pd.getFullYear()}.`, `Your most played game is ${esc(top)}; the first recorded play was on ${pd.getDate()} ${MONTHS()[pd.getMonth()]} ${pd.getFullYear()}.`)}</p>` : ""}
     </div>
-    <h2 class="h2b mb10">Sessioni giocate</h2>
-    ${hist.length ? `
-      <div class="grid2 mb10">
-        ${sel("fGame", "Gioco", [["all", "Tutti i giochi"], ...Object.keys(counts).sort(byNameStr).map(g => [g, g])])}
+    ${pool.length ? `<div class="grid2 mb10">
+        ${sel("fGame", "Gioco", [["all", "Tutti i giochi"], ...games.map(g => [g, g])])}
         ${sel("fGroup", "Gruppo", [["all", "Tutti i gruppi"], ...grpOpts])}
         ${sel("fYear", "Anno", [["all", "Tutti gli anni"], ...years.map(y => [y, y])])}
         ${sel("fMonth", "Mese", [["all", "Tutti i mesi"], ...MONTHS().map((m, i) => [pad(i + 1), cap(m)])])}
       </div>
-      <div class="row between mb14" style="min-height:36px"><span class="t13 muted">${N} ${N === 1 ? L("giocata trovata", "play found") : L("giocate trovate", "plays found")}${hasF ? "" : L(" in totale", " in total")}</span>${hasF ? `<button class="btn grey sm" style="font-size:12px;padding:0 10px" data-action="clearFilters">Togli i filtri</button>` : ""}</div>
+      ${hasF ? `<div class="row mb14" style="justify-content:flex-end"><button class="btn grey sm" style="font-size:12px;padding:0 10px" data-action="clearFilters">Togli i filtri</button></div>` : ""}` : ""}
+    <h2 class="h2b mb10">${L("In arrivo", "Upcoming")}</h2>
+    ${upF.length ? `<div class="stack g8 mb24">${upF.map(x => `<button class="hist up" data-action="goProg">
+        <div class="row between" style="gap:8px;align-items:flex-start"><span style="font-size:16px;font-weight:700">${esc(x.g.game)}</span>${myTag(x)}</div>
+        <span class="t13" style="font-weight:600">${longDate(x.s.date, true)}${L(" alle ", " at ")}${esc(x.s.time || DEFAULT_TIME)}</span>
+        <span class="t12 muted">${L("Gruppo", "Group")} ${esc(x.g.name)}${x.s.location ? " · " + esc(x.s.location) : ""}</span>
+      </button>`).join("")}<p class="t12 muted" style="text-align:center">${L("Per rispondere o modificare tocca una sessione: si apre In programma.", "To answer or edit, tap a session: it opens Scheduled.")}</p></div>`
+      : `<p class="sub mb24">${hasF ? L("Nessuna sessione in arrivo con questi filtri.", "No upcoming sessions with these filters.") : L("Nessuna sessione in arrivo.", "No upcoming sessions.")}</p>`}
+    <h2 class="h2b mb10">Sessioni giocate</h2>
+    ${hist.length ? `
+      <div class="row between mb14" style="min-height:24px"><span class="t13 muted">${N} ${N === 1 ? L("giocata trovata", "play found") : L("giocate trovate", "plays found")}${hasF ? "" : L(" in totale", " in total")}</span></div>
       ${N ? `<div class="stack g16">${secs.map(sc => `<div class="stack g8">
         <div class="row between" style="padding:0 2px;align-items:baseline"><span style="font-size:15px;font-weight:800">${sc.label}</span><span class="t12 muted" style="font-weight:600">${sc.items.length === 1 ? L("1 giocata", "1 play") : L(`${sc.items.length} giocate`, `${sc.items.length} plays`)}</span></div>
-        ${sc.items.map(x => { const others = byName(x.g, x.g.members.filter(u => u !== me && (x.s.rsvps || {})[u] !== "no")).map(u => nameIn(x.g, u));
+        ${sc.items.map(x => { const others = byName(x.g, x.g.members.filter(u => u !== me && rsvpOf(x.g, x.s, u) !== "no")).map(u => nameIn(x.g, u));
           return `<div class="hist"><span style="font-size:16px;font-weight:700">${esc(x.g.game)}</span><span class="t13" style="font-weight:600">${longDate(x.s.date, true)}</span>
             <span class="t12 muted">${L("Gruppo", "Group")} ${esc(x.g.name)} · ${L("ore", "at")} ${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " · " + esc(x.s.location) : ""}</span>
             <span class="t12 muted">${L("Con", "With")}: ${esc(others.length ? others.join(", ") : L("nessun altro", "nobody else"))}</span>
@@ -1907,6 +1924,7 @@ const EN = {
   "Email inviata di nuovo.": "Email sent again.",
   "Non risulta ancora verificata. Apri il link nell'email e riprova.": "Not verified yet. Open the link in the email and try again.",
   "Scrivi un nome.": "Enter a name.",
+  "Da rispondere": "To answer",
   "Lista": "List",
   "Calendario": "Calendar",
   "Storico": "History",
