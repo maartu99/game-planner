@@ -420,10 +420,14 @@ function makeLocalStore() {
     updateGroup(gid, p) { Object.assign(G(gid), p); save(); },
     joinGroup(gid, code) {
       const g = G(gid);
-      if (!g || g.inviteCode !== code) throw new Error("Invito non valido o gruppo non più esistente.");
+      const inv = g?.invites?.[code];
+      if (!g || !inv || inv.exp < Date.now()) throw new Error("Invito non valido, già usato o scaduto. Chiedi un nuovo link a un admin del gruppo.");
+      delete g.invites[code];
       if (!g.members.includes(db.current)) g.members.push(db.current);
       g.prefs[db.current] ??= 2; save();
     },
+    addInvite(gid, code) { const g = G(gid), now = Date.now(); g.invites = Object.fromEntries(Object.entries(g.invites || {}).filter(([, v]) => v.exp > now)); g.invites[code] = { by: db.current, exp: now + INVITE_DAYS * 864e5 }; save(); },
+    cancelInvites(gid) { G(gid).invites = {}; save(); },
     removeMember(gid, u) { const g = G(gid); g.members = g.members.filter(x => x !== u); g.admins = (g.admins || []).filter(x => x !== u); delete g.prefs[u]; save(); },
     leaveGroup(gid) { this.removeMember(gid, db.current); },
     setAdmin(gid, u, on) { const g = G(gid); g.admins = (g.admins || []).filter(x => x !== u); if (on) g.admins.push(u); save(); },
@@ -611,20 +615,27 @@ async function makeFirebaseStore(cfg) {
     async changePassword(cur, nw) { await reauth(cur); await A.updatePassword(auth.currentUser, nw); },
     async createGroup(data) {
       const ref = F.doc(F.collection(db, "groups"));
-      await F.setDoc(ref, { ...data, members: [uid], admins: [uid], names: { [uid]: meDoc?.name || "" }, emails: { [uid]: email }, phones: meDoc?.phone ? { [uid]: meDoc.phone } : {}, prefs: { [uid]: 2 }, inviteCode: rid(), createdBy: uid, createdAt: F.serverTimestamp() });
+      await F.setDoc(ref, { ...data, members: [uid], admins: [uid], names: { [uid]: meDoc?.name || "" }, emails: { [uid]: email }, phones: meDoc?.phone ? { [uid]: meDoc.phone } : {}, prefs: { [uid]: 2 }, invites: {}, createdBy: uid, createdAt: F.serverTimestamp() });
       await F.setDoc(F.doc(db, "groups", ref.id, "availability", uid), { days: meDoc?.days || {} });
       await loadJoined(ref.id);
       return ref.id;
     },
     updateGroup: (gid, p) => F.updateDoc(F.doc(db, "groups", gid), p),
     async joinGroup(gid, code) {
-      const patch = { members: F.arrayUnion(uid), ["names." + uid]: meDoc?.name || "", ["emails." + uid]: email, ["prefs." + uid]: 2, joinCode: code };
+      // L'invito si consuma entrando: lo stesso link non funziona una seconda volta
+      const patch = { members: F.arrayUnion(uid), ["names." + uid]: meDoc?.name || "", ["emails." + uid]: email, ["prefs." + uid]: 2, joinCode: code, ["invites." + code]: F.deleteField() };
       if (meDoc?.phone) patch["phones." + uid] = meDoc.phone;
       try { await F.updateDoc(F.doc(db, "groups", gid), patch); }
-      catch (e) { throw new Error(e.code === "permission-denied" || e.code === "not-found" ? "Invito non valido o gruppo non più esistente." : e.message); }
+      catch (e) { throw new Error(e.code === "permission-denied" || e.code === "not-found" ? "Invito non valido, già usato o scaduto. Chiedi un nuovo link a un admin del gruppo." : e.message); }
       await F.setDoc(F.doc(db, "groups", gid, "availability", uid), { days: meDoc?.days || {} });
       await loadJoined(gid);
     },
+    async addInvite(gid, code) {
+      const now = Date.now(), patch = { ["invites." + code]: { by: uid, exp: F.Timestamp.fromMillis(now + INVITE_DAYS * 864e5) } };
+      for (const [k, v] of Object.entries(raw[gid]?.doc?.invites || {})) if (v?.exp?.toMillis?.() < now) patch["invites." + k] = F.deleteField();
+      await F.updateDoc(F.doc(db, "groups", gid), patch);
+    },
+    cancelInvites: gid => F.updateDoc(F.doc(db, "groups", gid), { invites: {} }),
     async removeMember(gid, u) {
       await F.deleteDoc(F.doc(db, "groups", gid, "availability", u));
       const patch = { members: F.arrayRemove(u), ["names." + u]: F.deleteField(), ["emails." + u]: F.deleteField(), ["prefs." + u]: F.deleteField(), ["phones." + u]: F.deleteField() };
@@ -740,9 +751,18 @@ function browserNotify() {
     try { if ("Notification" in window && Notification.permission === "granted") new Notification(n.kind === "ev" ? L("Game Planner - si gioca!", "Game Planner - game on!") : L("Game Planner - nuova proposta", "Game Planner - new proposal"), { body: `${longDate(d.date)}${d.time ? L(" alle ", " at ") + d.time : ""}: ${n.g.game} ${L("con", "with")} ${n.g.name}` }); } catch (e) {}
   }
 }
-function inviteLink(g) { return `${location.origin}${location.pathname}#join=${g.id}.${g.inviteCode}&n=${encodeURIComponent(g.name)}`; }
-const inviteText = g => L(`Ciao! Ti invito nel gruppo "${g.name}" (${g.game}) su Game Planner, così vediamo insieme quando possiamo giocare. Entra da qui: ${inviteLink(g)}\n\nSe hai già l'app sulla schermata Home: copia questo link, apri l'app e in Gruppi tocca "Incollalo qui".`,
-  `Hi! I'm inviting you to the group "${g.name}" (${g.game}) on Game Planner, so we can see together when we can play. Join here: ${inviteLink(g)}\n\nIf you already have the app on your Home Screen: copy this link, open the app and in Groups tap "Paste it here".`);
+// Ogni invito ha un codice suo: vale per una sola persona e scade dopo INVITE_DAYS giorni
+const INVITE_DAYS = 14;
+function newInvite(g) {
+  const code = Array.from(crypto.getRandomValues(new Uint8Array(10)), b => "abcdefghijkmnpqrstuvwxyz23456789"[b % 32]).join("");
+  run(() => store.addInvite(g.id, code));
+  return code;
+}
+const invExp = v => typeof v?.exp === "number" ? v.exp : v?.exp?.toMillis?.() || 0;
+const openInvites = g => Object.values(g.invites || {}).filter(v => invExp(v) > Date.now()).length;
+function inviteLink(g, code) { return `${location.origin}${location.pathname}#join=${g.id}.${code}&n=${encodeURIComponent(g.name)}`; }
+const inviteText = (g, code) => L(`Ciao! Ti invito nel gruppo "${g.name}" (${g.game}) su Game Planner, così vediamo insieme quando possiamo giocare. Entra da qui: ${inviteLink(g, code)}\n\nSe hai già l'app sulla schermata Home: copia questo link, apri l'app e in Gruppi tocca "Incollalo qui".`,
+  `Hi! I'm inviting you to the group "${g.name}" (${g.game}) on Game Planner, so we can see together when we can play. Join here: ${inviteLink(g, code)}\n\nIf you already have the app on your Home Screen: copy this link, open the app and in Groups tap "Paste it here".`);
 function sessionTimes(s) {
   const [hh, mm] = (s.time || DEFAULT_TIME).split(":").map(Number);
   const start = parseYmd(s.date); start.setHours(hh, mm, 0, 0);
@@ -969,7 +989,6 @@ function answersSeg(cur, action, attrs, labels = ["Ci sono", "Forse", "Non posso
 
 function renderGroup(g) {
   const me = S.me.uid, today = todayStr(), admin = isAdmin(g);
-  const link = inviteLink(g);
   const sessions = Object.entries(g.sessions || {}).filter(([, s]) => s.date >= today).sort((a, b) => a[1].date.localeCompare(b[1].date));
   const marked = u => Object.keys(u === me ? (S.me.days || {}) : (g.avail?.[u] || {})).filter(d => d >= today).length;
   return `<button class="btn link sm" style="padding:0 0 12px;min-height:0" data-action="closeGroup">${ic("chevron_left")}I miei gruppi</button>
@@ -1000,8 +1019,7 @@ function renderGroup(g) {
       }).join("")}
     </div>
     ${admin ? `<div class="card stack g12">
-      <div class="stack g4"><h2 class="h2">Invita qualcuno</h2><p class="t13 muted">Chi riceve il link entra nel gruppo dopo aver fatto l'accesso.</p></div>
-      <div class="linkbox">${esc(link)}</div>
+      <div class="stack g4"><h2 class="h2">Invita qualcuno</h2><p class="t13 muted">${L(`Ogni invito crea un link nuovo, valido per una sola persona e per ${INVITE_DAYS} giorni. Chi viene rimosso non può rientrare con un link vecchio.`, `Each invite creates a new link, valid for one person and for ${INVITE_DAYS} days. Someone you remove can't rejoin with an old link.`)}</p></div>
       <div class="grid2"><button class="btn p m44" data-action="copyLink">${ic("content_copy")}Copia link</button><button class="btn m44" data-action="shareLink">${ic("ios_share")}Condividi...</button></div>
       <div class="stack g4"><span class="t12" style="font-weight:700">Via email</span>
         <div class="row" style="gap:6px"><input id="invEmail" data-keep class="in soft m44 grow" type="email" placeholder="nome@esempio.it"><button class="btn m44" data-action="inviteEmail">Invia</button></div></div>
@@ -1010,6 +1028,7 @@ function renderGroup(g) {
         <div class="grid2" style="gap:6px;margin-top:2px"><button class="btn m44" data-action="inviteSms">SMS</button><button class="btn m44" data-action="inviteWa">WhatsApp</button></div></div>
       <div id="invErr"></div>
       <p class="t12 muted">Funziona anche con chi non ha ancora l'app: dal link si registra e entra direttamente nel gruppo.</p>
+      ${openInvites(g) ? `<div class="row between wrapf" style="gap:6px"><span class="t12 muted">${L(openInvites(g) === 1 ? "1 invito non ancora usato" : `${openInvites(g)} inviti non ancora usati`, openInvites(g) === 1 ? "1 unused invite" : `${openInvites(g)} unused invites`)}</span><button class="btn redtxt sm" style="font-size:12px;padding:0 10px" data-action="cancelInvites">Annulla gli inviti</button></div>` : ""}
     </div>` : `<p class="t13 muted" style="padding:0 4px">Per invitare qualcuno chiedi a un admin del gruppo.</p>`}
     <div class="stack g10">
       <h2 style="margin-top:6px;font-size:18px;font-weight:700">Serate confermate</h2>
@@ -1680,6 +1699,9 @@ const EN = {
   "Email inviata di nuovo.": "Email sent again.",
   "Non risulta ancora verificata. Apri il link nell'email e riprova.": "Not verified yet. Open the link in the email and try again.",
   "Scrivi un nome.": "Enter a name.",
+  "Annulla gli inviti": "Cancel invites",
+  "Inviti annullati.": "Invites cancelled.",
+  "Invito non valido, già usato o scaduto. Chiedi un nuovo link a un admin del gruppo.": "Invalid, already used or expired invite. Ask a group admin for a new link.",
   "Incolla il link copiato": "Paste the copied link",
   "Negli appunti non c'è un link di invito. Copialo dal messaggio e riprova.": "There's no invite link on the clipboard. Copy it from the message and try again.",
   "Non riesco a leggere gli appunti: tieni premuto nel campo qui sotto e scegli Incolla.": "Can't read the clipboard: press and hold in the field below and choose Paste.",
@@ -1820,21 +1842,23 @@ document.addEventListener("click", e => {
       break;
     }
     case "deleteGroup": ask(L(`Elimini il gruppo "${g.name}" per tutti?`, `Delete the group "${g.name}" for everyone?`), L("Elimina", "Delete"), () => { const id = g.id; go("gruppi"); run(() => store.deleteGroup(id)); }); break;
-    case "copyLink": copy(inviteLink(g)); break;
-    case "shareLink": if (navigator.share) navigator.share({ title: "Game Planner", text: inviteText(g) }).catch(() => {}); else copy(inviteText(g)); break;
+    case "copyLink": copy(inviteLink(g, newInvite(g))); break;
+    case "shareLink": { const t = inviteText(g, newInvite(g)); if (navigator.share) navigator.share({ title: "Game Planner", text: t }).catch(() => {}); else copy(t); break; }
+    case "cancelInvites": ask(L("Annulli tutti gli inviti non ancora usati? Quei link smettono di funzionare.", "Cancel all unused invites? Those links will stop working."), L("Annulla inviti", "Cancel invites"), () => run(async () => { await store.cancelInvites(g.id); toast("Inviti annullati."); })); break;
     case "inviteEmail": {
       const to = val("invEmail");
       if (!/^\S+@\S+\.\S+$/.test(to)) { showErr("invErr", "Scrivi un indirizzo email valido."); break; }
       showErr("invErr", "");
-      location.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(L(`Invito al gruppo ${g.name}`, `Invite to the group ${g.name}`))}&body=${encodeURIComponent(inviteText(g))}`;
+      location.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(L(`Invito al gruppo ${g.name}`, `Invite to the group ${g.name}`))}&body=${encodeURIComponent(inviteText(g, newInvite(g)))}`;
       break;
     }
     case "inviteSms": case "inviteWa": {
       const raw = val("invPhone").replace(/[^\d+]/g, "");
       if (!okPhone(raw)) { showErr("invErr", "Scrivi un numero di cellulare valido."); break; }
       showErr("invErr", "");
-      if (a === "inviteSms") location.href = `sms:${raw}?&body=${encodeURIComponent(inviteText(g))}`;
-      else { let n = raw.replace(/\D/g, ""); if (!raw.startsWith("+") && !n.startsWith("00") && n.length <= 10) n = "39" + n; n = n.replace(/^00/, ""); window.open(`https://wa.me/${n}?text=${encodeURIComponent(inviteText(g))}`, "_blank", "noopener"); }
+      const t = inviteText(g, newInvite(g));
+      if (a === "inviteSms") location.href = `sms:${raw}?&body=${encodeURIComponent(t)}`;
+      else { let n = raw.replace(/\D/g, ""); if (!raw.startsWith("+") && !n.startsWith("00") && n.length <= 10) n = "39" + n; n = n.replace(/^00/, ""); window.open(`https://wa.me/${n}?text=${encodeURIComponent(t)}`, "_blank", "noopener"); }
       break;
     }
 

@@ -2,7 +2,8 @@ rules_version = '2';
 
 // Regole di sicurezza per "Game Planner"
 // Si accede con Google o con email verificata. Ognuno vede solo i gruppi
-// di cui fa parte; si entra in un gruppo solo con il link di invito.
+// di cui fa parte; si entra in un gruppo solo con un link di invito,
+// che vale per una sola persona e scade dopo 14 giorni.
 // Gli admin gestiscono membri e inviti e confermano le serate;
 // ogni membro può proporre serate e rispondere.
 
@@ -24,6 +25,10 @@ service cloud.firestore {
     // Il campo-mappa "field" cambia solo nella voce dell'utente stesso
     function onlyOwnKey(field) {
       return request.resource.data.get(field, {}).diff(resource.data.get(field, {})).affectedKeys().hasOnly([request.auth.uid]);
+    }
+    // Invito esistente e non scaduto (ogni invito vale per una sola persona)
+    function validInvite(code) {
+      return code in resource.data.get('invites', {}) && resource.data.invites[code].exp > request.time;
     }
     function ownMaps() {
       return onlyOwnKey('names') && onlyOwnKey('emails') && onlyOwnKey('prefs') && onlyOwnKey('phones');
@@ -55,10 +60,12 @@ service cloud.firestore {
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'names', 'emails', 'prefs', 'phones'])
             && request.resource.data.members == resource.data.members.removeAll([request.auth.uid])
             && ownMaps())
-        // Nuovo membro che entra con il codice di invito corretto
-        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'names', 'emails', 'prefs', 'phones', 'joinCode'])
+        // Nuovo membro che entra con un invito valido: l'invito viene consumato
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'names', 'emails', 'prefs', 'phones', 'joinCode', 'invites'])
             && request.resource.data.members == resource.data.members.concat([request.auth.uid])
-            && request.resource.data.joinCode == resource.data.inviteCode
+            && validInvite(request.resource.data.joinCode)
+            && !(request.resource.data.joinCode in request.resource.data.get('invites', {}))
+            && request.resource.data.get('invites', {}).diff(resource.data.get('invites', {})).affectedKeys().hasOnly([request.resource.data.joinCode])
             && ownMaps())
       );
 
