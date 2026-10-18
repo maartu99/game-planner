@@ -719,7 +719,7 @@ function evalGroup(g, d) {
   const media = av.length ? av.reduce((a, x) => a + prefOf(g, x.u), 0) / av.length : 0;
   return { g, st, yes, maybe, need: n, M: g.members.length, status, media };
 }
-function sortEvals(arr) { const r = { ok: 0, maybe: 1, none: 2 }; return arr.sort((a, b) => r[a.status] - r[b.status] || b.media - a.media || b.yes - a.yes); }
+function sortEvals(arr) { const r = { ok: 0, maybe: 1, none: 2 }; return arr.sort((a, b) => r[a.status] - r[b.status] || b.yes - a.yes || b.maybe - a.maybe); }
 function night(k, filter) {
   const mine = groupList().filter(g => filter === "all" || g.id === filter);
   const confirmed = allSessions().filter(x => x.s.date === k && mine.some(g => g.id === x.g.id));
@@ -978,7 +978,7 @@ function renderGroups() {
         <div class="row between" style="width:100%"><span style="font-size:18px;line-height:24px;font-weight:700">${esc(g.name)}</span><span class="t12 muted" style="font-weight:600;white-space:nowrap">${g.members.length === 1 ? L("1 membro", "1 member") : L(`${g.members.length} membri`, `${g.members.length} members`)}</span></div>
         <span class="t13 muted">${esc(g.game)} · ${ruleText(g)}</span>
         <div class="chips">${byName(g, g.members).map(u => `<span class="chip m">${esc(nameIn(g, u))}</span>`).join("")}</div>
-        <div class="row between wrapf" style="width:100%;border-top:1px solid var(--soft3);padding-top:10px;font-size:12px;font-weight:700"><span class="muted">La tua voglia: <span style="color:var(--brass)">${VOGLIA[prefOf(g, S.me.uid)]}</span></span>${next ? `<span style="color:var(--primary-d)">${L("Prossima serata", "Next night")}: ${longDate(next.date)}</span>` : ""}</div>
+        ${next ? `<div class="row wrapf" style="width:100%;border-top:1px solid var(--soft3);padding-top:10px;font-size:12px;font-weight:700"><span style="color:var(--primary-d)">${L("Prossima serata", "Next night")}: ${longDate(next.date)}</span></div>` : ""}
       </button>`;
     }).join("")}</div>`;
 }
@@ -999,11 +999,6 @@ function renderGroup(g) {
       <span class="t13 muted">${ruleText(g)}</span>
       <div class="info">${ic("shield_person")}<span>${admin ? "Sei admin: inviti, gestisci i giocatori e confermi le serate." : L(`Admin: ${esc(byName(g, adminsOf(g)).map(u => nameIn(g, u)).join(", "))}. Sono loro a confermare le serate.`, `Admins: ${esc(byName(g, adminsOf(g)).map(u => nameIn(g, u)).join(", "))}. They confirm the nights.`)}</span></div>
     </div>
-    <div class="card stack g10">
-      <h2 class="h2">La tua voglia di giocare con questo gruppo</h2>
-      <p class="t13 muted">Serve a scegliere quale gruppo consigliare quando la stessa sera si potrebbe giocare a più giochi.</p>
-      <div class="seg c3">${[3, 2, 1].map(v => `<button class="${prefOf(g, me) === v ? "on" : ""}" data-action="setPref" data-v="${v}">${VOGLIA[v]}</button>`).join("")}</div>
-    </div>
     <div class="card stack g4">
       <h2 class="h2" style="margin-bottom:6px">${L("Membri", "Members")} (${g.members.length})</h2>
       ${byName(g, g.members).map(u => {
@@ -1012,7 +1007,6 @@ function renderGroup(g) {
           <div class="row between">
             <div class="stack" style="gap:2px;min-width:0"><span class="mname">${esc(nameIn(g, u))}${u === me ? L(" (tu)", " (you)") : ""}${uA ? `<span class="tag-admin">ADMIN</span>` : ""}</span>
               <span class="t12 muted">${n ? L(`${n} giorni segnati da oggi in poi`, n === 1 ? "1 day marked from today on" : `${n} days marked from today on`) : "Non ha ancora segnato le disponibilità"}</span></div>
-            <span class="voglia">${VOGLIA[prefOf(g, u)]}</span>
           </div>
           ${admin && u !== me ? `<div class="row" style="gap:6px"><button class="btn sm" style="font-size:12px;padding:0 10px" data-action="toggleAdmin" data-u="${u}">${uA ? "Togli admin" : "Rendi admin"}</button><button class="btn redtxt sm" style="font-size:12px;padding:0 10px" data-action="removeMember" data-u="${u}">Rimuovi dal gruppo</button></div>` : ""}
         </div>`;
@@ -1021,12 +1015,6 @@ function renderGroup(g) {
     ${admin ? `<div class="card stack g12">
       <div class="stack g4"><h2 class="h2">Invita qualcuno</h2><p class="t13 muted">${L(`Ogni invito crea un link nuovo, valido per una sola persona e per ${INVITE_DAYS} giorni. Chi viene rimosso non può rientrare con un link vecchio.`, `Each invite creates a new link, valid for one person and for ${INVITE_DAYS} days. Someone you remove can't rejoin with an old link.`)}</p></div>
       <div class="grid2"><button class="btn p m44" data-action="copyLink">${ic("content_copy")}Copia link</button><button class="btn m44" data-action="shareLink">${ic("ios_share")}Condividi...</button></div>
-      <div class="stack g4"><span class="t12" style="font-weight:700">Via email</span>
-        <div class="row" style="gap:6px"><input id="invEmail" data-keep class="in soft m44 grow" type="email" placeholder="nome@esempio.it"><button class="btn m44" data-action="inviteEmail">Invia</button></div></div>
-      <div class="stack g4"><span class="t12" style="font-weight:700">Via cellulare</span>
-        <input id="invPhone" data-keep class="in soft m44" type="tel" placeholder="+39 333 1234567">
-        <div class="grid2" style="gap:6px;margin-top:2px"><button class="btn m44" data-action="inviteSms">SMS</button><button class="btn m44" data-action="inviteWa">WhatsApp</button></div></div>
-      <div id="invErr"></div>
       <p class="t12 muted">Funziona anche con chi non ha ancora l'app: dal link si registra e entra direttamente nel gruppo.</p>
       ${openInvites(g) ? `<div class="row between wrapf" style="gap:6px"><span class="t12 muted">${L(openInvites(g) === 1 ? "1 invito non ancora usato" : `${openInvites(g)} inviti non ancora usati`, openInvites(g) === 1 ? "1 unused invite" : `${openInvites(g)} unused invites`)}</span><button class="btn redtxt sm" style="font-size:12px;padding:0 10px" data-action="cancelInvites">Annulla gli inviti</button></div>` : ""}
     </div>` : `<p class="t13 muted" style="padding:0 4px">Per invitare qualcuno chiedi a un admin del gruppo.</p>`}
@@ -1107,7 +1095,7 @@ function renderRow(e, k, isRec) {
     <span class="t12 muted" style="margin-top:-4px">${esc(e.g.game)} · ${L(`servono ${e.need} su ${e.M}`, `needs ${e.need} of ${e.M}`)}</span>
     <span class="status ${st[1]}">${st[0]}</span>
     <div class="chips">${e.st.map(memberChip).join("")}</div>
-    ${pos ? `<div class="row between wrapf"><span class="t12 muted" style="font-weight:700">${L("Voglia media", "Average keenness")}: ${fmt1(e.media)} ${L("su", "of")} 3</span>${admin ? "" : `<span class="t12 muted">Decide un admin</span>`}</div>
+    ${pos ? `${admin ? "" : `<span class="t12 muted">Decide un admin</span>`}
       ${admin ? `<button class="btn p m44" style="font-size:14px" data-action="openF5" data-g="${e.g.id}" data-date="${k}">Conferma questa serata</button>` : ""}` : ""}
   </div>`;
 }
@@ -1155,7 +1143,7 @@ function renderSerate() {
         <div class="row"><h2 class="grow" style="font-size:17px;line-height:22px;font-weight:700">${longDate(n.k)}</h2><span class="tag ${b[1]}">${b[0]}</span>
           <button class="btn grey sm" ${first ? `data-action="openEv" data-g="${first.g.id}" data-s="${first.sid}"` : `data-action="openF4" data-date="${n.k}"`}>Apri</button></div>
         ${n.confirmed.map(x => `<button class="conf-item" data-action="openEv" data-g="${x.g.id}" data-s="${x.sid}">${ic("event_available")}<span class="grow">${L(`Si gioca ${esc(x.g.game)} con ${esc(x.g.name)} alle`, `${esc(x.g.game)} with ${esc(x.g.name)} at`)} ${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " · " + esc(x.s.location) : ""}</span>${ic("chevron_right")}</button>`).join("")}
-        ${n.rec && n.shared.length ? `<div class="peach-box">${L(`${n.possible.length} gruppi possibili con persone in comune (${esc(n.shared.join(", "))}): si gioca a uno solo. Consigliato ${esc(n.rec.g.name)}, il gruppo con più voglia di giocare.`, `${n.possible.length} possible groups with people in common (${esc(n.shared.join(", "))}): only one can play. Recommended: ${esc(n.rec.g.name)}, the keenest group.`)}</div>` : ""}
+        ${n.rec && n.shared.length ? `<div class="peach-box">${L(`${n.possible.length} gruppi possibili con persone in comune (${esc(n.shared.join(", "))}): si gioca a uno solo. Consigliato ${esc(n.rec.g.name)}, il gruppo con più persone disponibili.`, `${n.possible.length} possible groups with people in common (${esc(n.shared.join(", "))}): only one can play. Recommended: ${esc(n.rec.g.name)}, the group with the most people available.`)}</div>` : ""}
         ${nProps.map(x => renderProposal(x, true)).join("")}
         ${rows.map(e => renderRow(e, n.k, e === n.rec)).join("")}
       </div>` };
@@ -1343,7 +1331,7 @@ function renderModal() {
     inner = `<h3>${longDate(M.date, true)}</h3>
       ${n.confirmed.length ? `<div class="stack g6"><span class="caps">CONFERMATE</span>${n.confirmed.map(x => `<button class="conf-item" data-action="openEv" data-g="${x.g.id}" data-s="${x.sid}">${esc(x.g.game)} ${L("con", "with")} ${esc(x.g.name)}${L(" alle ", " at ")}${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " · " + esc(x.s.location) : ""}</button>`).join("")}</div>` : ""}
       <div class="stack g8"><span class="caps">GIOCHI POSSIBILI QUESTA SERA</span>
-        <p class="t13 muted">${n.possible.length >= 2 ? "Più giochi sono possibili: l'admin sceglie a cosa giocare. Il consigliato è quello con più voglia di giocare." : n.possible.length === 1 ? "C'è un gioco possibile." : "Nessun gioco possibile questa sera con le disponibilità attuali."}</p>
+        <p class="t13 muted">${n.possible.length >= 2 ? "Più giochi sono possibili: l'admin sceglie a cosa giocare. Il consigliato è quello con più persone disponibili." : n.possible.length === 1 ? "C'è un gioco possibile." : "Nessun gioco possibile questa sera con le disponibilità attuali."}</p>
         ${n.evals.map(e => renderRow(e, M.date, e === n.rec)).join("")}
         ${n.allConf ? `<p class="t13 muted">Tutti i tuoi gruppi hanno già una serata confermata.</p>` : ""}</div>
       <div class="stack g6"><span class="t13" style="font-weight:700">Tu quella sera:</span>${answersSeg(myV, "setMyDay", `data-date="${M.date}"`, ["Ci sono", "Forse", "Non ci sono"])}</div>
@@ -1625,7 +1613,7 @@ const EN = {
   "Continua": "Continue",
   "CONFERMATE": "CONFIRMED",
   "GIOCHI POSSIBILI QUESTA SERA": "POSSIBLE GAMES THIS NIGHT",
-  "Più giochi sono possibili: l'admin sceglie a cosa giocare. Il consigliato è quello con più voglia di giocare.": "Several games are possible: the admin picks what to play. The recommended one is the keenest.",
+  "Più giochi sono possibili: l'admin sceglie a cosa giocare. Il consigliato è quello con più persone disponibili.": "Several games are possible: the admin picks what to play. The recommended one has the most people available.",
   "C'è un gioco possibile.": "One game is possible.",
   "Nessun gioco possibile questa sera con le disponibilità attuali.": "No game possible this night with the current availability.",
   "Tutti i tuoi gruppi hanno già una serata confermata.": "All your groups already have a confirmed night.",
@@ -1845,22 +1833,6 @@ document.addEventListener("click", e => {
     case "copyLink": copy(inviteLink(g, newInvite(g))); break;
     case "shareLink": { const t = inviteText(g, newInvite(g)); if (navigator.share) navigator.share({ title: "Game Planner", text: t }).catch(() => {}); else copy(t); break; }
     case "cancelInvites": ask(L("Annulli tutti gli inviti non ancora usati? Quei link smettono di funzionare.", "Cancel all unused invites? Those links will stop working."), L("Annulla inviti", "Cancel invites"), () => run(async () => { await store.cancelInvites(g.id); toast("Inviti annullati."); })); break;
-    case "inviteEmail": {
-      const to = val("invEmail");
-      if (!/^\S+@\S+\.\S+$/.test(to)) { showErr("invErr", "Scrivi un indirizzo email valido."); break; }
-      showErr("invErr", "");
-      location.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(L(`Invito al gruppo ${g.name}`, `Invite to the group ${g.name}`))}&body=${encodeURIComponent(inviteText(g, newInvite(g)))}`;
-      break;
-    }
-    case "inviteSms": case "inviteWa": {
-      const raw = val("invPhone").replace(/[^\d+]/g, "");
-      if (!okPhone(raw)) { showErr("invErr", "Scrivi un numero di cellulare valido."); break; }
-      showErr("invErr", "");
-      const t = inviteText(g, newInvite(g));
-      if (a === "inviteSms") location.href = `sms:${raw}?&body=${encodeURIComponent(t)}`;
-      else { let n = raw.replace(/\D/g, ""); if (!raw.startsWith("+") && !n.startsWith("00") && n.length <= 10) n = "39" + n; n = n.replace(/^00/, ""); window.open(`https://wa.me/${n}?text=${encodeURIComponent(t)}`, "_blank", "noopener"); }
-      break;
-    }
 
     // inviti
     case "openF3": S.modal = { type: "f3" }; render(); break;
