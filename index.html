@@ -489,7 +489,7 @@ function makeLocalStore() {
       db.users.gigi.days[addDays(today, 14)] = "yes";
       db.users.mattia.games = ["Dungeons & Dragons", "Pathfinder", "Root", "Terraforming Mars"];
       const mk = (gid, name, game, rule, members, admins, prefs) => {
-        db.groups[gid] = { name, game, rule: rule.all ? "all" : "min", min: rule.min || 3, members, admins, prefs, inviteCode: "demo" + gid, createdBy: admins[0], sessions: {}, proposals: {} };
+        db.groups[gid] = { name, game, rule: "min", min: rule.min || members.length, members, admins, prefs, inviteCode: "demo" + gid, createdBy: admins[0], sessions: {}, proposals: {} };
       };
       mk("dnd", "Campagna D&D", "Dungeons & Dragons", { all: true }, ["mattia", "gigi", "roberto", "iole", "gian"], ["mattia", "gigi"], { mattia: 3, gigi: 3, roberto: 3, gian: 3, iole: 2 });
       mk("fan", "Fan Made", "Root", { min: 3 }, ["mattia", "fabiola", "gigi"], ["mattia"], { mattia: 2, gigi: 2, fabiola: 3 });
@@ -738,8 +738,12 @@ const prefOf = (g, u) => g.prefs?.[u] || 2;
 const dayOf = (g, u, d) => u === S.me.uid ? (S.me.days || {})[d] : (g.avail?.[u] || {})[d];
 const adminsOf = g => (g.admins && g.admins.length ? g.admins : [g.createdBy]).filter(u => g.members.includes(u));
 const isAdmin = (g, u = S.me.uid) => !!g && adminsOf(g).includes(u);
-const need = g => g.rule === "min" ? Math.min(g.min || 2, g.members.length) : g.members.length;
-const ruleText = g => g.rule === "min" ? L(`Si gioca con almeno ${g.min} membri`, `Plays with at least ${g.min} members`) : L("Si gioca solo se ci sono tutti", "Plays only if everyone is in");
+// Minimo di giocatori per giocare: un numero fisso scelto dall'admin.
+// (I vecchi gruppi "solo se ci sono tutti" usano i membri attuali finché un admin non li aggiorna.)
+const need = g => g.rule === "min" ? Math.max(2, +g.min || 2) : Math.max(2, g.members.length);
+const incomplete = g => g.members.length < need(g);
+const ruleText = g => L(`Si gioca con almeno ${need(g)} giocatori`, `Plays with at least ${need(g)} players`);
+const missingText = g => L(`Servono almeno ${need(g)} giocatori, siete in ${g.members.length}. Invita gli altri.`, `At least ${need(g)} players needed, you are ${g.members.length}. Invite the others.`);
 const byName = (g, list) => [...list].sort((a, b) => byNameStr(nameIn(g, a), nameIn(g, b)));
 const myGames = () => [...new Set([...(S.me.games || []), ...groupList().map(g => g.game)])].filter(Boolean).sort(byNameStr);
 
@@ -779,7 +783,7 @@ function night(k, filter) {
   const mine = groupList().filter(g => filter === "all" || g.id === filter);
   const confirmed = allSessions().filter(x => x.s.date === k && mine.some(g => g.id === x.g.id));
   const confIds = confirmed.map(x => x.g.id);
-  const evals = sortEvals(mine.filter(g => !confIds.includes(g.id)).map(g => evalGroup(g, k)));
+  const evals = sortEvals(mine.filter(g => !confIds.includes(g.id) && !incomplete(g)).map(g => evalGroup(g, k)));
   const possible = evals.filter(e => e.status !== "none");
   const rec = possible.length >= 2 ? possible[0] : null;
   const cnt = {}; possible.forEach(e => e.g.members.forEach(u => { cnt[u] = (cnt[u] || 0) + 1; }));
@@ -795,6 +799,15 @@ function notifications() {
 const sessionText = (g, s) => L(`Confermato! ${longDate(s.date, true)} alle ${s.time || DEFAULT_TIME} si gioca a ${g.game} (gruppo ${g.name})${s.location ? ", " + s.location : ""}.${s.notes ? " " + s.notes : ""} Conferma la tua presenza su Game Planner: ${location.origin + location.pathname}`,
   `Confirmed! ${longDate(s.date, true)} at ${s.time || DEFAULT_TIME} we play ${g.game} (group ${g.name})${s.location ? ", " + s.location : ""}.${s.notes ? " " + s.notes : ""} Confirm you're coming on Game Planner: ${location.origin + location.pathname}`);
 let notifiedKeys = null;
+// Vecchi gruppi "solo se ci sono tutti": un admin li passa al minimo fisso (= membri di oggi)
+const migrated = new Set();
+function migrateRules() {
+  if (!S.me) return;
+  for (const g of groupList()) if (g.rule !== "min" && isAdmin(g) && !migrated.has(g.id)) {
+    migrated.add(g.id);
+    run(() => store.updateGroup(g.id, { rule: "min", min: Math.max(2, g.members.length) }));
+  }
+}
 let notifiedInv = null;
 function browserNotify() {
   if (!S.me) return;
@@ -1067,6 +1080,7 @@ function renderGroups() {
       return `<button class="card click stack g10" data-action="openGroup" data-g="${g.id}">
         <div class="row between" style="width:100%"><span style="font-size:18px;line-height:24px;font-weight:700">${esc(g.name)}</span><span class="t12 muted" style="font-weight:600;white-space:nowrap">${g.members.length === 1 ? L("1 membro", "1 member") : L(`${g.members.length} membri`, `${g.members.length} members`)}</span></div>
         <span class="t13 muted">${esc(g.game)} · ${ruleText(g)}</span>
+        ${incomplete(g) ? `<span class="t12" style="font-weight:700;color:var(--orange-t)">${missingText(g)}</span>` : ""}
         <div class="chips">${byName(g, g.members).map(u => `<span class="chip m">${esc(nameIn(g, u))}</span>`).join("")}</div>
         ${next ? `<div class="row wrapf" style="width:100%;border-top:1px solid var(--soft3);padding-top:10px;font-size:12px;font-weight:700"><span style="color:var(--primary-d)">${L("Prossima serata", "Next night")}: ${longDate(next.date)}</span></div>` : ""}
       </button>`;
@@ -1087,6 +1101,7 @@ function renderGroup(g) {
       <div class="row between" style="align-items:flex-start"><h1 class="h1" style="line-height:30px">${esc(g.name)}</h1>${admin ? `<button class="btn sm" style="flex:none" data-action="openF2Edit">${ic("edit", "s16")}Modifica</button>` : ""}</div>
       <span style="font-size:15px;font-weight:600">${esc(g.game)}</span>
       <span class="t13 muted">${ruleText(g)}</span>
+      ${incomplete(g) ? `<span class="t13" style="font-weight:700;color:var(--orange-t)">${missingText(g)}</span>` : ""}
       <div class="info">${ic("shield_person")}<span>${admin ? "Sei admin: inviti, gestisci i giocatori e confermi le serate." : L(`Admin: ${esc(byName(g, adminsOf(g)).map(u => nameIn(g, u)).join(", "))}. Sono loro a confermare le serate.`, `Admins: ${esc(byName(g, adminsOf(g)).map(u => nameIn(g, u)).join(", "))}. They confirm the nights.`)}</span></div>
     </div>
     <div class="card stack g4">
@@ -1185,7 +1200,7 @@ function renderRow(e, k, isRec) {
   const pos = e.status !== "none", admin = isAdmin(e.g), st = ROW_ST[e.status];
   return `<div class="row-g ${pos ? "" : "dim"}">
     <div class="row wrapf" style="gap:6px"><span style="font-size:15px;font-weight:700">${esc(e.g.name)}</span></div>
-    <span class="t12 muted" style="margin-top:-4px">${esc(e.g.game)} · ${L(`servono ${e.need} su ${e.M}`, `needs ${e.need} of ${e.M}`)}</span>
+    <span class="t12 muted" style="margin-top:-4px">${esc(e.g.game)} · ${L(`${e.yes} su ${e.M} ci sono · minimo ${e.need}`, `${e.yes} of ${e.M} in · minimum ${e.need}`)}</span>
     <span class="status ${st[1]}">${st[0]}</span>
     <div class="chips">${e.st.map(memberChip).join("")}</div>
     ${pos ? `${admin ? "" : `<span class="t12 muted">Decide un admin</span>`}
@@ -1205,7 +1220,7 @@ function renderProposal(x, inline) {
     <span class="t12 muted">${L("Proposta da", "Proposed by")} ${esc(nameIn(g, p.by))}.</span>
     <div class="chips">${mem.map(chip).join("")}</div>
     <div class="stack g6"><span class="t12" style="font-weight:700">La tua risposta</span>${answersSeg(myV, "propAnswer", `data-g="${g.id}" data-pid="${x.pid}"`, ["Sì", "Forse", "No"])}</div>
-    ${admin ? `<div class="stack g4"><button class="btn p m44" style="font-size:14px" data-action="openF5" data-g="${g.id}" data-date="${p.date}" data-pid="${x.pid}" ${ok ? "" : "disabled"}>Conferma la serata</button>${ok ? "" : `<span class="t12 muted" style="text-align:center">${L(`Si attiva quando tutti dicono Sì (${yesN} su ${mem.length}).`, `Available when everyone says Yes (${yesN} of ${mem.length}).`)}</span>`}</div>` : ""}
+    ${admin ? `<div class="stack g4"><button class="btn p m44" style="font-size:14px" data-action="openF5" data-g="${g.id}" data-date="${p.date}" data-pid="${x.pid}">Conferma la serata</button>${ok ? "" : `<span class="t12 muted" style="text-align:center">${L("Hanno detto Sì", "Said Yes")}: ${yesN} ${L("su", "of")} ${mem.length}. ${L("Manca", "Missing")}: ${esc(mem.filter(m => m.v !== "yes").map(m => m.name).join(", "))}.</span>`}</div>` : ""}
     ${p.by === me || admin ? `<button class="btn redtxt sm" style="min-height:40px" data-action="withdrawProp" data-g="${g.id}" data-pid="${x.pid}">Ritira la proposta</button>` : ""}
   </div>`;
 }
@@ -1401,17 +1416,15 @@ function renderModal() {
       <button class="btn p" data-action="closeModal">Chiudi</button>`;
   } else if (M.type === "f2") {
     const g = M.gid ? getGroup(M.gid) : null, games = myGames();
-    const mode = M.mode || (g?.rule === "min" ? "min" : "all"), min = String(M.min || g?.min || 3);
+    const min = String(M.min || (g ? need(g) : 4));
     const gameSel = S.gameSel;
     inner = `<h3>${g ? "Modifica gruppo" : "Nuovo gruppo"}</h3>
       <label class="lbl">Nome del gruppo o della campagna<input id="gName" data-keep class="in" placeholder="Es. La campagna del giovedì" value="${esc(M.nameDraft ?? g?.name ?? "")}"></label>
       <div class="lbl"><span class="row between">Gioco<span class="row" style="gap:3px;color:var(--primary-d);cursor:pointer" data-action="openGames">${ic("edit", "s16")}Gestisci giochi</span></span>
         <select id="gGameSel" class="in" data-change="gGameSel"><option value="">Scegli un gioco</option>${games.map(x => `<option value="${esc(x)}" ${gameSel === x ? "selected" : ""}>${esc(x)}</option>`).join("")}<option value="__new" ${gameSel === "__new" ? "selected" : ""}>+ Aggiungi nuovo</option></select></div>
       ${gameSel === "__new" ? `<label class="lbl">Nome del nuovo gioco<input id="gGame" data-keep class="in" placeholder="Es. Pathfinder" value="${esc(M.newName || "")}"></label>` : ""}
-      <div class="stack g6"><span class="t12" style="font-weight:700">Quando si può giocare</span>
-        <button class="radio ${mode === "all" ? "on" : ""}" data-action="ruleMode" data-v="all">${ic(mode === "all" ? "radio_button_checked" : "radio_button_unchecked")}Solo se ci sono tutti i membri</button>
-        <div class="radio ${mode === "min" ? "on" : ""}" data-action="ruleMode" data-v="min">${ic(mode === "min" ? "radio_button_checked" : "radio_button_unchecked")}Basta un minimo di<select id="gMin" data-change="gMin">${["2", "3", "4", "5", "6", "7", "8", "9", "10"].map(n => `<option ${n === min ? "selected" : ""}>${n}</option>`).join("")}</select>membri</div>
-      </div>
+      <label class="lbl">Minimo di giocatori per giocare<select id="gMin" class="in" data-change="gMin">${["2", "3", "4", "5", "6", "7", "8", "9", "10"].map(n => `<option ${n === min ? "selected" : ""}>${n}</option>`).join("")}</select></label>
+      <p class="t12 muted" style="margin-top:-6px">${L("Una serata compare tra quelle possibili quando almeno questo numero di giocatori ha detto SI. L'admin può comunque confermare una serata anche con meno persone.", "A night shows as possible when at least this many players said YES. An admin can still confirm a night with fewer people.")}</p>
       ${errSlot("gErr")}
       ${twoBtns(cancelBtn(), `<button class="btn p" data-action="saveGroup">${g ? "Salva" : "Crea gruppo"}</button>`)}`;
   } else if (M.type === "f3") {
@@ -1781,6 +1794,7 @@ const EN = {
   "Email inviata di nuovo.": "Email sent again.",
   "Non risulta ancora verificata. Apri il link nell'email e riprova.": "Not verified yet. Open the link in the email and try again.",
   "Scrivi un nome.": "Enter a name.",
+  "Minimo di giocatori per giocare": "Minimum players to play",
   "Rifiuta": "Decline",
   "Accetta": "Accept",
   "Username": "Username",
@@ -1830,7 +1844,7 @@ document.addEventListener("change", e => {
   else if (id === "sGroupSel") S.sGroup = v;
   else if (["fGame", "fGroup", "fYear", "fMonth"].includes(id)) S[id] = v;
   else if (id === "gGameSel") { S.gameSel = v; }
-  else if (id === "gMin") { S.modal.min = v; S.modal.mode = "min"; }
+  else if (id === "gMin") { S.modal.min = v; }
   render();
 });
 document.addEventListener("input", e => {
@@ -1843,7 +1857,6 @@ document.addEventListener("click", e => {
   if (!el) return;
   const a = el.dataset.action, d = el.dataset;
   if (el.tagName === "SELECT") return;
-  if (e.target.closest("select") && a === "ruleMode") { if (S.modal.mode !== "min") { S.modal.mode = "min"; render(); } return; }
   const g = S.groupId ? getGroup(S.groupId) : null;
   const me = S.me?.uid;
 
@@ -1904,13 +1917,11 @@ document.addEventListener("click", e => {
     // gruppi
     case "openF2": S.gameSel = ""; S.modal = { type: "f2" }; render(); break;
     case "openF2Edit": S.gameSel = g.game || ""; S.modal = { type: "f2", gid: S.groupId }; render(); break;
-    case "ruleMode": S.modal.mode = d.v; render(); break;
     case "saveGroup": {
       const name = val("gName"), game = S.gameSel === "__new" ? val("gGame") : S.gameSel;
       if (!name || !game) { showErr("gErr", "Scrivi il nome del gruppo e il gioco."); break; }
-      const mode = S.modal.mode || (S.modal.gid && getGroup(S.modal.gid)?.rule === "min" ? "min" : "all");
-      const min = +(document.getElementById("gMin")?.value || 3);
-      const data = { name, game, rule: mode, min }, gid = S.modal.gid;
+      const min = +(document.getElementById("gMin")?.value || 4);
+      const data = { name, game, rule: "min", min }, gid = S.modal.gid;
       if (!(S.me.games || []).includes(game)) run(() => store.setProfile({ games: [...(S.me.games || []), game] }));
       S.modal = null;
       if (gid) run(() => store.updateGroup(gid, data));
@@ -2130,7 +2141,7 @@ document.addEventListener("keydown", e => {
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(e => console.error(e));
   try { store = FIREBASE_CONFIG ? await makeFirebaseStore(FIREBASE_CONFIG) : makeLocalStore(); }
   catch (e) { console.error(e); $("#app").innerHTML = `<div class="auth">${hero()}<div class="card"><p class="sub">Non riesco a collegarmi al server. Controlla la connessione e ricarica la pagina.</p></div></div>`; translateDom($("#app")); return; }
-  store.start(data => { Object.assign(S, data); render(); browserNotify(); });
+  store.start(data => { Object.assign(S, data); render(); browserNotify(); migrateRules(); });
 })();
 </script>
 </body>
