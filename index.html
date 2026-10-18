@@ -741,8 +741,8 @@ function browserNotify() {
   }
 }
 function inviteLink(g) { return `${location.origin}${location.pathname}#join=${g.id}.${g.inviteCode}&n=${encodeURIComponent(g.name)}`; }
-const inviteText = g => L(`Ciao! Ti invito nel gruppo "${g.name}" (${g.game}) su Game Planner, così vediamo insieme quando possiamo giocare. Entra da qui: ${inviteLink(g)}`,
-  `Hi! I'm inviting you to the group "${g.name}" (${g.game}) on Game Planner, so we can see together when we can play. Join here: ${inviteLink(g)}`);
+const inviteText = g => L(`Ciao! Ti invito nel gruppo "${g.name}" (${g.game}) su Game Planner, così vediamo insieme quando possiamo giocare. Entra da qui: ${inviteLink(g)}\n\nSe hai già l'app sulla schermata Home: copia questo link, apri l'app e in Gruppi tocca "Incollalo qui".`,
+  `Hi! I'm inviting you to the group "${g.name}" (${g.game}) on Game Planner, so we can see together when we can play. Join here: ${inviteLink(g)}\n\nIf you already have the app on your Home Screen: copy this link, open the app and in Groups tap "Paste it here".`);
 function sessionTimes(s) {
   const [hh, mm] = (s.time || DEFAULT_TIME).split(":").map(Number);
   const start = parseYmd(s.date); start.setHours(hh, mm, 0, 0);
@@ -1315,6 +1315,7 @@ function renderModal() {
       ${twoBtns(cancelBtn(), `<button class="btn p" data-action="saveGroup">${g ? "Salva" : "Crea gruppo"}</button>`)}`;
   } else if (M.type === "f3") {
     inner = `${titleBlock("Ho un invito", "Incolla qui il link che ti hanno mandato.")}
+      ${navigator.clipboard?.readText ? `<button class="btn" data-action="pasteClip">${ic("content_paste")}Incolla il link copiato</button>` : ""}
       <input id="pasteInput" data-keep class="in" placeholder="https://...#join=...">
       ${errSlot("pErr")}
       ${twoBtns(cancelBtn(), `<button class="btn p" data-action="usePaste">Continua</button>`)}`;
@@ -1679,6 +1680,9 @@ const EN = {
   "Email inviata di nuovo.": "Email sent again.",
   "Non risulta ancora verificata. Apri il link nell'email e riprova.": "Not verified yet. Open the link in the email and try again.",
   "Scrivi un nome.": "Enter a name.",
+  "Incolla il link copiato": "Paste the copied link",
+  "Negli appunti non c'è un link di invito. Copialo dal messaggio e riprova.": "There's no invite link on the clipboard. Copy it from the message and try again.",
+  "Non riesco a leggere gli appunti: tieni premuto nel campo qui sotto e scegli Incolla.": "Can't read the clipboard: press and hold in the field below and choose Paste.",
   "Invito non valido o gruppo non più esistente.": "Invalid invite or the group no longer exists.",
   "Password attuale non corretta.": "Current password is wrong.",
   "Non riesco a verificare la password. Riprova.": "Can't verify the password. Try again.",
@@ -1837,6 +1841,11 @@ document.addEventListener("click", e => {
     // inviti
     case "openF3": S.modal = { type: "f3" }; render(); break;
     case "copyAppLink": copy(shareableUrl()); break;
+    case "pasteClip": navigator.clipboard.readText().then(t => {
+      const inv = parseInvite(t);
+      if (!inv) { showErr("pErr", "Negli appunti non c'è un link di invito. Copialo dal messaggio e riprova."); return; }
+      S.pendingJoin = inv; S.modal = null; render();
+    }).catch(() => showErr("pErr", "Non riesco a leggere gli appunti: tieni premuto nel campo qui sotto e scegli Incolla.")); break;
     case "usePaste": {
       const inv = parseInvite(val("pasteInput"));
       if (!inv) { showErr("pErr", "Questo non sembra un link di invito valido."); break; }
@@ -1974,6 +1983,8 @@ document.addEventListener("keydown", e => {
   if (inv) { try { sessionStorage.setItem("gp-join", JSON.stringify(inv)); } catch (e) {} history.replaceState(null, "", location.pathname); }
   else { try { inv = JSON.parse(sessionStorage.getItem("gp-join") || "null"); } catch (e) {} }
   S.pendingJoin = inv;
+  // Service worker: rende l'app installabile su Android (così i link di invito aprono l'app)
+  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(e => console.error(e));
   try { store = FIREBASE_CONFIG ? await makeFirebaseStore(FIREBASE_CONFIG) : makeLocalStore(); }
   catch (e) { console.error(e); $("#app").innerHTML = `<div class="auth">${hero()}<div class="card"><p class="sub">Non riesco a collegarmi al server. Controlla la connessione e ricarica la pagina.</p></div></div>`; translateDom($("#app")); return; }
   store.start(data => { Object.assign(S, data); render(); browserNotify(); });
