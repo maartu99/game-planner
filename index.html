@@ -326,6 +326,9 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "59521254363",
   appId: "1:59521254363:web:60075d83d26fc8ca2c5dfe",
 };
+// Chiave pubblica per le notifiche push (Firebase > Impostazioni progetto > Cloud Messaging >
+// Certificati push web). Finché è vuota, le notifiche push restano spente.
+const VAPID_KEY = "";
 const DEFAULT_TIME = "21:00";
 const SESSION_HOURS = 3;
 const LAST_YEAR = 2029;
@@ -419,6 +422,8 @@ function makeLocalStore() {
     createUser(name) { const u = "u_" + id(); db.users[u] = { name, email: name.toLowerCase().replace(/\W+/g, "") + "@esempio.it", days: {}, games: [] }; db.current = u; save(); },
     logout() { db.current = null; save(); },
     setName(n) { me().name = n; save(); },
+    async enablePush() { throw new Error("demo"); },
+    async disablePush() {},
     setGameDay(gid, date, v) { const o = ((me().over ||= {})[gid] ||= {}); if (v) o[date] = v; else delete o[date]; save(); },
     setDays(map) { const d = me().days ||= {}; for (const [k, v] of Object.entries(map)) { if (v) d[k] = v; else delete d[k]; } save(); },
     setProfile(p) { Object.assign(me(), p); save(); },
@@ -665,6 +670,26 @@ async function makeFirebaseStore(cfg) {
     async acceptInvitation(inv) { await this.joinGroup(inv.gid, inv.code); await F.deleteDoc(F.doc(db, "invitations", inv.id)); },
     deleteInvitation: inv => F.deleteDoc(F.doc(db, "invitations", inv.id)),
     setDays: map => writeDays(map),
+    // Notifiche push: il token del dispositivo si salva nel profilo; le manda il controllo automatico su GitHub
+    async enablePush() {
+      if (!VAPID_KEY || !("serviceWorker" in navigator)) throw new Error("unsupported");
+      const M = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-messaging.js`);
+      if (!(await M.isSupported())) throw new Error("unsupported");
+      const reg = await navigator.serviceWorker.register("sw.js"); await navigator.serviceWorker.ready;
+      const token = await M.getToken(M.getMessaging(app), { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
+      if (!token) throw new Error("no-token");
+      const old = (() => { try { return localStorage.getItem("gp-push"); } catch (e) { return null; } })();
+      const b = F.writeBatch(db), ref = F.doc(db, "users", uid);
+      if (old && old !== token) b.set(ref, { pushTokens: F.arrayRemove(old) }, { merge: true });
+      b.set(ref, { pushTokens: F.arrayUnion(token), lang: LANG }, { merge: true });
+      await b.commit();
+      try { localStorage.setItem("gp-push", token); } catch (e) {}
+    },
+    async disablePush() {
+      const old = (() => { try { return localStorage.getItem("gp-push"); } catch (e) { return null; } })();
+      if (old) await F.setDoc(F.doc(db, "users", uid), { pushTokens: F.arrayRemove(old) }, { merge: true });
+      try { localStorage.removeItem("gp-push"); } catch (e) {}
+    },
     setGameDay: (gid, date, v) => F.setDoc(F.doc(db, "groups", gid, "availability", uid), { over: { [date]: v || F.deleteField() } }, { merge: true }),
     async setProfile(p) {
       const b = F.writeBatch(db);
@@ -830,9 +855,27 @@ function migrateRules() {
     run(() => store.updateGroup(g.id, { rule: "min", min: Math.max(2, g.members.length) }));
   }
 }
+// Notifiche push su questo dispositivo
+const IS_IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+const STANDALONE = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+const pushToken = () => { try { return localStorage.getItem("gp-push"); } catch (e) { return null; } };
+function pushState() {
+  if (!VAPID_KEY || store?.demo) return "off";
+  if (IS_IOS && !STANDALONE) return "ios-home";
+  if (!("Notification" in window) || !("serviceWorker" in navigator)) return "unsupported";
+  if (Notification.permission === "denied") return "denied";
+  return Notification.permission === "granted" && pushToken() && (S.me?.pushTokens || []).includes(pushToken()) ? "on" : "ask";
+}
+const PUSH_LABEL = () => ({ on: L("Attive", "On"), ask: L("Non attive", "Off"), "ios-home": L("Aggiungi l'app alla schermata Home", "Add the app to your Home Screen"), denied: L("Bloccate nelle impostazioni", "Blocked in settings"), unsupported: L("Non disponibili su questo browser", "Not available in this browser"), off: L("Presto disponibili", "Coming soon") })[pushState()];
+let pushRefreshed = false;
+function refreshPush() {
+  // Il token può cambiare nel tempo: all'apertura si aggiorna in silenzio se le notifiche sono già permesse
+  if (pushRefreshed || !S.me || !VAPID_KEY || store?.demo || !pushToken() || !("Notification" in window) || Notification.permission !== "granted") return;
+  pushRefreshed = true; store.enablePush().catch(e => console.error(e));
+}
 let notifiedInv = null;
 function browserNotify() {
-  if (!S.me) return;
+  if (!S.me || pushState() === "on") return;
   const invKeys = (S.invIn || []).map(i => i.id);
   if (notifiedInv === null) notifiedInv = new Set(invKeys);
   else for (const i of S.invIn || []) if (!notifiedInv.has(i.id)) {
@@ -1067,6 +1110,7 @@ function renderMenu() {
       ${item("accEmail", "mail", "Email", S.me.email || "")}
       ${item("accPwd", "lock", "Password", S.me.provider === "google" ? "Gestita da Google" : "••••••••")}
       ${item("accPhone", "smartphone", "Telefono", S.me.phone || "Non impostato")}
+      ${item("pushMenu", "notifications_active", L("Notifiche", "Notifications"), PUSH_LABEL())}
       ${item("openAvatar", "face", "Avatar", "")}
       <div class="mi" style="cursor:default">${ic("contrast")}<span class="mi-txt"><b>Tema</b></span>
         <div class="toggle2"><button class="${theme === "light" ? "on" : ""}" data-action="theme" data-v="light" aria-label="Chiaro">${ic("light_mode")}</button><button class="${theme === "dark" ? "on" : ""}" data-action="theme" data-v="dark" aria-label="Scuro">${ic("dark_mode")}</button></div></div>
@@ -1290,8 +1334,9 @@ function renderSerate() {
     top = `${groupSel}<button class="btn ind full" data-action="openProp">${ic("campaign", "s22")}Proponi una sessione</button>`;
     list = sorted.length ? sorted.map(x => renderProposal(x)) : [`<div class="card dashed">${L("Nessuna proposta aperta. Proponi una sessione e il gruppo potrà rispondere Sì, Forse o No.", "No open proposals. Propose a session and the group can answer Yes, Maybe or No.")}</div>`];
   } else {
-    const notifAsk = "Notification" in window && Notification.permission === "default";
-    top = groupSel + (notifAsk ? `<div class="lav-card"><p style="font-size:14px;line-height:20px">Vuoi un avviso su questo dispositivo quando un admin conferma una sessione?</p><button class="btn ind sm" style="align-self:flex-start;min-height:40px;box-shadow:none" data-action="enableNotif">Attiva avvisi</button></div>` : "");
+    const ps = pushState();
+    top = groupSel + (ps === "ask" ? `<div class="lav-card"><p style="font-size:14px;line-height:20px">${L("Vuoi le notifiche sul telefono, anche ad app chiusa? Sessioni confermate, proposte, inviti e promemoria del giorno prima.", "Want notifications on your phone, even with the app closed? Confirmed sessions, proposals, invites and day-before reminders.")}</p><button class="btn ind sm" style="align-self:flex-start;min-height:40px;box-shadow:none" data-action="pushMenu">${L("Attiva notifiche", "Turn on notifications")}</button></div>`
+      : ps === "ios-home" ? `<div class="lav-card"><p class="t13">${L("Per ricevere le notifiche su iPhone aggiungi l'app alla schermata Home (Condividi, Aggiungi alla schermata Home) e aprila da lì.", "To get notifications on iPhone add the app to your Home Screen (Share, Add to Home Screen) and open it from there.")}</p></div>` : "");
     list = upcoming.length ? upcoming.map(x => eventCard(x.g, x.sid, x.s)) : [`<div class="card dashed">${L("Nessuna sessione in programma. Quando un admin conferma una sessione, la trovi qui.", "No scheduled sessions. When an admin confirms a session, you'll find it here.")}</div>`];
   }
   return head + `<div class="stack g8 mb16" style="margin-top:12px">
@@ -2131,6 +2176,19 @@ document.addEventListener("click", e => {
     case "cancelSession": ask("Annulli questa sessione per tutti?", "Annulla sessione", () => { S.modal = null; run(async () => { await store.deleteSession(d.g, d.s); toast("Sessione annullata."); }); }); break;
     case "fGameChip": S.fGame = S.fGame === d.game ? "all" : d.game; render(); break;
     case "clearFilters": S.fGame = S.fGroup = S.fYear = S.fMonth = "all"; render(); break;
+    case "pushMenu": {
+      const ps = pushState(); S.menuOpen = false;
+      if (ps === "on") { ask(L("Disattivi le notifiche su questo dispositivo?", "Turn off notifications on this device?"), L("Disattiva", "Turn off"), () => run(async () => { await store.disablePush(); render(); toast(L("Notifiche disattivate.", "Notifications turned off.")); })); break; }
+      if (ps === "ios-home") { toast(L("Su iPhone: Condividi, Aggiungi alla schermata Home, poi apri l'app da lì.", "On iPhone: Share, Add to Home Screen, then open the app from there.")); render(); break; }
+      if (ps === "denied") { toast(L("Le notifiche sono bloccate: riattivale dalle impostazioni del telefono per questo sito.", "Notifications are blocked: allow them in your phone settings for this site.")); render(); break; }
+      if (ps !== "ask") { toast(PUSH_LABEL()); render(); break; }
+      // La richiesta del permesso deve partire subito dal tocco (iPhone lo pretende)
+      Notification.requestPermission().then(p => {
+        if (p !== "granted") { render(); return; }
+        return store.enablePush().then(() => { render(); toast(L("Notifiche attivate su questo dispositivo.", "Notifications turned on for this device.")); });
+      }).catch(e => { console.error(e); render(); toast(L("Non sono riuscito ad attivare le notifiche. Riprova.", "Couldn't turn on notifications. Try again.")); });
+      break;
+    }
     case "enableNotif": Notification.requestPermission().then(p => { render(); if (p === "granted") toast("Avvisi attivati su questo dispositivo."); }); break;
     case "openNotifs": {
       const unread = notifications().filter(n => n.unread).map(n => n.key);
@@ -2189,7 +2247,7 @@ document.addEventListener("keydown", e => {
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(e => console.error(e));
   try { store = FIREBASE_CONFIG ? await makeFirebaseStore(FIREBASE_CONFIG) : makeLocalStore(); }
   catch (e) { console.error(e); $("#app").innerHTML = `<div class="auth">${hero()}<div class="card"><p class="sub">Non riesco a collegarmi al server. Controlla la connessione e ricarica la pagina.</p></div></div>`; translateDom($("#app")); return; }
-  store.start(data => { Object.assign(S, data); render(); browserNotify(); migrateRules(); });
+  store.start(data => { Object.assign(S, data); render(); browserNotify(); migrateRules(); refreshPush(); });
 })();
 </script>
 </body>

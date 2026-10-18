@@ -1,0 +1,22 @@
+name: Notifiche push
+# Ogni 5 minuti (GitHub può ritardare di qualche minuto) controlla le novità e manda le notifiche.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+concurrency:
+  group: notifiche
+  cancel-in-progress: false
+jobs:
+  invia:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci --prefix push --no-audit --no-fund
+      - run: node push/send.mjs
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
