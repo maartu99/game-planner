@@ -180,6 +180,7 @@ h1,h2,h3{margin:0}
 .card.ev.raised{box-shadow:var(--sh2)}
 .card.prop{border:1.5px solid var(--lav-line);padding:14px}
 .card.night{padding:14px;box-shadow:var(--sh1)}
+.dim-card{opacity:.6}
 .card.tap{cursor:pointer;-webkit-tap-highlight-color:transparent}
 .card.tap:active{border-color:var(--mint-line)}
 .card.dashed{border:1px dashed var(--line3);padding:20px;font-size:14px;line-height:20px;color:var(--muted)}
@@ -283,6 +284,7 @@ input[type=date].in::-webkit-calendar-picker-indicator{margin-left:auto}
 .notif{border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:3px;background:var(--soft)}
 .notif.u-ev{background:var(--peach-soft)}
 .notif.u-prop{background:var(--lav-soft)}
+.notif.u-risk{background:var(--peach-soft);border:1.5px solid var(--orange);cursor:pointer}
 .notif b{font-size:14px;line-height:19px}
 .notif .new{color:var(--red-t)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));width:calc(100% - 32px);max-width:448px;z-index:95;background:var(--toast-bg);color:var(--toast-t);border-radius:12px;padding:12px 14px;font-size:13px;font-weight:600;line-height:18px;box-shadow:var(--sh3);animation:gpFade .2s}
@@ -377,7 +379,7 @@ function parseInvite(str) {
 const S = {
   authState: "loading", me: null, groups: {}, demoUsers: [],
   tab: "gruppi", groupId: null, brush: "yes",
-  dMonth: curMonth(), sMonth: curMonth(), sGroup: "all", sFilter: "all", onlyPossible: true,
+  dMonth: curMonth(), sMonth: curMonth(), sGroup: "all", sFilter: "poss", onlyPossible: true,
   fGame: "all", fGroup: "all", fYear: "all", fMonth: "all",
   modal: null, ask: null, menuOpen: false, invIn: [], invOut: [], authErr: "", pendingJoin: null, gameSel: "", gameDrafts: {},
 };
@@ -500,7 +502,7 @@ function makeLocalStore() {
       mk("fan", "Fan Made", "Root", { min: 3 }, ["mattia", "fabiola", "gigi"], ["mattia"], { mattia: 2, gigi: 2, fabiola: 3 });
       mk("torcia", "L'Ultima Torcia", "Pathfinder", { all: true }, ["gigi", "roberto", "gian", "fabiola", "mattia"], ["gigi"], { mattia: 3, gigi: 2, roberto: 3, gian: 2, fabiola: 2 });
       mk("set", "Set Base", "Terraforming Mars", { min: 3 }, ["mattia", "gigi", "iole", "roberto"], ["iole"], { mattia: 1, gigi: 2, iole: 3, roberto: 2 });
-      mk("catan", "Serata Catan", "Catan", { min: 3 }, ["gigi", "iole"], ["gigi"], { gigi: 2, iole: 2 });
+      mk("catan", "Sessione Catan", "Catan", { min: 3 }, ["gigi", "iole"], ["gigi"], { gigi: 2, iole: 2 });
       const past = [
         ["dnd", -7, "21:00", "da Mattia", "mattia", ""], ["set", -21, "20:30", "da Iole", "iole", ""],
         ["torcia", -29, "21:00", "da Gigi, via Roma 12", "gigi", "Fine del primo arco narrativo."], ["fan", -42, "21:00", "da Fabiola", "mattia", ""],
@@ -768,10 +770,19 @@ function allProposals() {
   for (const g of groupList()) for (const [pid, p] of Object.entries(g.proposals || {})) if (p.date >= today) out.push({ g, pid, p });
   return out.sort((a, b) => (a.p.date + (a.p.time || "")).localeCompare(b.p.date + (b.p.time || "")));
 }
+// Risposta a una sessione confermata: il NO del calendario vale anche qui,
+// poi la risposta data alla sessione, poi la disponibilità di quel giorno
 function rsvpOf(g, s, u) {
+  if (baseDay(g, u, s.date) === "no") return "no";
   const r = (s.rsvps || {})[u]; if (r) return r;
-  const a = dayOf(g, u, s.date); return a === "yes" || a === "maybe" ? a : undefined;
+  return dayOf(g, u, s.date) || undefined;
 }
+// Sessione confermata che non arriva più al minimo di giocatori
+const yesCount = (g, s) => g.members.filter(u => rsvpOf(g, s, u) === "yes").length;
+const atRisk = (g, s) => s.date >= todayStr() && yesCount(g, s) < need(g);
+const sessTag = (g, s) => atRisk(g, s) ? `<span class="tag c-peach">${L("A rischio", "At risk")} · ${yesCount(g, s)} ${L("su", "of")} ${g.members.length}</span>` : `<span class="tag c-green">Confermata</span>`;
+// Proposta che non può più raggiungere il minimo: troppi No
+const propImpossible = (g, p) => g.members.length - g.members.filter(u => ansOf(p, u) === "no").length < need(g);
 function busyOn(d, exceptGid) {
   const busy = {};
   for (const x of allSessions()) {
@@ -1019,8 +1030,9 @@ const avatarHtml = (cls = "") => {
 function renderApp() {
   const today = todayStr(), me = S.me.uid;
   const pendingEv = allSessions().filter(x => x.s.date >= today && !rsvpOf(x.g, x.s, me)).length;
+  const riskN = allSessions().filter(x => isAdmin(x.g) && atRisk(x.g, x.s)).length;
   const pendingProp = allProposals().filter(x => !ansOf(x.p, me)).length;
-  const unread = notifications().filter(n => n.unread).length + (S.invIn || []).length;
+  const unread = notifications().filter(n => n.unread).length + (S.invIn || []).length + allSessions().filter(x => isAdmin(x.g) && atRisk(x.g, x.s)).length;
   let body;
   if (S.tab === "gruppi") body = S.groupId ? renderGroup(getGroup(S.groupId)) : renderGroups();
   else if (S.tab === "disp") body = renderDisp();
@@ -1038,7 +1050,7 @@ function renderApp() {
     ${S.menuOpen ? renderMenu() : ""}
     <main class="main">${body}</main>
     <nav class="nav"><div class="nav-in">
-      ${tab("gruppi", "groups", "Gruppi", (S.invIn || []).length)}${tab("disp", "event_available", "Disponibilità")}${tab("serate", "casino", "Serate", pendingProp)}${tab("giocate", "history_edu", "Giocate", pendingEv)}
+      ${tab("gruppi", "groups", "Gruppi", (S.invIn || []).length)}${tab("disp", "event_available", "Calendario")}${tab("serate", "casino", "Sessioni", pendingProp + pendingEv + riskN)}${tab("giocate", "history_edu", "Storico")}
     </div></nav>
   </div>`;
 }
@@ -1093,7 +1105,7 @@ function renderGroups() {
         <span class="t13 muted">${esc(g.game)} · ${ruleText(g)}</span>
         ${incomplete(g) ? `<span class="t12" style="font-weight:700;color:var(--warn-t)">${missingText(g)}</span>` : ""}
         <div class="chips">${byName(g, g.members).map(u => `<span class="chip m">${esc(nameIn(g, u))}</span>`).join("")}</div>
-        ${next ? `<div class="row wrapf" style="width:100%;border-top:1px solid var(--soft3);padding-top:10px;font-size:12px;font-weight:700"><span style="color:var(--primary-d)">${L("Prossima serata", "Next night")}: ${longDate(next.date)}</span></div>` : ""}
+        ${next ? `<div class="row wrapf" style="width:100%;border-top:1px solid var(--soft3);padding-top:10px;font-size:12px;font-weight:700"><span style="color:var(--primary-d)">${L("Prossima sessione", "Next session")}: ${longDate(next.date)}</span></div>` : ""}
       </button>`;
     }).join("")}</div>`;
 }
@@ -1113,7 +1125,7 @@ function renderGroup(g) {
       <span style="font-size:15px;font-weight:600">${esc(g.game)}</span>
       <span class="t13 muted">${ruleText(g)}</span>
       ${incomplete(g) ? `<span class="t13" style="font-weight:700;color:var(--warn-t)">${missingText(g)}</span>` : ""}
-      <div class="info">${ic("shield_person")}<span>${admin ? "Sei admin: inviti, gestisci i giocatori e confermi le serate." : L(`Admin: ${esc(byName(g, adminsOf(g)).map(u => nameIn(g, u)).join(", "))}. Sono loro a confermare le serate.`, `Admins: ${esc(byName(g, adminsOf(g)).map(u => nameIn(g, u)).join(", "))}. They confirm the nights.`)}</span></div>
+      <div class="info">${ic("shield_person")}<span>${admin ? "Sei admin: inviti, gestisci i giocatori e confermi le sessioni." : L(`Admin: ${esc(byName(g, adminsOf(g)).map(u => nameIn(g, u)).join(", "))}. Sono loro a confermare le sessioni.`, `Admins: ${esc(byName(g, adminsOf(g)).map(u => nameIn(g, u)).join(", "))}. They confirm the sessions.`)}</span></div>
     </div>
     <div class="card stack g4">
       <h2 class="h2" style="margin-bottom:6px">${L("Membri", "Members")} (${g.members.length})</h2>
@@ -1138,14 +1150,14 @@ function renderGroup(g) {
       ${openInvites(g) ? `<div class="row between wrapf" style="gap:6px"><span class="t12 muted">${L(openInvites(g) === 1 ? "1 invito non ancora usato" : `${openInvites(g)} inviti non ancora usati`, openInvites(g) === 1 ? "1 unused invite" : `${openInvites(g)} unused invites`)}</span><button class="btn redtxt sm" style="font-size:12px;padding:0 10px" data-action="cancelInvites">Annulla gli inviti</button></div>` : ""}
     </div>` : `<p class="t13 muted" style="padding:0 4px">Per invitare qualcuno chiedi a un admin del gruppo.</p>`}
     <div class="stack g10">
-      <h2 style="margin-top:6px;font-size:18px;font-weight:700">Serate confermate</h2>
+      <h2 style="margin-top:6px;font-size:18px;font-weight:700">Sessioni confermate</h2>
       ${sessions.length ? sessions.map(([sid, s]) => `<div class="card ev stack g12">
-        <div class="row between" style="align-items:flex-start"><div class="stack"><span style="font-size:18px;font-weight:700">${esc(g.game)}</span><span class="t13 muted">${L("Gruppo", "Group")} ${esc(g.name)}</span></div><span class="tag c-green">Confermata</span></div>
+        <div class="row between" style="align-items:flex-start"><div class="stack"><span style="font-size:18px;font-weight:700">${esc(g.game)}</span><span class="t13 muted">${L("Gruppo", "Group")} ${esc(g.name)}</span></div>${sessTag(g, s)}</div>
         <span style="font-size:15px;font-weight:700" class="row" >${ic("calendar_month", "s18")}<span>${longDate(s.date, true)}${L(" alle ", " at ")}${esc(s.time || DEFAULT_TIME)}</span></span>
         ${s.location ? `<span class="t13 muted row" style="margin-top:-6px;gap:6px">${ic("location_on", "s18")}${esc(s.location)}</span>` : ""}
         <span class="t12 muted">${esc(presenceLine(g, s))}</span>
         <div class="stack g6"><span class="t12" style="font-weight:700">La tua risposta <span class="faint">· puoi cambiarla quando vuoi</span></span>${answersSeg(rsvpOf(g, s, me), "rsvp", `data-g="${g.id}" data-s="${sid}"`)}</div>
-      </div>`).join("") : `<p class="sub">Nessuna serata in programma. <a data-action="tab" data-tab="serate">Guarda le Serate possibili.</a></p>`}
+      </div>`).join("") : `<p class="sub">Nessuna sessione in programma. <a data-action="tab" data-tab="serate">Guarda le Sessioni possibili.</a></p>`}
     </div>
     <div class="stack g6" style="margin-top:8px;border-top:1px solid var(--soft3);padding-top:14px">
       <button class="btn m44" data-action="leaveGroup">Esci dal gruppo</button>
@@ -1158,7 +1170,7 @@ function presenceLine(g, s) {
   const mem = byName(g, g.members).map(u => ({ u, v: rsvpOf(g, s, u) }));
   const X = mem.filter(x => x.v === "yes").length, F = mem.filter(x => x.v === "maybe").length, Z = mem.filter(x => x.v === "no").length;
   const wait = mem.filter(x => !x.v);
-  const pres = !wait.length && !Z && !F ? L(`Ci sono tutti: ${X} su ${mem.length}.`, `Everyone's in: ${X} of ${mem.length}.`) : [X ? L(`${X} ci sono`, `${X} in`) : "", F ? L(`${F} forse`, `${F} maybe`) : "", wait.length ? L(`${wait.length} da confermare`, `${wait.length} to confirm`) + ` (${wait.map(x => nameIn(g, x.u)).join(", ")})` : "", Z ? L(`${Z} non vengono`, `${Z} not coming`) : ""].filter(Boolean).join(", ") + ".";
+  const pres = !wait.length && !Z && !F ? L(`Ci sono tutti: ${X} su ${mem.length}.`, `Everyone's in: ${X} of ${mem.length}.`) : [X ? L(`${X} ci sono`, `${X} in`) : "", F ? L(`${F} forse`, `${F} maybe`) : "", wait.length ? L(`${wait.length} da confermare`, `${wait.length} to confirm`) + ` (${wait.map(x => nameIn(g, x.u)).join(", ")})` : "", Z ? L(Z === 1 ? "1 non viene" : `${Z} non vengono`, `${Z} not coming`) : ""].filter(Boolean).join(", ") + ".";
   return L(`Confermata da ${nameIn(g, s.confirmedBy || s.createdBy)}. ${pres}`, `Confirmed by ${nameIn(g, s.confirmedBy || s.createdBy)}. ${pres}`);
 }
 
@@ -1181,8 +1193,8 @@ function renderDisp() {
   const keys = monthKeys(S.dMonth), marked = keys.filter(k => mine[k]).length;
   const brush = (id, label) => `<button class="brush ${S.brush === id ? "on-" + id : ""}" data-action="brush" data-b="${id}">${label}</button>`;
   return `<h1 class="h1">Le mie disponibilità</h1>
-    <p class="sub" style="margin:2px 0 14px">Facoltative: aiutano a trovare le serate possibili. Valgono per tutti i tuoi gruppi.</p>
-    ${hasGroups ? `<button class="btn ind big full mb16" data-action="openProp">${ic("campaign", "s22")}Proponi una serata</button>`
+    <p class="sub" style="margin:2px 0 14px">Facoltative: aiutano a trovare le sessioni possibili. Valgono per tutti i tuoi gruppi.</p>
+    ${hasGroups ? `<button class="btn ind big full mb16" data-action="openProp">${ic("campaign", "s22")}Proponi una sessione</button>`
       : `<div class="peach-box mb12">Ricorda: per vedere quando si gioca devi far parte di almeno un gruppo. <a data-action="tab" data-tab="gruppi" style="color:inherit">Vai su Gruppi.</a></div>`}
     <div class="stack g10 mb12">
       ${monthSel("dMonthSel", S.dMonth, "big")}
@@ -1216,7 +1228,7 @@ function renderRow(e, k, isRec, mine) {
     <div class="chips">${e.st.map(memberChip).join("")}</div>
     ${mine ? mine(e) : ""}
     ${pos ? `${admin ? "" : `<span class="t12 muted">Decide un admin</span>`}
-      ${admin ? `<button class="btn p m44" style="font-size:14px" data-action="openF5" data-g="${e.g.id}" data-date="${k}">Conferma questa serata</button>` : ""}` : ""}
+      ${admin ? `<button class="btn p m44" style="font-size:14px" data-action="openF5" data-g="${e.g.id}" data-date="${k}">Conferma questa sessione</button>` : ""}` : ""}
   </div>`;
 }
 function renderProposal(x, inline) {
@@ -1224,59 +1236,69 @@ function renderProposal(x, inline) {
   const mem = byName(g, g.members).map(u => ({ u, name: nameIn(g, u), v: ansOf(p, u) }));
   const chip = m => m.v === "yes" ? `<span class="chip c-green">${esc(m.name)}</span>` : m.v === "maybe" ? `<span class="chip c-peach">${esc(m.name)} (${L("forse", "maybe")})</span>` : m.v === "no" ? `<span class="chip c-err">${esc(m.name)} · no</span>` : `<span class="chip c-grey">${esc(m.name)} · ${L("in attesa", "waiting")}</span>`;
   const yesN = mem.filter(m => m.v === "yes").length, ok = yesN === mem.length, admin = isAdmin(g);
-  return `<div class="${inline ? "row-g prop-in" : "card prop stack g10"}">
-    <div class="row wrapf" style="gap:6px"><span class="tag c-lav">Proposta</span><span class="t13 muted" style="font-weight:700">${esc(g.name)}</span></div>
+  const impossible = propImpossible(g, p);
+  return `<div class="${inline ? "row-g prop-in" : "card prop stack g10"}${impossible ? " dim-card" : ""}">
+    <div class="row wrapf" style="gap:6px"><span class="tag c-lav">Proposta</span><span class="t13 muted" style="font-weight:700">${esc(g.name)}</span>${impossible ? `<span class="tag c-grey">${L("Non si può fare: troppi No", "Not possible: too many No")}</span>` : ""}</div>
     ${inline ? `<span class="t13 muted" style="margin-top:-4px">${esc(g.game)}${p.time ? L(" · ore ", " · at ") + esc(p.time) : ""}${p.place ? " · " + esc(p.place) : ""}</span>`
       : `<div class="stack" style="gap:2px"><span style="font-size:17px;font-weight:700">${longDate(p.date)}${p.time ? L(" alle ", " at ") + esc(p.time) : ""}</span><span class="t13 muted">${esc(g.game)}${p.place ? " · " + esc(p.place) : ""}</span></div>`}
     ${p.desc ? `<p class="t13" style="background:var(--bg);border-radius:8px;padding:8px 10px">${esc(p.desc)}</p>` : ""}
     <span class="t12 muted">${L("Proposta da", "Proposed by")} ${esc(nameIn(g, p.by))}.</span>
     <div class="chips">${mem.map(chip).join("")}</div>
     <div class="stack g6"><span class="t12" style="font-weight:700">La tua risposta</span>${answersSeg(myV, "propAnswer", `data-g="${g.id}" data-pid="${x.pid}"`, ["Sì", "Forse", "No"])}</div>
-    ${admin ? `<div class="stack g4"><button class="btn p m44" style="font-size:14px" data-action="openF5" data-g="${g.id}" data-date="${p.date}" data-pid="${x.pid}">Conferma la serata</button>${ok ? "" : `<span class="t12 muted" style="text-align:center">${L("Hanno detto Sì", "Said Yes")}: ${yesN} ${L("su", "of")} ${mem.length}. ${L("Manca", "Missing")}: ${esc(mem.filter(m => m.v !== "yes").map(m => m.name).join(", "))}.</span>`}</div>` : ""}
+    ${admin ? `<div class="stack g4"><button class="btn p m44" style="font-size:14px" data-action="openF5" data-g="${g.id}" data-date="${p.date}" data-pid="${x.pid}">Conferma la sessione</button>${ok ? "" : `<span class="t12 muted" style="text-align:center">${L("Hanno detto Sì", "Said Yes")}: ${yesN} ${L("su", "of")} ${mem.length}. ${L("Manca", "Missing")}: ${esc(mem.filter(m => m.v !== "yes").map(m => m.name).join(", "))}.</span>`}</div>` : ""}
     ${p.by === me || admin ? `<button class="btn redtxt sm" style="min-height:40px" data-action="withdrawProp" data-g="${g.id}" data-pid="${x.pid}">Ritira la proposta</button>` : ""}
   </div>`;
 }
 function renderSerate() {
   const groups = groupList();
-  const head = `<h1 class="h1">Serate</h1><p class="sub" style="margin:2px 0 16px">Incrocia le disponibilità di tutti i membri dei tuoi gruppi, sera per sera.</p>`;
-  if (!groups.length) return head + `<div class="card dashed">Qui vedrai in quali serate si può giocare e con quale gruppo. Prima crea o entra in un gruppo. <a data-action="tab" data-tab="gruppi">Vai su Gruppi</a></div>`;
+  const head = `<h1 class="h1">Sessioni</h1>`;
+  if (!groups.length) return head + `<div class="card dashed" style="margin-top:14px">Qui vedrai in quali sessioni si può giocare e con quale gruppo. Prima crea o entra in un gruppo. <a data-action="tab" data-tab="gruppi">Vai su Gruppi</a></div>`;
+  if (!["poss", "prop", "prog"].includes(S.sFilter)) S.sFilter = "poss";
   const opts = monthOptions();
   if (!opts.includes(S.sMonth)) S.sMonth = opts[0];
   if (S.sGroup !== "all" && !S.groups[S.sGroup]) S.sGroup = "all";
-  const sF = S.sFilter, keys = monthKeys(S.sMonth), me = S.me.uid;
-  const props = allProposals();
-  const propPending = props.filter(x => !ansOf(x.p, me)).length;
-  const propsIn = props.filter(x => keys.includes(x.p.date) && (S.sGroup === "all" || x.g.id === S.sGroup));
-  // Una proposta a cui hai già risposto non resta da sola: entra nella card della sua serata
-  const answered = x => !!ansOf(x.p, me);
-  const propsShown = sF === "conf" ? [] : sF === "prop" ? propsIn : propsIn.filter(x => !answered(x));
-  const inNight = k => sF === "all" ? propsIn.filter(x => x.p.date === k && answered(x)) : [];
-  const nights = sF === "prop" ? [] : keys.map(k => night(k, S.sGroup)).filter(n => sF === "conf" ? n.confirmed.length : (n.possible.length || n.confirmed.length || inNight(n.k).length || !S.onlyPossible));
-  const feed = [
-    ...propsShown.map(x => ({ date: x.p.date, prop: 1, html: renderProposal(x) })),
-    ...nights.map(n => {
-      const nProps = inNight(n.k), propG = nProps.map(x => x.g.id);
-      const b = n.confirmed.length ? ["Confermata", "c-green"] : n.possible.some(e => e.status === "ok") ? ["Si può giocare", "c-mint"] : n.possible.length ? ["Dipende dai forse", "c-peach"] : nProps.length ? ["Proposta", "c-lav"] : ["Nessun gruppo", "c-grey"];
-      const rows = (S.onlyPossible || sF === "conf" ? n.possible : n.evals).filter(e => !propG.includes(e.g.id));
-      const first = n.confirmed[0];
-      return { date: n.k, prop: 0, html: `<div class="card night tap stack g10" data-action="openF4" data-date="${n.k}">
-        <div class="row"><div class="grow stack" style="min-width:0"><h2 style="font-size:17px;line-height:22px;font-weight:700">${dayMonth(n.k)}</h2><span class="t13 muted" style="font-weight:600">${DOWS()[parseYmd(n.k).getDay()]}</span></div><span class="tag ${b[1]}">${b[0]}</span>
-</div>
-        ${n.confirmed.map(x => `<button class="conf-item" data-action="openEv" data-g="${x.g.id}" data-s="${x.sid}">${ic("event_available")}<span class="grow">${L(`Si gioca ${esc(x.g.game)} con ${esc(x.g.name)} alle`, `${esc(x.g.game)} with ${esc(x.g.name)} at`)} ${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " · " + esc(x.s.location) : ""}</span>${ic("chevron_right")}</button>`).join("")}
-        ${nProps.map(x => renderProposal(x, true)).join("")}
-        ${rows.map(e => renderRow(e, n.k, e === n.rec)).join("")}
-      </div>` };
-    }),
-  ].sort((a, b) => a.date.localeCompare(b.date) || b.prop - a.prop);
-  const ml = monthLabel(S.sMonth);
-  const empty = sF === "prop" ? L(`Nessuna proposta in ${ml}. Puoi proporre una serata da Disponibilità.`, `No proposals in ${ml}. You can propose a night from Availability.`) : sF === "conf" ? L(`Nessuna serata confermata in ${ml}.`, `No confirmed nights in ${ml}.`) : L(`Nessuna serata possibile in ${ml}. Servono le disponibilità di tutti: controlla in ogni gruppo chi non ha ancora segnato i suoi giorni, oppure prova un altro mese.`, `No possible nights in ${ml}. Everyone's availability is needed: check in each group who hasn't marked their days yet, or try another month.`);
+  const sF = S.sFilter, me = S.me.uid, today = todayStr(), inG = g => S.sGroup === "all" || g.id === S.sGroup;
+  const props = allProposals().filter(x => inG(x.g));
+  const propPending = props.filter(x => !ansOf(x.p, me) && !propImpossible(x.g, x.p)).length;
+  const upcoming = allSessions().filter(x => x.s.date >= today && inG(x.g));
+  const progPending = upcoming.filter(x => !rsvpOf(x.g, x.s, me) || (isAdmin(x.g) && atRisk(x.g, x.s))).length;
   const tabB = (v, label, badge) => `<button class="${sF === v ? "on" : ""}" data-action="sFilter" data-v="${v}">${label}${badge ? `<span class="cnt">${badge}</span>` : ""}</button>`;
-  return head + `<div class="stack g8 mb16">
-      <div class="grid2">${monthSel("sMonthSel", S.sMonth, "")}<select id="sGroupSel" class="sel" data-change="sGroupSel"><option value="all">Tutti i miei gruppi</option>${groups.map(g => `<option value="${g.id}" ${S.sGroup === g.id ? "selected" : ""}>${esc(g.name)}</option>`).join("")}</select></div>
-      <div class="seg c3 h40">${tabB("all", "Tutte")}${tabB("prop", "Proposte", propPending)}${tabB("conf", "Confermate")}</div>
-      ${sF === "all" ? `<button class="toggle" data-action="toggleOnly">Solo le serate possibili<span class="sw ${S.onlyPossible ? "on" : ""}"><i></i></span></button>` : ""}
+  const groupSel = `<select id="sGroupSel" class="sel" data-change="sGroupSel"><option value="all">Tutti i miei gruppi</option>${groups.map(g => `<option value="${g.id}" ${S.sGroup === g.id ? "selected" : ""}>${esc(g.name)}</option>`).join("")}</select>`;
+  let top, list;
+  if (sF === "poss") {
+    const keys = monthKeys(S.sMonth);
+    const openProp = (g, k) => props.find(x => x.g.id === g.id && x.p.date === k);
+    const nights = keys.map(k => night(k, S.sGroup)).map(n => ({ ...n, props: props.filter(x => x.p.date === n.k) }))
+      .filter(n => n.possible.length || n.confirmed.length || n.props.length || !S.onlyPossible);
+    list = nights.map(n => {
+      const rows = (S.onlyPossible ? n.possible : n.evals).filter(e => !openProp(e.g, n.k));
+      const b = n.possible.some(e => e.status === "ok") ? ["Si può giocare", "c-mint"] : n.possible.length ? ["Dipende dai forse", "c-peach"] : n.confirmed.length ? ["Confermata", "c-green"] : n.props.length ? ["Proposta", "c-lav"] : ["Nessun gruppo", "c-grey"];
+      return `<div class="card night tap stack g10" data-action="openF4" data-date="${n.k}">
+        <div class="row"><div class="grow stack" style="min-width:0"><h2 style="font-size:17px;line-height:22px;font-weight:700">${dayMonth(n.k)}</h2><span class="t13 muted" style="font-weight:600">${DOWS()[parseYmd(n.k).getDay()]}</span></div><span class="tag ${b[1]}">${b[0]}</span></div>
+        ${n.confirmed.map(x => `<button class="conf-item" data-action="openEv" data-g="${x.g.id}" data-s="${x.sid}">${ic("event_available")}<span class="grow">${L("In programma", "Scheduled")}: ${esc(x.g.game)} ${L("con", "with")} ${esc(x.g.name)}${L(" alle ", " at ")}${esc(x.s.time || DEFAULT_TIME)}</span>${ic("chevron_right")}</button>`).join("")}
+        ${n.props.map(x => `<button class="conf-item prop-link" data-action="sFilter" data-v="prop">${ic("campaign")}<span class="grow">${L("Proposta aperta", "Open proposal")}: ${esc(x.g.game)} ${L("con", "with")} ${esc(x.g.name)}</span>${ic("chevron_right")}</button>`).join("")}
+        ${rows.map(e => renderRow(e, n.k, false)).join("")}
+      </div>`;
+    });
+    top = `<div class="grid2">${monthSel("sMonthSel", S.sMonth, "")}${groupSel}</div>
+      <button class="toggle" data-action="toggleOnly">Solo le sessioni possibili<span class="sw ${S.onlyPossible ? "on" : ""}"><i></i></span></button>`;
+    if (!list.length) list = [`<div class="card dashed">${L(`Nessuna sessione possibile in ${monthLabel(S.sMonth)}. Servono le disponibilità di tutti: controlla in ogni gruppo chi non ha ancora segnato i suoi giorni, oppure prova un altro mese.`, `No possible sessions in ${monthLabel(S.sMonth)}. Everyone's availability is needed: check in each group who hasn't marked their days yet, or try another month.`)}</div>`];
+  } else if (sF === "prop") {
+    // prima quelle a cui devi rispondere, poi quelle aperte, in fondo quelle che non si possono fare
+    const rank = x => propImpossible(x.g, x.p) ? 2 : ansOf(x.p, me) ? 1 : 0;
+    const sorted = [...props].sort((a, b) => rank(a) - rank(b) || (a.p.date + (a.p.time || "")).localeCompare(b.p.date + (b.p.time || "")));
+    top = `${groupSel}<button class="btn ind full" data-action="openProp">${ic("campaign", "s22")}Proponi una sessione</button>`;
+    list = sorted.length ? sorted.map(x => renderProposal(x)) : [`<div class="card dashed">${L("Nessuna proposta aperta. Proponi una sessione e il gruppo potrà rispondere Sì, Forse o No.", "No open proposals. Propose a session and the group can answer Yes, Maybe or No.")}</div>`];
+  } else {
+    const notifAsk = "Notification" in window && Notification.permission === "default";
+    top = groupSel + (notifAsk ? `<div class="lav-card"><p style="font-size:14px;line-height:20px">Vuoi un avviso su questo dispositivo quando un admin conferma una sessione?</p><button class="btn ind sm" style="align-self:flex-start;min-height:40px;box-shadow:none" data-action="enableNotif">Attiva avvisi</button></div>` : "");
+    list = upcoming.length ? upcoming.map(x => eventCard(x.g, x.sid, x.s)) : [`<div class="card dashed">${L("Nessuna sessione in programma. Quando un admin conferma una sessione, la trovi qui.", "No scheduled sessions. When an admin confirms a session, you'll find it here.")}</div>`];
+  }
+  return head + `<div class="stack g8 mb16" style="margin-top:12px">
+      <div class="seg c3 h40">${tabB("poss", "Possibili")}${tabB("prop", "Proposte", propPending)}${tabB("prog", "In programma", progPending)}</div>
+      ${top}
     </div>
-    ${feed.length ? `<div class="stack g12">${feed.map(f => f.html).join("")}</div>` : `<div class="card dashed">${empty}</div>`}`;
+    <div class="stack g12">${list.join("")}</div>`;
 }
 
 // ----- GIOCATE -----
@@ -1285,8 +1307,9 @@ function eventCard(g, sid, s) {
   const chips = byName(g, g.members).map(u => { const v = rsvpOf(g, s, u), n = esc(nameIn(g, u));
     return v === "yes" ? `<span class="chip p c-mint">${n}</span>` : v === "maybe" ? `<span class="chip p c-peach">${n} · ${L("forse", "maybe")}</span>` : v === "no" ? `<span class="chip p c-err">${n} · ${L("non viene", "not coming")}</span>` : `<span class="chip p c-grey">${n} · ${L("in attesa", "waiting")}</span>`; }).join("");
   return `<div class="card ev raised stack g12">
-    <div class="row between" style="align-items:flex-start"><div class="stack"><span style="font-size:18px;font-weight:700">${esc(g.game)}</span><span class="t13 muted">${L("Gruppo", "Group")} ${esc(g.name)}</span></div><span class="tag c-green">Confermata</span></div>
+    <div class="row between" style="align-items:flex-start"><div class="stack"><span style="font-size:18px;font-weight:700">${esc(g.game)}</span><span class="t13 muted">${L("Gruppo", "Group")} ${esc(g.name)}</span></div>${sessTag(g, s)}</div>
     <span class="t12 muted">${esc(presenceLine(g, s))}</span>
+    ${atRisk(g, s) && admin ? `<span class="t12" style="font-weight:700;color:var(--warn-t)">${L(`Sotto il minimo di ${need(g)} giocatori: decidi se tenerla, spostarla o revocarla.`, `Below the minimum of ${need(g)} players: decide whether to keep, move or revoke it.`)}</span>` : ""}
     <div class="box"><span class="when">${ic("calendar_month")}${longDate(s.date, true)}${L(" alle ", " at ")}${esc(s.time || DEFAULT_TIME)}</span>
       ${s.location ? `<span class="meta">${ic("location_on")}${esc(s.location)}</span>` : ""}
       ${s.notes ? `<span class="meta">${ic("sticky_note_2")}${esc(s.notes)}</span>` : ""}</div>
@@ -1294,7 +1317,7 @@ function eventCard(g, sid, s) {
     <div class="stack g6"><span class="t12" style="font-weight:700">La tua risposta <span class="faint">· puoi cambiarla quando vuoi</span></span>${answersSeg(mine, "rsvp", `data-g="${g.id}" data-s="${sid}"`)}</div>
     <div class="grid2" style="gap:6px"><button class="btn m44" style="font-size:12px" data-action="ics" data-g="${g.id}" data-s="${sid}">Aggiungi al calendario</button><a class="btn m44" style="font-size:12px" href="${esc(gcalLink(g, s))}" target="_blank" rel="noopener">Google Calendar</a></div>
     ${admin ? `<div class="row" style="gap:6px;border-top:1px solid var(--soft);padding-top:10px"><button class="btn brass m44 grow" data-action="openF6" data-g="${g.id}" data-s="${sid}">Avvisa tutti</button></div>
-      <div class="grid2" style="gap:6px"><button class="btn m44" data-action="revoke" data-g="${g.id}" data-s="${sid}">${ic("undo")}Revoca conferma</button><button class="btn rose m44" data-action="cancelSession" data-g="${g.id}" data-s="${sid}">Annulla serata</button></div>` : ""}
+      <div class="grid2" style="gap:6px"><button class="btn m44" data-action="revoke" data-g="${g.id}" data-s="${sid}">${ic("undo")}Revoca conferma</button><button class="btn rose m44" data-action="cancelSession" data-g="${g.id}" data-s="${sid}">Annulla sessione</button></div>` : ""}
   </div>`;
 }
 function renderGiocate() {
@@ -1314,10 +1337,9 @@ function renderGiocate() {
   const hasF = [S.fGame, S.fGroup, S.fYear, S.fMonth].some(v => v !== "all");
   const secs = []; filtered.forEach(x => { const lab = monthLabel(x.s.date.slice(0, 7)); let sc = secs.find(z => z.label === lab); if (!sc) secs.push(sc = { label: lab, items: [] }); sc.items.push(x); });
   const N = filtered.length;
-  const notifAsk = "Notification" in window && Notification.permission === "default";
   const sel = (id, label, opts) => `<select id="${id}" class="sel small" data-change="${id}" aria-label="${label}">${opts.map(([v, l]) => `<option value="${esc(v)}" ${S[id] === v ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
   const pd = topFirst && parseYmd(topFirst);
-  return `<h1 class="h1 mb16">Le mie giocate</h1>
+  return `<h1 class="h1 mb16">Storico</h1>
     <div class="card stack g12 mb16">
       <h2 class="h2">Riepilogo</h2>
       <p style="font-size:14px;line-height:20px">${nx ? L(`Prossima giocata: ${longDate(nx.s.date)} alle ${esc(nx.s.time || DEFAULT_TIME)}, ${esc(nx.g.game)} con ${esc(nx.g.name)}.`, `Next game: ${longDate(nx.s.date)} at ${esc(nx.s.time || DEFAULT_TIME)}, ${esc(nx.g.game)} with ${esc(nx.g.name)}.`) : "Nessuna giocata in programma."}</p>
@@ -1325,10 +1347,7 @@ function renderGiocate() {
       ${ranked.length ? `<div class="chips" style="gap:6px">${ranked.map(([gm, c]) => `<button class="gchip ${S.fGame === gm ? "on" : ""}" data-action="fGameChip" data-game="${esc(gm)}">${esc(gm)}: ${c}</button>`).join("")}</div>` : ""}
       ${top ? `<p class="t13 muted">${L(`Il gioco a cui hai giocato di più è ${esc(top)}; la prima giocata registrata è del ${pd.getDate()} ${MONTHS()[pd.getMonth()]} ${pd.getFullYear()}.`, `Your most played game is ${esc(top)}; the first recorded play was on ${pd.getDate()} ${MONTHS()[pd.getMonth()]} ${pd.getFullYear()}.`)}</p>` : ""}
     </div>
-    ${notifAsk ? `<div class="lav-card mb16"><p style="font-size:14px;line-height:20px">Vuoi un avviso su questo dispositivo quando un admin conferma una serata?</p><button class="btn ind sm" style="align-self:flex-start;min-height:40px;box-shadow:none" data-action="enableNotif">Attiva avvisi</button></div>` : ""}
-    <h2 class="h2b mb10">In programma</h2>
-    ${upcoming.length ? `<div class="stack g14 mb24">${upcoming.map(x => eventCard(x.g, x.sid, x.s)).join("")}</div>` : `<p class="sub" style="margin-bottom:20px">Nessuna serata confermata. <a data-action="tab" data-tab="serate">Guarda le Serate possibili.</a></p>`}
-    <h2 class="h2b mb10">Storico delle giocate</h2>
+    <h2 class="h2b mb10">Sessioni giocate</h2>
     ${hist.length ? `
       <div class="grid2 mb10">
         ${sel("fGame", "Gioco", [["all", "Tutti i giochi"], ...Object.keys(counts).sort(byNameStr).map(g => [g, g])])}
@@ -1345,7 +1364,7 @@ function renderGiocate() {
             <span class="t12 muted">${L("Con", "With")}: ${esc(others.length ? others.join(", ") : L("nessun altro", "nobody else"))}</span>
             ${x.s.notes ? `<span class="t12 muted" style="font-style:italic">${esc(x.s.notes)}</span>` : ""}</div>`; }).join("")}
       </div>`).join("")}</div>` : `<p class="sub">Nessuna giocata con questi filtri.</p>`}`
-      : `<p class="sub">Le serate giocate compariranno qui, con data, gioco, gruppo e chi c'era.</p>`}`;
+      : `<p class="sub">Le sessioni giocate compariranno qui, con data, gioco, gruppo e chi c'era.</p>`}`;
 }
 
 // ----- FINESTRE -----
@@ -1362,12 +1381,13 @@ function renderModal() {
     return `<div class="scrim" data-action="closeModal"></div><div class="dialog stack g12">
       <h3 style="font-size:20px;font-weight:700">Avvisi</h3>
       ${(S.invIn || []).map(invCard).join("")}
+      ${allSessions().filter(x => isAdmin(x.g) && atRisk(x.g, x.s)).map(x => `<button class="notif u-risk" data-action="openEv" data-g="${x.g.id}" data-s="${x.sid}" style="text-align:left;width:100%;font:inherit;color:inherit"><b>${L("A rischio", "At risk")}: ${esc(x.g.game)} · ${longDate(x.s.date)}</b><span class="t13 muted">${L(`Ci sono ${yesCount(x.g, x.s)} su ${x.g.members.length}, il minimo è ${need(x.g)}. Decidi se tenerla, spostarla o revocarla.`, `${yesCount(x.g, x.s)} of ${x.g.members.length} are in, the minimum is ${need(x.g)}. Decide whether to keep, move or revoke it.`)}</span></button>`).join("")}
       ${list.length || (S.invIn || []).length ? list.map(n => { const un = (M.unread || []).includes(n.key), d = n.kind === "ev" ? n.s : n.p, at = d.time ? `${L(" alle ", " at ")}${esc(d.time)}` : "";
         return n.kind === "prop"
-          ? `<div class="notif ${un ? "u-prop" : ""}"><b>${un ? `<span class="new">Nuova: </span>` : ""}${L("Proposta", "Proposal")}: ${esc(n.g.game)} · ${longDate(d.date)}${at}</b><span class="t13 muted">${L(`${esc(nameIn(n.g, d.by))} propone una serata al gruppo ${esc(n.g.name)}${d.place ? ", " + esc(d.place) : ""}. Rispondi in Serate.`, `${esc(nameIn(n.g, d.by))} proposes a night to the group ${esc(n.g.name)}${d.place ? ", " + esc(d.place) : ""}. Answer in Nights.`)}</span></div>`
-          : `<div class="notif ${un ? "u-ev" : ""}"><b>${un ? `<span class="new">Nuova: </span>` : ""}${esc(n.g.game)} · ${longDate(d.date)}${at}</b><span class="t13 muted">${L(`${esc(nameIn(n.g, d.confirmedBy))} ha confermato la serata del gruppo ${esc(n.g.name)}${d.location ? ", " + esc(d.location) : ""}.`, `${esc(nameIn(n.g, d.confirmedBy))} confirmed the night for the group ${esc(n.g.name)}${d.location ? ", " + esc(d.location) : ""}.`)}</span></div>`; }).join("")
-        : `<p class="sub">Nessun avviso. Quando un admin conferma una serata di un tuo gruppo, la trovi qui.</p>`}
-      ${twoBtns(cancelBtn("Chiudi"), `<button class="btn p" data-action="tab" data-tab="giocate">Vai alle giocate</button>`)}
+          ? `<div class="notif ${un ? "u-prop" : ""}"><b>${un ? `<span class="new">Nuova: </span>` : ""}${L("Proposta", "Proposal")}: ${esc(n.g.game)} · ${longDate(d.date)}${at}</b><span class="t13 muted">${L(`${esc(nameIn(n.g, d.by))} propone una sessione al gruppo ${esc(n.g.name)}${d.place ? ", " + esc(d.place) : ""}. Rispondi in Sessioni.`, `${esc(nameIn(n.g, d.by))} proposes a session to the group ${esc(n.g.name)}${d.place ? ", " + esc(d.place) : ""}. Answer in Sessions.`)}</span></div>`
+          : `<div class="notif ${un ? "u-ev" : ""}"><b>${un ? `<span class="new">Nuova: </span>` : ""}${esc(n.g.game)} · ${longDate(d.date)}${at}</b><span class="t13 muted">${L(`${esc(nameIn(n.g, d.confirmedBy))} ha confermato la sessione del gruppo ${esc(n.g.name)}${d.location ? ", " + esc(d.location) : ""}.`, `${esc(nameIn(n.g, d.confirmedBy))} confirmed the session for the group ${esc(n.g.name)}${d.location ? ", " + esc(d.location) : ""}.`)}</span></div>`; }).join("")
+        : `<p class="sub">Nessun avviso. Quando un admin conferma una sessione di un tuo gruppo, la trovi qui.</p>`}
+      ${twoBtns(cancelBtn("Chiudi"), `<button class="btn p" data-action="goProg">${L("Vai alle sessioni", "Go to sessions")}</button>`)}
     </div>`;
   }
   let inner = "";
@@ -1406,7 +1426,7 @@ function renderModal() {
       <button class="btn p" data-action="backToF2">Fatto</button>`;
   } else if (M.type === "prop") {
     const groups = groupList(), d = M.draft || {};
-    inner = `${titleBlock("Proponi una serata", "Il gruppo riceve la proposta e ognuno risponde Sì, Forse o No.")}
+    inner = `${titleBlock("Proponi una sessione", "Il gruppo riceve la proposta e ognuno risponde Sì, Forse o No.")}
       <label class="lbl">Gruppo<select id="pGroup" data-keep class="in" style="font-weight:600"><option value="">Scegli un gruppo</option>${groups.map(g => `<option value="${g.id}" ${g.id === (d.gid || "") ? "selected" : ""}>${esc(g.name)} · ${esc(g.game)}</option>`).join("")}</select></label>
       <label class="lbl">Giorno<input id="pDate" data-keep class="in" type="date" min="${todayStr()}" max="${LAST_DAY}"></label>
       <label class="lbl"><span>Ora <span class="faint">(facoltativa)</span></span><input id="pTime" data-keep class="in" type="time"></label>
@@ -1418,13 +1438,13 @@ function renderModal() {
     const g = getGroup(M.gid), s = g?.sessions?.[M.sid];
     if (!s) { S.modal = null; return ""; }
     const ST = { yes: ["Ci sono", "c-mint"], maybe: ["Forse", "c-peach"], no: ["Non viene", "c-err"] };
-    inner = `<div class="row between" style="align-items:flex-start"><div class="stack"><h3>${esc(g.game)}</h3><span class="t13 muted">${L("Gruppo", "Group")} ${esc(g.name)}</span></div><span class="tag c-green">Confermata</span></div>
+    inner = `<div class="row between" style="align-items:flex-start"><div class="stack"><h3>${esc(g.game)}</h3><span class="t13 muted">${L("Gruppo", "Group")} ${esc(g.name)}</span></div>${sessTag(g, s)}</div>
       <div class="box"><span class="when">${ic("calendar_month")}${longDate(s.date, true)}${L(" alle ", " at ")}${esc(s.time || DEFAULT_TIME)}</span>
         ${s.location ? `<span class="meta">${ic("location_on")}${esc(s.location)}</span>` : ""}${s.notes ? `<span class="meta">${ic("sticky_note_2")}${esc(s.notes)}</span>` : ""}</div>
       <div class="stack"><span class="caps" style="margin-bottom:4px">PERSONE</span>
         ${byName(g, g.members).map(u => { const t = ST[rsvpOf(g, s, u)] || ["In attesa", "c-grey"]; return `<div class="people-row"><span style="font-size:14px;font-weight:600">${esc(nameIn(g, u))}${u === me ? L(" (tu)", " (you)") : ""}</span><span class="tag ${t[1]}" style="font-size:12px;font-weight:700;padding:3px 10px">${t[0]}</span></div>`; }).join("")}</div>
       <div class="stack g6"><span class="t12" style="font-weight:700">La tua risposta <span class="faint">· puoi cambiarla quando vuoi</span></span>${answersSeg(rsvpOf(g, s, me), "rsvp", `data-g="${g.id}" data-s="${M.sid}"`)}</div>
-      ${isAdmin(g) ? `<div class="grid2" style="gap:6px"><button class="btn m44" data-action="revoke" data-g="${g.id}" data-s="${M.sid}">Revoca conferma</button><button class="btn rose m44" data-action="cancelSession" data-g="${g.id}" data-s="${M.sid}">Annulla serata</button></div>` : ""}
+      ${isAdmin(g) ? `<div class="grid2" style="gap:6px"><button class="btn m44" data-action="revoke" data-g="${g.id}" data-s="${M.sid}">Revoca conferma</button><button class="btn rose m44" data-action="cancelSession" data-g="${g.id}" data-s="${M.sid}">Annulla sessione</button></div>` : ""}
       <button class="btn p" data-action="closeModal">Chiudi</button>`;
   } else if (M.type === "f2") {
     const g = M.gid ? getGroup(M.gid) : null, games = myGames();
@@ -1436,7 +1456,7 @@ function renderModal() {
         <select id="gGameSel" class="in" data-change="gGameSel"><option value="">Scegli un gioco</option>${games.map(x => `<option value="${esc(x)}" ${gameSel === x ? "selected" : ""}>${esc(x)}</option>`).join("")}<option value="__new" ${gameSel === "__new" ? "selected" : ""}>+ Aggiungi nuovo</option></select></div>
       ${gameSel === "__new" ? `<label class="lbl">Nome del nuovo gioco<input id="gGame" data-keep class="in" placeholder="Es. Pathfinder" value="${esc(M.newName || "")}"></label>` : ""}
       <label class="lbl">Minimo di giocatori per giocare<select id="gMin" class="in" data-change="gMin">${["2", "3", "4", "5", "6", "7", "8", "9", "10"].map(n => `<option ${n === min ? "selected" : ""}>${n}</option>`).join("")}</select></label>
-      <p class="t12 muted" style="margin-top:-6px">${L("Una serata compare tra quelle possibili quando almeno questo numero di giocatori ha detto SI. L'admin può comunque confermare una serata anche con meno persone.", "A night shows as possible when at least this many players said YES. An admin can still confirm a night with fewer people.")}</p>
+      <p class="t12 muted" style="margin-top:-6px">${L("Una sessione compare tra quelle possibili quando almeno questo numero di giocatori ha detto SI. L'admin può comunque confermare una sessione anche con meno persone.", "A session shows as possible when at least this many players said YES. An admin can still confirm a session with fewer people.")}</p>
       ${errSlot("gErr")}
       ${twoBtns(cancelBtn(), `<button class="btn p" data-action="saveGroup">${g ? "Salva" : "Crea gruppo"}</button>`)}`;
   } else if (M.type === "f3") {
@@ -1450,15 +1470,15 @@ function renderModal() {
     const myGameSeg = myV === "no" || !S.me.uid ? null : e => e.g.members.includes(S.me.uid) && !e.st.find(x => x.u === S.me.uid && x.v === "busy") ? `<div class="stack g4"><span class="t12" style="font-weight:700">${L("Tu per", "You for")} ${esc(e.g.game)}</span>${answersSeg(dayOf(e.g, S.me.uid, M.date), "setGameDay", `data-g="${e.g.id}" data-date="${M.date}"`, ["Sì", "Forse", "No"])}</div>` : "";
     inner = `<h3>${longDate(M.date, true)}</h3>
       ${n.confirmed.length ? `<div class="stack g6"><span class="caps">CONFERMATE</span>${n.confirmed.map(x => `<button class="conf-item" data-action="openEv" data-g="${x.g.id}" data-s="${x.sid}">${esc(x.g.game)} ${L("con", "with")} ${esc(x.g.name)}${L(" alle ", " at ")}${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " · " + esc(x.s.location) : ""}</button>`).join("")}</div>` : ""}
-      <div class="stack g8"><span class="caps">GIOCHI POSSIBILI QUESTA SERA</span>
-        <p class="t13 muted">${n.possible.length >= 2 ? "Più giochi sono possibili: l'admin sceglie a cosa giocare." : n.possible.length === 1 ? "C'è un gioco possibile." : "Nessun gioco possibile questa sera con le disponibilità attuali."}</p>
+      <div class="stack g8"><span class="caps">GIOCHI POSSIBILI QUESTO GIORNO</span>
+        <p class="t13 muted">${n.possible.length >= 2 ? "Più giochi sono possibili: l'admin sceglie a cosa giocare." : n.possible.length === 1 ? "C'è un gioco possibile." : "Nessun gioco possibile in questo giorno con le disponibilità attuali."}</p>
         ${[...n.evals].sort((a, b) => byNameStr(a.g.name, b.g.name)).map(e => renderRow(e, M.date, false, myGameSeg)).join("")}
-        ${n.allConf ? `<p class="t13 muted">Tutti i tuoi gruppi hanno già una serata confermata.</p>` : ""}</div>
+        ${n.allConf ? `<p class="t13 muted">Tutti i tuoi gruppi hanno già una sessione confermata.</p>` : ""}</div>
       ${myV === "no" ? `<p class="t13 muted">${L("Nel calendario hai segnato NO per questo giorno: vale per tutti i giochi. Per cambiarlo vai in Disponibilità.", "In your calendar you marked NO for this day: it applies to every game. To change it go to Availability.")}</p>` : `<p class="t12 muted">${L("Puoi rispondere per ogni gioco: vale solo per questo giorno. Il resto lo gestisci dal calendario in Disponibilità.", "You can answer for each game: it only applies to this day. Everything else is managed from the calendar in Availability.")}</p>`}
       <button class="btn" data-action="closeModal">Chiudi</button>`;
   } else if (M.type === "f5") {
     const groups = groupList().filter(g => isAdmin(g)), d = M.draft || {};
-    inner = `${titleBlock("Conferma la serata", "Tutti i membri del gruppo riceveranno l'avviso.")}
+    inner = `${titleBlock("Conferma la sessione", "Tutti i membri del gruppo riceveranno l'avviso.")}
       <label class="lbl">Gruppo<select id="sGroup" data-keep class="in" style="font-weight:600"><option value="">Scegli un gruppo</option>${groups.map(g => `<option value="${g.id}" ${g.id === (d.gid || "") ? "selected" : ""}>${esc(g.name)} · ${esc(g.game)}</option>`).join("")}</select></label>
       <label class="lbl">Giorno<input id="sDate" data-keep class="in" type="date" min="${todayStr()}" max="${LAST_DAY}" value="${esc(d.date || "")}"></label>
       <label class="lbl">Ora<input id="sTime" data-keep class="in" type="time" value="${esc(d.time || DEFAULT_TIME)}"></label>
@@ -1471,10 +1491,10 @@ function renderModal() {
     if (!s) { S.modal = null; return ""; }
     const emails = g.members.filter(u => u !== me).map(u => g.emails?.[u]).filter(Boolean);
     const msg = sessionText(g, s);
-    inner = `${titleBlock("Avvisa tutti", "Tutti i membri del gruppo vedono già la serata nell'app, tra gli Avvisi e in Giocate. Puoi avvisarli anche fuori dall'app:")}
+    inner = `${titleBlock("Avvisa tutti", "Tutti i membri del gruppo vedono già la sessione nell'app, tra gli Avvisi e in Giocate. Puoi avvisarli anche fuori dall'app:")}
       <div class="box" style="font-size:13px;line-height:19px;padding:12px;display:block">${esc(msg)}</div>
       <a class="btn p" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Invia su WhatsApp</a>
-      ${emails.length ? `<a class="btn" href="mailto:?bcc=${encodeURIComponent(emails.join(","))}&subject=${encodeURIComponent(L(`Game Planner - si gioca: ${g.game} ${longDate(s.date)}`, `Game Planner - game night: ${g.game} ${longDate(s.date)}`))}&body=${encodeURIComponent(msg)}">${L(`Invia per email a ${emails.length} ${emails.length === 1 ? "persona" : "persone"}`, `Email ${emails.length} ${emails.length === 1 ? "person" : "people"}`)}</a>` : ""}
+      ${emails.length ? `<a class="btn" href="mailto:?bcc=${encodeURIComponent(emails.join(","))}&subject=${encodeURIComponent(L(`Game Planner - si gioca: ${g.game} ${longDate(s.date)}`, `Game Planner - game session: ${g.game} ${longDate(s.date)}`))}&body=${encodeURIComponent(msg)}">${L(`Invia per email a ${emails.length} ${emails.length === 1 ? "persona" : "persone"}`, `Email ${emails.length} ${emails.length === 1 ? "person" : "people"}`)}</a>` : ""}
       <button class="btn" data-action="copyText" data-text="${esc(msg)}">Copia il messaggio</button>
       <button class="btn link m44" data-action="closeModal">Fatto</button>`;
   } else if (M.type === "f7") {
@@ -1555,7 +1575,7 @@ const EN = {
   "Modalità demo - i dati restano su questo dispositivo.": "Demo mode - data stays on this device.",
   "Gruppi": "Groups",
   "Disponibilità": "Availability",
-  "Serate": "Nights",
+  "Sessioni": "Sessions",
   "Giocate": "Played",
   "Nome": "Name",
   "Gestita da Google": "Managed by Google",
@@ -1580,9 +1600,9 @@ const EN = {
   "Normale": "Normal",
   "Poca voglia": "Not very keen",
   "Modifica": "Edit",
-  "Sei admin: inviti, gestisci i giocatori e confermi le serate.": "You're an admin: you invite people, manage players and confirm nights.",
+  "Sei admin: inviti, gestisci i giocatori e confermi le sessioni.": "You're an admin: you invite people, manage players and confirm sessions.",
   "La tua voglia di giocare con questo gruppo": "How keen you are to play with this group",
-  "Serve a scegliere quale gruppo consigliare quando la stessa sera si potrebbe giocare a più giochi.": "Used to pick which group to recommend when several games are possible on the same night.",
+  "Serve a scegliere quale gruppo consigliare quando la stessa sera si potrebbe giocare a più giochi.": "Used to pick which group to recommend when several games are possible on the same session.",
   "Non ha ancora segnato le disponibilità": "Hasn't marked availability yet",
   "Togli admin": "Remove admin",
   "Rendi admin": "Make admin",
@@ -1596,12 +1616,12 @@ const EN = {
   "Via cellulare": "By phone",
   "Funziona anche con chi non ha ancora l'app: dal link si registra e entra direttamente nel gruppo.": "Works for people who don't have the app yet too: from the link they sign up and join the group directly.",
   "Per invitare qualcuno chiedi a un admin del gruppo.": "To invite someone, ask a group admin.",
-  "Serate confermate": "Confirmed nights",
+  "Sessioni confermate": "Confirmed sessions",
   "Confermata": "Confirmed",
   "La tua risposta": "Your answer",
   "· puoi cambiarla quando vuoi": "· you can change it anytime",
-  "Nessuna serata in programma.": "No nights scheduled.",
-  "Guarda le Serate possibili.": "See the possible Nights.",
+  "Nessuna sessione in programma.": "No sessions scheduled.",
+  "Guarda le Sessioni possibili.": "See the possible Sessions.",
   "Esci dal gruppo": "Leave group",
   "Elimina gruppo": "Delete group",
   "Ci sono": "I'm in",
@@ -1610,8 +1630,8 @@ const EN = {
 
   // disponibilità
   "Le mie disponibilità": "My availability",
-  "Facoltative: aiutano a trovare le serate possibili. Valgono per tutti i tuoi gruppi.": "Optional: they help find possible nights. They apply to all your groups.",
-  "Proponi una serata": "Propose a night",
+  "Facoltative: aiutano a trovare le sessioni possibili. Valgono per tutti i tuoi gruppi.": "Optional: they help find possible sessions. They apply to all your groups.",
+  "Proponi una sessione": "Propose a session",
   "Ricorda: per vedere quando si gioca devi far parte di almeno un gruppo.": "Remember: to see when you play you need to be in at least one group.",
   "Vai su Gruppi.": "Go to Groups.",
   "SI": "YES",
@@ -1622,19 +1642,19 @@ const EN = {
   "Applica ai weekend": "Apply to weekends",
   "Svuota mese": "Clear month",
 
-  // serate
+  // sessioni
   "Ci sono tutti quelli che servono": "Everyone needed is in",
   "Possibile se i forse confermano": "Possible if the maybes confirm",
   "Non si può": "Not possible",
   "CONSIGLIATO": "RECOMMENDED",
   "Decide un admin": "An admin decides",
-  "Conferma questa serata": "Confirm this night",
+  "Conferma questa sessione": "Confirm this session",
   "Proposta": "Proposal",
   "Sì": "Yes",
-  "Conferma la serata": "Confirm the night",
+  "Conferma la sessione": "Confirm the session",
   "Ritira la proposta": "Withdraw proposal",
-  "Incrocia le disponibilità di tutti i membri dei tuoi gruppi, sera per sera.": "Matches the availability of all the members of your groups, night by night.",
-  "Qui vedrai in quali serate si può giocare e con quale gruppo. Prima crea o entra in un gruppo.": "Here you'll see which nights you can play and with which group. First create or join a group.",
+  "Incrocia le disponibilità di tutti i membri dei tuoi gruppi, giorno per giorno.": "Matches the availability of all the members of your groups, day by day.",
+  "Qui vedrai in quali sessioni si può giocare e con quale gruppo. Prima crea o entra in un gruppo.": "Here you'll see which sessions you can play and with which group. First create or join a group.",
   "Vai su Gruppi": "Go to Groups",
   "Si può giocare": "Can play",
   "Dipende dai forse": "Depends on maybes",
@@ -1644,7 +1664,7 @@ const EN = {
   "Tutte": "All",
   "Proposte": "Proposals",
   "Confermate": "Confirmed",
-  "Solo le serate possibili": "Only possible nights",
+  "Solo le sessioni possibili": "Only possible sessions",
 
   // giocate
   "Le mie giocate": "My games played",
@@ -1653,10 +1673,10 @@ const EN = {
   "in programma": "scheduled",
   "giocate in totale": "played in total",
   "giochi provati": "games tried",
-  "Vuoi un avviso su questo dispositivo quando un admin conferma una serata?": "Want a notification on this device when an admin confirms a night?",
+  "Vuoi un avviso su questo dispositivo quando un admin conferma una sessione?": "Want a notification on this device when an admin confirms a session?",
   "Attiva avvisi": "Turn on notifications",
   "In programma": "Scheduled",
-  "Nessuna serata confermata.": "No confirmed nights.",
+  "Nessuna sessione confermata.": "No confirmed sessions.",
   "Storico delle giocate": "History",
   "Gioco": "Game",
   "Gruppo": "Group",
@@ -1668,18 +1688,18 @@ const EN = {
   "Tutti i mesi": "All months",
   "Togli i filtri": "Clear filters",
   "Nessuna giocata con questi filtri.": "Nothing played with these filters.",
-  "Le serate giocate compariranno qui, con data, gioco, gruppo e chi c'era.": "Nights you've played will show up here, with date, game, group and who was there.",
+  "Le sessioni giocate compariranno qui, con data, gioco, gruppo e chi c'era.": "Sessions you've played will show up here, with date, game, group and who was there.",
   "Aggiungi al calendario": "Add to calendar",
   "Avvisa tutti": "Notify everyone",
   "Revoca conferma": "Revoke confirmation",
-  "Annulla serata": "Cancel night",
+  "Annulla sessione": "Cancel session",
 
   // finestre
   "Annulla": "Cancel",
   "Chiudi": "Close",
   "Vai alle giocate": "Go to Played",
   "Nuova:": "New:",
-  "Nessun avviso. Quando un admin conferma una serata di un tuo gruppo, la trovi qui.": "No notifications. When an admin confirms a night for one of your groups, you'll find it here.",
+  "Nessun avviso. Quando un admin conferma una sessione di un tuo gruppo, la trovi qui.": "No notifications. When an admin confirms a session for one of your groups, you'll find it here.",
   "È il nome che vedono gli altri nei tuoi gruppi.": "It's the name others see in your groups.",
   "Salva": "Save",
   "Ho capito": "Got it",
@@ -1732,19 +1752,19 @@ const EN = {
   "Incolla qui il link che ti hanno mandato.": "Paste the link you were sent here.",
   "Continua": "Continue",
   "CONFERMATE": "CONFIRMED",
-  "GIOCHI POSSIBILI QUESTA SERA": "POSSIBLE GAMES THIS NIGHT",
+  "GIOCHI POSSIBILI QUESTO GIORNO": "POSSIBLE GAMES THIS DAY",
   "Più giochi sono possibili: l'admin sceglie a cosa giocare.": "Several games are possible: the admin picks what to play.",
   "C'è un gioco possibile.": "One game is possible.",
-  "Nessun gioco possibile questa sera con le disponibilità attuali.": "No game possible this night with the current availability.",
-  "Tutti i tuoi gruppi hanno già una serata confermata.": "All your groups already have a confirmed night.",
-  "Tu quella sera:": "You that night:",
+  "Nessun gioco possibile in questo giorno con le disponibilità attuali.": "No game possible on this day with the current availability.",
+  "Tutti i tuoi gruppi hanno già una sessione confermata.": "All your groups already have a confirmed session.",
+  "Tu quella sera:": "You that session:",
   "Tu per": "You for",
   "Non ci sono": "I'm out",
   "Tutti i membri del gruppo riceveranno l'avviso.": "All group members will be notified.",
   "Note": "Notes",
   "Es. portate le schede, si cena prima": "E.g. bring your character sheets, dinner first",
   "Conferma": "Confirm",
-  "Tutti i membri del gruppo vedono già la serata nell'app, tra gli Avvisi e in Giocate. Puoi avvisarli anche fuori dall'app:": "All group members already see the night in the app, in Notifications and in Played. You can also tell them outside the app:",
+  "Tutti i membri del gruppo vedono già la sessione nell'app, tra gli Avvisi e in Giocate. Puoi avvisarli anche fuori dall'app:": "All group members already see the session in the app, in Notifications and in Played. You can also tell them outside the app:",
   "Invia su WhatsApp": "Send on WhatsApp",
   "Copia il messaggio": "Copy message",
   "Invito": "Invite",
@@ -1757,9 +1777,9 @@ const EN = {
   "Svuota": "Clear",
   "Ritiri questa proposta per tutto il gruppo?": "Withdraw this proposal for the whole group?",
   "Ritira": "Withdraw",
-  "Revochi la conferma? La serata torna una proposta e tutti possono rispondere di nuovo.": "Revoke the confirmation? The night goes back to being a proposal and everyone can answer again.",
+  "Revochi la conferma? La sessione torna una proposta e tutti possono rispondere di nuovo.": "Revoke the confirmation? The session goes back to being a proposal and everyone can answer again.",
   "Revoca": "Revoke",
-  "Annulli questa serata per tutti?": "Cancel this night for everyone?",
+  "Annulli questa sessione per tutti?": "Cancel this session for everyone?",
   "Cancello tutti i dati della demo?": "Delete all demo data?",
 
   // messaggi ed errori
@@ -1798,16 +1818,21 @@ const EN = {
   "Scegli un gruppo.": "Choose a group.",
   "Scegli un giorno a partire da oggi.": "Choose a day from today on.",
   "Scegli un gruppo di cui sei admin.": "Choose a group you're an admin of.",
-  "Questo gruppo ha già una serata confermata in quel giorno.": "This group already has a confirmed night on that day.",
-  "Serata confermata: i membri del gruppo trovano l'avviso nell'app.": "Night confirmed: group members will find the notice in the app.",
-  "Conferma revocata: la serata è di nuovo una proposta.": "Confirmation revoked: the night is a proposal again.",
-  "Serata annullata.": "Night cancelled.",
+  "Questo gruppo ha già una sessione confermata in quel giorno.": "This group already has a confirmed session on that day.",
+  "Sessione confermata: i membri del gruppo trovano l'avviso nell'app.": "Session confirmed: group members will find the notice in the app.",
+  "Conferma revocata: la sessione è di nuovo una proposta.": "Confirmation revoked: the session is a proposal again.",
+  "Sessione annullata.": "Session cancelled.",
   "Avvisi attivati su questo dispositivo.": "Notifications turned on for this device.",
   "Scrivi la tua email qui sopra, poi tocca di nuovo.": "Enter your email above, then tap again.",
   "Ti abbiamo mandato un'email per reimpostare la password.": "We sent you an email to reset your password.",
   "Email inviata di nuovo.": "Email sent again.",
   "Non risulta ancora verificata. Apri il link nell'email e riprova.": "Not verified yet. Open the link in the email and try again.",
   "Scrivi un nome.": "Enter a name.",
+  "Calendario": "Calendar",
+  "Storico": "History",
+  "Possibili": "Possible",
+  "Sessioni giocate": "Sessions played",
+  "Proponi una sessione": "Propose a session",
   "Minimo di giocatori per giocare": "Minimum players to play",
   "Rifiuta": "Decline",
   "Accetta": "Accept",
@@ -1877,6 +1902,7 @@ document.addEventListener("click", e => {
   switch (a) {
     // navigazione
     case "tab": go(d.tab); break;
+    case "goProg": S.sFilter = "prog"; go("serate"); break;
     case "openGroup": S.groupId = d.g; render(); window.scrollTo(0, 0); break;
     case "closeGroup": go("gruppi"); break;
     case "closeModal": S.modal = null; render(); break;
@@ -2053,7 +2079,7 @@ document.addEventListener("click", e => {
       if (!gg) { showErr("propErr", "Scegli un gruppo."); break; }
       if (!date || date < todayStr() || date > LAST_DAY) { showErr("propErr", "Scegli un giorno a partire da oggi."); break; }
       const data = { date, time: val("pTime"), place: val("pPlace"), desc: val("pDesc") };
-      S.modal = null; S.tab = "serate"; S.sFilter = "all"; S.groupId = null; S.sMonth = date.slice(0, 7);
+      S.modal = null; S.tab = "serate"; S.sFilter = "prop"; S.groupId = null; S.sMonth = date.slice(0, 7);
       run(async () => { await store.createProposal(gid, data); toast(L(`Proposta inviata al gruppo ${gg.name}.`, `Proposal sent to the group ${gg.name}.`)); });
       render(); window.scrollTo(0, 0);
       break;
@@ -2062,7 +2088,7 @@ document.addEventListener("click", e => {
     case "propAnswer": { const p = S.groups[d.g]?.proposals?.[d.pid]; if (p) run(() => store.propAnswer(d.g, d.pid, ansOf(p, me) === d.v ? null : d.v)); break; }
     case "withdrawProp": ask("Ritiri questa proposta per tutto il gruppo?", "Ritira", () => run(() => store.deleteProposal(d.g, d.pid))); break;
 
-    // serate
+    // sessioni
     case "sFilter": S.sFilter = d.v; render(); break;
     case "toggleOnly": S.onlyPossible = !S.onlyPossible; render(); break;
     case "openF4": S.modal = { type: "f4", date: d.date }; render(); break;
@@ -2077,25 +2103,32 @@ document.addEventListener("click", e => {
       const gid = val("sGroup"), date = val("sDate"), gg = getGroup(gid);
       if (!gg || !isAdmin(gg)) { showErr("sErr", "Scegli un gruppo di cui sei admin."); break; }
       if (!date || date < todayStr() || date > LAST_DAY) { showErr("sErr", "Scegli un giorno a partire da oggi."); break; }
-      if (Object.values(gg.sessions || {}).some(s => s.date === date)) { showErr("sErr", "Questo gruppo ha già una serata confermata in quel giorno."); break; }
+      if (Object.values(gg.sessions || {}).some(s => s.date === date)) { showErr("sErr", "Questo gruppo ha già una sessione confermata in quel giorno."); break; }
       const data = { date, time: val("sTime") || DEFAULT_TIME, location: val("sLoc"), notes: val("sNotes") };
       const propId = S.modal.draft?.propId && S.modal.draft.gid === gid ? S.modal.draft.propId : null;
-      S.modal = null; S.tab = "giocate"; S.groupId = null;
+      S.modal = null; S.tab = "serate"; S.sFilter = "prog"; S.groupId = null;
       run(async () => {
         await store.confirmSession(gid, data, propId);
-        toast("Serata confermata: i membri del gruppo trovano l'avviso nell'app.");
+        toast("Sessione confermata: i membri del gruppo trovano l'avviso nell'app.");
       });
       render(); window.scrollTo(0, 0);
       break;
     }
 
     // giocate
-    case "rsvp": { const s = S.groups[d.g]?.sessions?.[d.s]; if (s && (s.rsvps || {})[me] !== d.v) run(() => store.rsvp(d.g, d.s, d.v)); break; }
+    case "rsvp": {
+      const s = S.groups[d.g]?.sessions?.[d.s], gg = getGroup(d.g); if (!s || !gg) break;
+      run(async () => {
+        if (d.v !== "no" && baseDay(gg, me, s.date) === "no") await store.setDays({ [s.date]: null });
+        if ((s.rsvps || {})[me] !== d.v) await store.rsvp(d.g, d.s, d.v);
+      });
+      break;
+    }
     case "ics": { const gg = getGroup(d.g); downloadIcs(gg, d.s, gg.sessions[d.s]); break; }
     case "openF6": S.modal = { type: "f6", gid: d.g, sid: d.s }; render(); break;
     case "copyText": copy(d.text); break;
-    case "revoke": ask("Revochi la conferma? La serata torna una proposta e tutti possono rispondere di nuovo.", "Revoca", () => { S.modal = null; run(async () => { await store.revokeSession(d.g, d.s); toast("Conferma revocata: la serata è di nuovo una proposta."); }); }); break;
-    case "cancelSession": ask("Annulli questa serata per tutti?", "Annulla serata", () => { S.modal = null; run(async () => { await store.deleteSession(d.g, d.s); toast("Serata annullata."); }); }); break;
+    case "revoke": ask("Revochi la conferma? La sessione torna una proposta e tutti possono rispondere di nuovo.", "Revoca", () => { S.modal = null; run(async () => { await store.revokeSession(d.g, d.s); toast("Conferma revocata: la sessione è di nuovo una proposta."); }); }); break;
+    case "cancelSession": ask("Annulli questa sessione per tutti?", "Annulla sessione", () => { S.modal = null; run(async () => { await store.deleteSession(d.g, d.s); toast("Sessione annullata."); }); }); break;
     case "fGameChip": S.fGame = S.fGame === d.game ? "all" : d.game; render(); break;
     case "clearFilters": S.fGame = S.fGroup = S.fYear = S.fMonth = "all"; render(); break;
     case "enableNotif": Notification.requestPermission().then(p => { render(); if (p === "granted") toast("Avvisi attivati su questo dispositivo."); }); break;
