@@ -31,7 +31,7 @@
   --primary:#1b6d4f; --primary-d:#00533a; --shelf:#124935; --on-primary:#ffffff; --logo-fg:#9eecc6;
   --mint:#a5f3cd; --mint-t:#002114; --mint-line:#89d6b1;
   --orange:#fea047; --orange-t:#6d3a00; --peach:#ffdcc2; --peach-t:#2e1500; --peach-soft:#fff3e8;
-  --err-bg:#ffdad6; --err-t:#93000a; --red:#ba1a1a; --red-t:#ba1a1a; --rose:#e11d48; --warn-t:#6d3a00; --today-t:#8f4e00;
+  --err-bg:#ffdad6; --err-t:#93000a; --red:#ba1a1a; --red-t:#ba1a1a; --rose:#e11d48; --warn-t:#6d3a00; --sky-bg:#e0f2fe; --sky-t:#075985; --sky-line:#bae6fd; --sky-dot:#0284c7; --today-t:#8f4e00;
   --brass:#8f4e00; --brass-shelf:#6d3a00;
   --indigo:#4d3c88; --indigo-shelf:#1f0559; --lav:#e7deff; --lav-line:#cdc0ff; --lav-soft:#f1ecff; --lav-t:#1f0559;
   --rec-bg:#fef3c7; --rec-line:#d9822b; --rec-t:#78350f;
@@ -46,7 +46,7 @@
   --primary:#1f7a58; --primary-d:#8fe0bb; --shelf:#0b3626; --on-primary:#ffffff; --logo-fg:#9eecc6;
   --mint:#1f5a43; --mint-t:#c8f7e1; --mint-line:#2f7a5c;
   --orange:#d98a3c; --orange-t:#231100; --peach:#4a3122; --peach-t:#ffdcc2; --peach-soft:#33261b;
-  --err-bg:#4a2222; --err-t:#ffb4ab; --red:#e05555; --red-t:#ff8f87; --rose:#fb7185; --warn-t:#ffc78f; --today-t:#ffb35c;
+  --err-bg:#4a2222; --err-t:#ffb4ab; --red:#e05555; --red-t:#ff8f87; --rose:#fb7185; --warn-t:#ffc78f; --sky-bg:#0c3b55; --sky-t:#bae6fd; --sky-line:#155e83; --sky-dot:#38bdf8; --today-t:#ffb35c;
   --brass:#b0670f; --brass-shelf:#6d3a00;
   --indigo:#6a58b0; --indigo-shelf:#2c1c66; --lav:#352b5c; --lav-line:#54468c; --lav-soft:#272140; --lav-t:#e2d9ff;
   --rec-bg:#3a2e14; --rec-line:#d9822b; --rec-t:#ffd99a;
@@ -214,6 +214,11 @@ h1,h2,h3{margin:0}
 .conf-item{width:100%;text-align:left;border:none;background:var(--soft);border-radius:8px;padding:10px 12px;font-size:13px;line-height:18px;display:flex;align-items:center;gap:6px;color:var(--text)}
 .conf-item:hover{background:var(--soft3)}
 .conf-item .ms{font-size:18px}
+.conf-item.sky{background:var(--sky-bg);color:var(--sky-t);border:1px solid var(--sky-line);font-weight:600}
+.conf-item.sky .ms{color:var(--sky-t)}
+.card.night.has-conf{background:var(--sky-bg);border-color:var(--sky-line)}
+.card.night.has-conf .conf-item.sky{background:var(--card)}
+.mk.conf{background:var(--sky-dot)!important}
 .mrow{padding:10px 0;border-top:1px solid var(--soft);display:flex;flex-direction:column;gap:8px}
 .mname{font-size:15px;font-weight:700;display:flex;align-items:center;gap:6px}
 .voglia{font-size:12px;font-weight:700;color:var(--brass);white-space:nowrap}
@@ -690,6 +695,7 @@ async function makeFirebaseStore(cfg) {
       const reg = await navigator.serviceWorker.register("sw.js"); await navigator.serviceWorker.ready;
       const token = await M.getToken(M.getMessaging(app), { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
       if (!token) throw new Error("no-token");
+      try { localStorage.removeItem("gp-push-err"); } catch (e) {}
       const old = (() => { try { return localStorage.getItem("gp-push"); } catch (e) { return null; } })();
       const b = F.writeBatch(db), ref = F.doc(db, "users", uid);
       if (old && old !== token) b.set(ref, { pushTokens: F.arrayRemove(old) }, { merge: true });
@@ -1255,7 +1261,7 @@ function renderDisp() {
   const brush = (id, label) => `<button class="brush ${S.brush === id ? "on-" + id : ""}" data-action="brush" data-b="${id}">${label}</button>`;
   return `<h1 class="h1">Le mie disponibilità</h1>
     <p class="sub" style="margin:2px 0 14px">Facoltative: aiutano a trovare le sessioni possibili. Valgono per tutti i tuoi gruppi.</p>
-    ${hasGroups ? `<button class="btn ind big full mb16" data-action="openProp">${ic("campaign", "s22")}Proponi una sessione</button>`
+    ${hasGroups ? ""
       : `<div class="peach-box mb12">Ricorda: per vedere quando si gioca devi far parte di almeno un gruppo. <a data-action="tab" data-tab="gruppi" style="color:inherit">Vai su Gruppi.</a></div>`}
     <div class="stack g10 mb12">
       ${monthSel("dMonthSel", S.dMonth, "big")}
@@ -1268,7 +1274,8 @@ function renderDisp() {
     </div>
     <p class="sub mb12">${L(`Hai segnato ${marked} giorni su ${keys.length} da qui a fine mese.`, `You've marked ${marked} of ${keys.length} days until the end of the month.`)}</p>
     <div class="grid2" style="margin-bottom:6px"><button class="btn" style="font-size:13px" data-action="fillEmpty">Applica ai giorni vuoti</button><button class="btn" style="font-size:13px" data-action="fillWeekend">Applica ai weekend</button></div>
-    <button class="btn redtxt m44 full" data-action="clearMonth">Svuota mese</button>`;
+    <button class="btn redtxt m44 full" data-action="clearMonth">Svuota mese</button>
+    ${hasGroups ? `<button class="btn link sm" style="align-self:center;margin:6px auto 0;display:flex" data-action="openProp">${ic("campaign", "s18")}Proponi una sessione</button>` : ""}`;
 }
 
 // ----- SERATE -----
@@ -1334,9 +1341,9 @@ function renderSerate() {
     list = nights.map(n => {
       const rows = (onlyPoss() ? n.possible : n.evals).filter(e => !openProp(e.g, n.k));
       const b = n.possible.some(e => e.status === "ok") ? ["Si può giocare", "c-mint"] : n.possible.length ? ["Dipende dai forse", "c-peach"] : n.confirmed.length ? ["Confermata", "c-green"] : n.props.length ? ["Proposta", "c-lav"] : ["Nessun gruppo", "c-grey"];
-      return `<div class="card night tap stack g10" data-action="openF4" data-date="${n.k}">
+      return `<div class="card night tap stack g10 ${n.confirmed.length ? "has-conf" : ""}" data-action="openF4" data-date="${n.k}">
         <div class="row"><div class="grow stack" style="min-width:0"><h2 style="font-size:17px;line-height:22px;font-weight:700">${dayMonth(n.k)}</h2><span class="t13 muted" style="font-weight:600">${DOWS()[parseYmd(n.k).getDay()]}</span></div><span class="tag ${b[1]}">${b[0]}</span></div>
-        ${n.confirmed.map(x => `<button class="conf-item" data-action="openEv" data-g="${x.g.id}" data-s="${x.sid}">${ic("event_available")}<span class="grow">${L("In programma", "Scheduled")}: ${esc(x.g.game)} ${L("con", "with")} ${esc(x.g.name)}${L(" alle ", " at ")}${esc(x.s.time || DEFAULT_TIME)}</span>${ic("chevron_right")}</button>`).join("")}
+        ${n.confirmed.map(x => `<button class="conf-item sky" data-action="openEv" data-g="${x.g.id}" data-s="${x.sid}">${ic("event_available")}<span class="grow">${L("In programma", "Scheduled")}: ${esc(x.g.game)} ${L("con", "with")} ${esc(x.g.name)}${L(" alle ", " at ")}${esc(x.s.time || DEFAULT_TIME)}</span>${ic("chevron_right")}</button>`).join("")}
         ${n.props.map(x => `<button class="conf-item prop-link" data-action="sFilter" data-v="prop">${ic("campaign")}<span class="grow">${L("Proposta aperta", "Open proposal")}: ${esc(x.g.game)} ${L("con", "with")} ${esc(x.g.name)}</span>${ic("chevron_right")}</button>`).join("")}
         ${rows.map(e => renderRow(e, n.k, false)).join("")}
       </div>`;
@@ -1371,9 +1378,9 @@ function renderSerate() {
     top = `${groupSel}<button class="btn ind full" data-action="openProp">${ic("campaign", "s22")}Proponi una sessione</button>`;
     list = sorted.length ? sorted.map(x => renderProposal(x)) : [`<div class="card dashed">${L("Nessuna proposta aperta. Proponi una sessione e il gruppo potrà rispondere Sì, Forse o No.", "No open proposals. Propose a session and the group can answer Yes, Maybe or No.")}</div>`];
   } else {
-    const ps = pushState();
-    top = groupSel + (ps === "ask" ? `<div class="lav-card"><p style="font-size:14px;line-height:20px">${L("Vuoi le notifiche sul telefono, anche ad app chiusa? Sessioni confermate, proposte, inviti e promemoria del giorno prima.", "Want notifications on your phone, even with the app closed? Confirmed sessions, proposals, invites and day-before reminders.")}</p><button class="btn ind sm" style="align-self:flex-start;min-height:40px;box-shadow:none" data-action="pushMenu">${L("Attiva notifiche", "Turn on notifications")}</button></div>`
-      : ps === "ios-home" ? `<div class="lav-card"><p class="t13">${L("Per ricevere le notifiche su iPhone aggiungi l'app alla schermata Home (Condividi, Aggiungi alla schermata Home) e aprila da lì.", "To get notifications on iPhone add the app to your Home Screen (Share, Add to Home Screen) and open it from there.")}</p></div>` : "");
+    const ps = pushState(), dismissed = S.me.pushBanner === "off";
+    top = groupSel + (dismissed ? "" : ps === "ask" ? `<div class="lav-card"><p style="font-size:14px;line-height:20px">${L("Vuoi le notifiche sul telefono, anche ad app chiusa? Sessioni confermate, proposte, inviti e promemoria del giorno prima.", "Want notifications on your phone, even with the app closed? Confirmed sessions, proposals, invites and day-before reminders.")}</p><div class="row" style="gap:8px"><button class="btn ind sm" style="min-height:40px;box-shadow:none" data-action="pushMenu">${L("Attiva notifiche", "Turn on notifications")}</button><button class="btn link sm" style="min-height:40px" data-action="pushBannerOff">${L("Non ora", "Not now")}</button></div>${(() => { try { const er = localStorage.getItem("gp-push-err"); return er ? `<span class="t12 muted">${L("Ultimo errore", "Last error")}: ${esc(er)}</span>` : ""; } catch (e) { return ""; } })()}</div>`
+      : ps === "ios-home" ? `<div class="lav-card"><p class="t13">${L("Per ricevere le notifiche su iPhone aggiungi l'app alla schermata Home (Condividi, Aggiungi alla schermata Home) e aprila da lì.", "To get notifications on iPhone add the app to your Home Screen (Share, Add to Home Screen) and open it from there.")}</p><button class="btn link sm" style="align-self:flex-start;min-height:36px" data-action="pushBannerOff">${L("Non mostrare più", "Don't show again")}</button></div>` : "");
     list = upcoming.length ? upcoming.map(x => eventCard(x.g, x.sid, x.s)) : [`<div class="card dashed">${L("Nessuna sessione in programma. Quando un admin conferma una sessione, la trovi qui.", "No scheduled sessions. When an admin confirms a session, you'll find it here.")}</div>`];
   }
   return head + `<div class="stack g8 mb16" style="margin-top:12px">
@@ -1398,8 +1405,8 @@ function eventCard(g, sid, s) {
     <div class="chips">${chips}</div>
     <div class="stack g6"><span class="t12" style="font-weight:700">La tua risposta <span class="faint">· puoi cambiarla quando vuoi</span></span>${answersSeg(mine, "rsvp", `data-g="${g.id}" data-s="${sid}"`)}</div>
     <div class="grid2" style="gap:6px"><button class="btn m44" style="font-size:12px" data-action="ics" data-g="${g.id}" data-s="${sid}">Aggiungi al calendario</button><a class="btn m44" style="font-size:12px" href="${esc(gcalLink(g, s))}" target="_blank" rel="noopener">Google Calendar</a></div>
-    ${admin ? `<div class="row" style="gap:6px;border-top:1px solid var(--soft);padding-top:10px"><button class="btn brass m44 grow" data-action="openF6" data-g="${g.id}" data-s="${sid}">Avvisa tutti</button></div>
-      <div class="grid2" style="gap:6px"><button class="btn m44" data-action="revoke" data-g="${g.id}" data-s="${sid}">${ic("undo")}Revoca conferma</button><button class="btn rose m44" data-action="cancelSession" data-g="${g.id}" data-s="${sid}">Annulla sessione</button></div>` : ""}
+    ${admin ? `<div class="grid2" style="gap:6px;border-top:1px solid var(--soft);padding-top:10px"><button class="btn m44" data-action="revoke" data-g="${g.id}" data-s="${sid}">${ic("undo")}Revoca conferma</button><button class="btn rose m44" data-action="cancelSession" data-g="${g.id}" data-s="${sid}">Annulla sessione</button></div>
+      <button class="btn link sm" style="align-self:center;min-height:36px;font-size:12px" data-action="openF6" data-g="${g.id}" data-s="${sid}">${ic("share", "s16")}${L("Avvisa anche su WhatsApp o email", "Also notify via WhatsApp or email")}</button>` : ""}
   </div>`;
 }
 function renderGiocate() {
@@ -1564,7 +1571,7 @@ function renderModal() {
     const n = night(M.date, "all"), myV = (S.me.days || {})[M.date];
     const myGameSeg = myV === "no" || !S.me.uid ? null : e => e.g.members.includes(S.me.uid) && !e.st.find(x => x.u === S.me.uid && x.v === "busy") ? `<div class="stack g4"><span class="t12" style="font-weight:700">${L("Tu per", "You for")} ${esc(e.g.game)}</span>${answersSeg(dayOf(e.g, S.me.uid, M.date), "setGameDay", `data-g="${e.g.id}" data-date="${M.date}"`, ["Sì", "Forse", "No"])}</div>` : "";
     inner = `<h3>${longDate(M.date, true)}</h3>
-      ${n.confirmed.length ? `<div class="stack g6"><span class="caps">CONFERMATE</span>${n.confirmed.map(x => `<button class="conf-item" data-action="openEv" data-g="${x.g.id}" data-s="${x.sid}">${esc(x.g.game)} ${L("con", "with")} ${esc(x.g.name)}${L(" alle ", " at ")}${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " · " + esc(x.s.location) : ""}</button>`).join("")}</div>` : ""}
+      ${n.confirmed.length ? `<div class="stack g6"><span class="caps">CONFERMATE</span>${n.confirmed.map(x => `<button class="conf-item sky" data-action="openEv" data-g="${x.g.id}" data-s="${x.sid}">${esc(x.g.game)} ${L("con", "with")} ${esc(x.g.name)}${L(" alle ", " at ")}${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " · " + esc(x.s.location) : ""}</button>`).join("")}</div>` : ""}
       ${allProposals().filter(x => x.p.date === M.date).length ? `<div class="stack g8"><span class="caps">${L("PROPOSTE", "PROPOSALS")}</span>${allProposals().filter(x => x.p.date === M.date).map(x => renderProposal(x, true)).join("")}</div>` : ""}
       <div class="stack g8"><span class="caps">GIOCHI POSSIBILI QUESTO GIORNO</span>
         <p class="t13 muted">${n.possible.length >= 2 ? "Più giochi sono possibili: l'admin sceglie a cosa giocare." : n.possible.length === 1 ? "C'è un gioco possibile." : "Nessun gioco possibile in questo giorno con le disponibilità attuali."}</p>
@@ -1924,6 +1931,7 @@ const EN = {
   "Email inviata di nuovo.": "Email sent again.",
   "Non risulta ancora verificata. Apri il link nell'email e riprova.": "Not verified yet. Open the link in the email and try again.",
   "Scrivi un nome.": "Enter a name.",
+  "Non ora": "Not now",
   "Da rispondere": "To answer",
   "Lista": "List",
   "Calendario": "Calendar",
@@ -2231,6 +2239,7 @@ document.addEventListener("click", e => {
     case "cancelSession": ask("Annulli questa sessione per tutti?", "Annulla sessione", () => { S.modal = null; run(async () => { await store.deleteSession(d.g, d.s); toast("Sessione annullata."); }); }); break;
     case "fGameChip": S.fGame = S.fGame === d.game ? "all" : d.game; render(); break;
     case "clearFilters": S.fGame = S.fGroup = S.fYear = S.fMonth = "all"; render(); break;
+    case "pushBannerOff": S.me.pushBanner = "off"; render(); run(() => store.setProfile({ pushBanner: "off" })); toast(L("Puoi attivarle quando vuoi dal menu del profilo, alla voce Notifiche.", "You can turn them on anytime from the profile menu, under Notifications.")); break;
     case "pushMenu": {
       const ps = pushState(); S.menuOpen = false;
       if (ps === "on") { ask(L("Disattivi le notifiche su questo dispositivo?", "Turn off notifications on this device?"), L("Disattiva", "Turn off"), () => run(async () => { await store.disablePush(); render(); toast(L("Notifiche disattivate.", "Notifications turned off.")); })); break; }
@@ -2241,7 +2250,7 @@ document.addEventListener("click", e => {
       Notification.requestPermission().then(p => {
         if (p !== "granted") { render(); return; }
         return store.enablePush().then(() => { render(); toast(L("Notifiche attivate su questo dispositivo.", "Notifications turned on for this device.")); });
-      }).catch(e => { console.error(e); render(); toast(L("Non sono riuscito ad attivare le notifiche. Riprova.", "Couldn't turn on notifications. Try again.")); });
+      }).catch(e => { console.error(e); const msg = String(e?.code || e?.message || e).slice(0, 120); try { localStorage.setItem("gp-push-err", msg); } catch (x) {} render(); toast(L("Notifiche non attivate: ", "Notifications not turned on: ") + msg); });
       break;
     }
     case "enableNotif": Notification.requestPermission().then(p => { render(); if (p === "granted") toast("Avvisi attivati su questo dispositivo."); }); break;
