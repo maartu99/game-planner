@@ -207,6 +207,7 @@ h1,h2,h3{margin:0}
 .row-g{border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--bg);border:1px solid var(--line)}
 .row-g.rec{border-color:var(--rec-line)}
 .row-g.dim{opacity:.55}
+.row-g.prop-in{border:1.5px solid var(--lav-line);background:var(--card)}
 .conf-item{width:100%;text-align:left;border:none;background:var(--soft);border-radius:8px;padding:10px 12px;font-size:13px;line-height:18px;display:flex;align-items:center;gap:6px;color:var(--text)}
 .conf-item:hover{background:var(--soft3)}
 .conf-item .ms{font-size:18px}
@@ -1087,14 +1088,15 @@ function renderRow(e, k, isRec) {
       ${admin ? `<button class="btn p m44" style="font-size:14px" data-action="openF5" data-g="${e.g.id}" data-date="${k}">Conferma questa serata</button>` : ""}` : ""}
   </div>`;
 }
-function renderProposal(x) {
+function renderProposal(x, inline) {
   const g = x.g, p = x.p, me = S.me.uid, myV = dayOf(g, me, p.date);
   const mem = byName(g, g.members).map(u => ({ u, name: nameIn(g, u), v: dayOf(g, u, p.date) }));
   const chip = m => m.v === "yes" ? `<span class="chip c-green">${esc(m.name)}</span>` : m.v === "maybe" ? `<span class="chip c-peach">${esc(m.name)} (${L("forse", "maybe")})</span>` : m.v === "no" ? `<span class="chip c-err">${esc(m.name)} · no</span>` : `<span class="chip c-grey">${esc(m.name)} · ${L("in attesa", "waiting")}</span>`;
   const yesN = mem.filter(m => m.v === "yes").length, ok = yesN === mem.length, admin = isAdmin(g);
-  return `<div class="card prop stack g10">
+  return `<div class="${inline ? "row-g prop-in" : "card prop stack g10"}">
     <div class="row wrapf" style="gap:6px"><span class="tag c-lav">Proposta</span><span class="t13 muted" style="font-weight:700">${esc(g.name)}</span></div>
-    <div class="stack" style="gap:2px"><span style="font-size:17px;font-weight:700">${longDate(p.date)}${p.time ? L(" alle ", " at ") + esc(p.time) : ""}</span><span class="t13 muted">${esc(g.game)}${p.place ? " · " + esc(p.place) : ""}</span></div>
+    ${inline ? `<span class="t13 muted" style="margin-top:-4px">${esc(g.game)}${p.time ? L(" · ore ", " · at ") + esc(p.time) : ""}${p.place ? " · " + esc(p.place) : ""}</span>`
+      : `<div class="stack" style="gap:2px"><span style="font-size:17px;font-weight:700">${longDate(p.date)}${p.time ? L(" alle ", " at ") + esc(p.time) : ""}</span><span class="t13 muted">${esc(g.game)}${p.place ? " · " + esc(p.place) : ""}</span></div>`}
     ${p.desc ? `<p class="t13" style="background:var(--bg);border-radius:8px;padding:8px 10px">${esc(p.desc)}</p>` : ""}
     <span class="t12 muted">${L("Proposta da", "Proposed by")} ${esc(nameIn(g, p.by))}.</span>
     <div class="chips">${mem.map(chip).join("")}</div>
@@ -1113,19 +1115,25 @@ function renderSerate() {
   const sF = S.sFilter, keys = monthKeys(S.sMonth), me = S.me.uid;
   const props = allProposals();
   const propPending = props.filter(x => !dayOf(x.g, me, x.p.date)).length;
-  const propsShown = sF === "conf" ? [] : props.filter(x => keys.includes(x.p.date) && (S.sGroup === "all" || x.g.id === S.sGroup));
-  const nights = sF === "prop" ? [] : keys.map(k => night(k, S.sGroup)).filter(n => sF === "conf" ? n.confirmed.length : (n.possible.length || n.confirmed.length || !S.onlyPossible));
+  const propsIn = props.filter(x => keys.includes(x.p.date) && (S.sGroup === "all" || x.g.id === S.sGroup));
+  // Una proposta a cui hai già risposto non resta da sola: entra nella card della sua serata
+  const answered = x => !!dayOf(x.g, me, x.p.date);
+  const propsShown = sF === "conf" ? [] : sF === "prop" ? propsIn : propsIn.filter(x => !answered(x));
+  const inNight = k => sF === "all" ? propsIn.filter(x => x.p.date === k && answered(x)) : [];
+  const nights = sF === "prop" ? [] : keys.map(k => night(k, S.sGroup)).filter(n => sF === "conf" ? n.confirmed.length : (n.possible.length || n.confirmed.length || inNight(n.k).length || !S.onlyPossible));
   const feed = [
     ...propsShown.map(x => ({ date: x.p.date, prop: 1, html: renderProposal(x) })),
     ...nights.map(n => {
-      const b = n.confirmed.length ? ["Confermata", "c-green"] : n.possible.some(e => e.status === "ok") ? ["Si può giocare", "c-mint"] : n.possible.length ? ["Dipende dai forse", "c-peach"] : ["Nessun gruppo", "c-grey"];
-      const rows = S.onlyPossible || sF === "conf" ? n.possible : n.evals;
+      const nProps = inNight(n.k), propG = nProps.map(x => x.g.id);
+      const b = n.confirmed.length ? ["Confermata", "c-green"] : n.possible.some(e => e.status === "ok") ? ["Si può giocare", "c-mint"] : n.possible.length ? ["Dipende dai forse", "c-peach"] : nProps.length ? ["Proposta", "c-lav"] : ["Nessun gruppo", "c-grey"];
+      const rows = (S.onlyPossible || sF === "conf" ? n.possible : n.evals).filter(e => !propG.includes(e.g.id));
       const first = n.confirmed[0];
       return { date: n.k, prop: 0, html: `<div class="card night stack g10">
         <div class="row"><h2 class="grow" style="font-size:17px;line-height:22px;font-weight:700">${longDate(n.k)}</h2><span class="tag ${b[1]}">${b[0]}</span>
           <button class="btn grey sm" ${first ? `data-action="openEv" data-g="${first.g.id}" data-s="${first.sid}"` : `data-action="openF4" data-date="${n.k}"`}>Apri</button></div>
         ${n.confirmed.map(x => `<button class="conf-item" data-action="openEv" data-g="${x.g.id}" data-s="${x.sid}">${ic("event_available")}<span class="grow">${L(`Si gioca ${esc(x.g.game)} con ${esc(x.g.name)} alle`, `${esc(x.g.game)} with ${esc(x.g.name)} at`)} ${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " · " + esc(x.s.location) : ""}</span>${ic("chevron_right")}</button>`).join("")}
         ${n.rec && n.shared.length ? `<div class="peach-box">${L(`${n.possible.length} gruppi possibili con persone in comune (${esc(n.shared.join(", "))}): si gioca a uno solo. Consigliato ${esc(n.rec.g.name)}, il gruppo con più voglia di giocare.`, `${n.possible.length} possible groups with people in common (${esc(n.shared.join(", "))}): only one can play. Recommended: ${esc(n.rec.g.name)}, the keenest group.`)}</div>` : ""}
+        ${nProps.map(x => renderProposal(x, true)).join("")}
         ${rows.map(e => renderRow(e, n.k, e === n.rec)).join("")}
       </div>` };
     }),
@@ -1894,8 +1902,6 @@ document.addEventListener("click", e => {
       run(async () => {
         await store.confirmSession(gid, data, propId);
         toast("Serata confermata: i membri del gruppo trovano l'avviso nell'app.");
-        const sid = Object.entries(S.groups[gid]?.sessions || {}).find(([, s]) => s.date === date)?.[0];
-        if (sid) { S.modal = { type: "f6", gid, sid }; render(); }
       });
       render(); window.scrollTo(0, 0);
       break;
