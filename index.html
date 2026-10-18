@@ -503,8 +503,12 @@ async function makeFirebaseStore(cfg) {
     import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`),
   ]);
   const app = initializeApp(cfg);
-  const auth = A.getAuth(app);
-  auth.languageCode = "it";
+  // Accesso ricordato sul dispositivo finché non si fa "Esci": prima localStorage
+  // (più affidabile nelle app aggiunte alla schermata Home di iPhone), poi IndexedDB
+  let auth;
+  try { auth = A.initializeAuth(app, { persistence: [A.browserLocalPersistence, A.indexedDBLocalPersistence], popupRedirectResolver: A.browserPopupRedirectResolver }); }
+  catch (e) { console.error(e); auth = A.getAuth(app); }
+  auth.languageCode = LANG;
   const db = F.getFirestore(app);
   let listener = () => {}, uid = null, email = "", authState = "loading", meDoc = null, provider = "password";
   let base = []; const per = {}; const raw = {};
