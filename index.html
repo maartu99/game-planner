@@ -180,6 +180,8 @@ h1,h2,h3{margin:0}
 .card.ev.raised{box-shadow:var(--sh2)}
 .card.prop{border:1.5px solid var(--lav-line);padding:14px}
 .card.night{padding:14px;box-shadow:var(--sh1)}
+.card.tap{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.card.tap:active{border-color:var(--mint-line)}
 .card.dashed{border:1px dashed var(--line3);padding:20px;font-size:14px;line-height:20px;color:var(--muted)}
 .chips{display:flex;flex-wrap:wrap;gap:4px}
 .chip{font-size:11px;font-weight:700;padding:3px 8px;border-radius:9999px;white-space:nowrap}
@@ -397,8 +399,9 @@ function makeLocalStore() {
     if (me) for (const [gid, g] of Object.entries(db.groups)) {
       if (!g.members.includes(uid)) continue;
       const names = {}, avail = {}, emails = {}, phones = {};
-      for (const m of g.members) { const x = db.users[m] || {}; names[m] = x.name || "?"; avail[m] = x.days || {}; emails[m] = x.email || ""; phones[m] = x.phone || ""; }
-      groups[gid] = { ...g, names, emails, phones, avail, sessions: g.sessions || {}, proposals: g.proposals || {} };
+      const over = {};
+      for (const m of g.members) { const x = db.users[m] || {}; over[m] = (x.over || {})[gid] || {}; names[m] = x.name || "?"; avail[m] = x.days || {}; emails[m] = x.email || ""; phones[m] = x.phone || ""; }
+      groups[gid] = { ...g, names, emails, phones, avail, over, sessions: g.sessions || {}, proposals: g.proposals || {} };
     }
     const invs = Object.entries(db.invitations || {}).map(([id, x]) => ({ id, ...x }));
     listener({ me, groups, invIn: me ? invs.filter(x => x.to === uid) : [], invOut: me ? invs.filter(x => x.by === uid) : [], authState: me ? "ready" : "signedOut", demoUsers: Object.entries(db.users).map(([id, x]) => ({ id, name: x.name })) });
@@ -414,6 +417,7 @@ function makeLocalStore() {
     createUser(name) { const u = "u_" + id(); db.users[u] = { name, email: name.toLowerCase().replace(/\W+/g, "") + "@esempio.it", days: {}, games: [] }; db.current = u; save(); },
     logout() { db.current = null; save(); },
     setName(n) { me().name = n; save(); },
+    setGameDay(gid, date, v) { const o = ((me().over ||= {})[gid] ||= {}); if (v) o[date] = v; else delete o[date]; save(); },
     setDays(map) { const d = me().days ||= {}; for (const [k, v] of Object.entries(map)) { if (v) d[k] = v; else delete d[k]; } save(); },
     setProfile(p) { Object.assign(me(), p); save(); },
     async changeEmail(email) { me().email = email; save(); },
@@ -539,7 +543,7 @@ async function makeFirebaseStore(cfg) {
   let base = []; const per = {}; const raw = {}; let invIn = [], invOut = [];
   const emit = () => {
     const groups = {};
-    for (const [gid, r] of Object.entries(raw)) if (r.doc) groups[gid] = { prefs: {}, names: {}, emails: {}, phones: {}, admins: [r.doc.createdBy], ...r.doc, avail: r.avail, sessions: r.sessions, proposals: r.proposals };
+    for (const [gid, r] of Object.entries(raw)) if (r.doc) groups[gid] = { prefs: {}, names: {}, emails: {}, phones: {}, admins: [r.doc.createdBy], ...r.doc, avail: r.avail, over: r.over || {}, sessions: r.sessions, proposals: r.proposals };
     listener({ authState, authEmail: email, groups, invIn, invOut, me: authState === "ready" && meDoc ? { uid, email, provider, days: {}, games: [], seenAt: 0, ...meDoc, email } : null });
   };
   const onErr = e => { console.error(e); emit(); };
@@ -550,6 +554,7 @@ async function makeFirebaseStore(cfg) {
     if (per[g]) return;
     per[g] = [
       sub(g, "availability", "avail", d => d.days || {}),
+      sub(g, "availability", "over", d => d.over || {}),
       sub(g, "sessions", "sessions", d => ({ rsvps: {}, ...d })),
       sub(g, "proposals", "proposals", d => d),
     ];
@@ -658,6 +663,7 @@ async function makeFirebaseStore(cfg) {
     async acceptInvitation(inv) { await this.joinGroup(inv.gid, inv.code); await F.deleteDoc(F.doc(db, "invitations", inv.id)); },
     deleteInvitation: inv => F.deleteDoc(F.doc(db, "invitations", inv.id)),
     setDays: map => writeDays(map),
+    setGameDay: (gid, date, v) => F.setDoc(F.doc(db, "groups", gid, "availability", uid), { over: { [date]: v || F.deleteField() } }, { merge: true }),
     async setProfile(p) {
       const b = F.writeBatch(db);
       b.set(F.doc(db, "users", uid), p, { merge: true });
@@ -736,7 +742,11 @@ const nameIn = (g, u) => u === S.me.uid ? (S.me.name || L("Tu", "You")) : (g.nam
 // Risposta di una persona a una proposta: ogni proposta ha le sue risposte
 const ansOf = (p, u) => (p.answers || {})[u];
 const prefOf = (g, u) => g.prefs?.[u] || 2;
-const dayOf = (g, u, d) => u === S.me.uid ? (S.me.days || {})[d] : (g.avail?.[u] || {})[d];
+// Disponibilità di una persona per un gruppo in un giorno: il NO del calendario vale per tutto,
+// altrimenti conta la risposta data a quel gioco (se c'è), poi quella generale del calendario.
+const baseDay = (g, u, d) => u === S.me.uid ? (S.me.days || {})[d] : (g.avail?.[u] || {})[d];
+const gameDay = (g, u, d) => (g.over?.[u] || {})[d];
+const dayOf = (g, u, d) => { const b = baseDay(g, u, d); return b === "no" ? "no" : (gameDay(g, u, d) || b); };
 const adminsOf = g => (g.admins && g.admins.length ? g.admins : [g.createdBy]).filter(u => g.members.includes(u));
 const isAdmin = (g, u = S.me.uid) => !!g && adminsOf(g).includes(u);
 // Minimo di giocatori per giocare: un numero fisso scelto dall'admin.
@@ -1197,13 +1207,14 @@ function memberChip(x) {
   if (x.v === "no") return `<span class="chip c-err">${esc(x.name)}</span>`;
   return `<span class="chip c-grey">${esc(x.name)} (?)</span>`;
 }
-function renderRow(e, k, isRec) {
+function renderRow(e, k, isRec, mine) {
   const pos = e.status !== "none", admin = isAdmin(e.g), st = ROW_ST[e.status];
   return `<div class="row-g ${pos ? "" : "dim"}">
     <div class="row wrapf" style="gap:6px"><span style="font-size:15px;font-weight:700">${esc(e.g.name)}</span></div>
     <span class="t12 muted" style="margin-top:-4px">${esc(e.g.game)} · ${L(`${e.yes} su ${e.M} ci sono · minimo ${e.need}`, `${e.yes} of ${e.M} in · minimum ${e.need}`)}</span>
     <span class="status ${st[1]}">${st[0]}</span>
     <div class="chips">${e.st.map(memberChip).join("")}</div>
+    ${mine ? mine(e) : ""}
     ${pos ? `${admin ? "" : `<span class="t12 muted">Decide un admin</span>`}
       ${admin ? `<button class="btn p m44" style="font-size:14px" data-action="openF5" data-g="${e.g.id}" data-date="${k}">Conferma questa serata</button>` : ""}` : ""}
   </div>`;
@@ -1248,9 +1259,9 @@ function renderSerate() {
       const b = n.confirmed.length ? ["Confermata", "c-green"] : n.possible.some(e => e.status === "ok") ? ["Si può giocare", "c-mint"] : n.possible.length ? ["Dipende dai forse", "c-peach"] : nProps.length ? ["Proposta", "c-lav"] : ["Nessun gruppo", "c-grey"];
       const rows = (S.onlyPossible || sF === "conf" ? n.possible : n.evals).filter(e => !propG.includes(e.g.id));
       const first = n.confirmed[0];
-      return { date: n.k, prop: 0, html: `<div class="card night stack g10">
+      return { date: n.k, prop: 0, html: `<div class="card night tap stack g10" data-action="openF4" data-date="${n.k}">
         <div class="row"><div class="grow stack" style="min-width:0"><h2 style="font-size:17px;line-height:22px;font-weight:700">${dayMonth(n.k)}</h2><span class="t13 muted" style="font-weight:600">${DOWS()[parseYmd(n.k).getDay()]}</span></div><span class="tag ${b[1]}">${b[0]}</span>
-          <button class="btn grey sm" ${first ? `data-action="openEv" data-g="${first.g.id}" data-s="${first.sid}"` : `data-action="openF4" data-date="${n.k}"`}>Apri</button></div>
+</div>
         ${n.confirmed.map(x => `<button class="conf-item" data-action="openEv" data-g="${x.g.id}" data-s="${x.sid}">${ic("event_available")}<span class="grow">${L(`Si gioca ${esc(x.g.game)} con ${esc(x.g.name)} alle`, `${esc(x.g.game)} with ${esc(x.g.name)} at`)} ${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " · " + esc(x.s.location) : ""}</span>${ic("chevron_right")}</button>`).join("")}
         ${nProps.map(x => renderProposal(x, true)).join("")}
         ${rows.map(e => renderRow(e, n.k, e === n.rec)).join("")}
@@ -1436,13 +1447,14 @@ function renderModal() {
       ${twoBtns(cancelBtn(), `<button class="btn p" data-action="usePaste">Continua</button>`)}`;
   } else if (M.type === "f4") {
     const n = night(M.date, "all"), myV = (S.me.days || {})[M.date];
+    const myGameSeg = myV === "no" || !S.me.uid ? null : e => e.g.members.includes(S.me.uid) && !e.st.find(x => x.u === S.me.uid && x.v === "busy") ? `<div class="stack g4"><span class="t12" style="font-weight:700">${L("Tu per", "You for")} ${esc(e.g.game)}</span>${answersSeg(dayOf(e.g, S.me.uid, M.date), "setGameDay", `data-g="${e.g.id}" data-date="${M.date}"`, ["Sì", "Forse", "No"])}</div>` : "";
     inner = `<h3>${longDate(M.date, true)}</h3>
       ${n.confirmed.length ? `<div class="stack g6"><span class="caps">CONFERMATE</span>${n.confirmed.map(x => `<button class="conf-item" data-action="openEv" data-g="${x.g.id}" data-s="${x.sid}">${esc(x.g.game)} ${L("con", "with")} ${esc(x.g.name)}${L(" alle ", " at ")}${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " · " + esc(x.s.location) : ""}</button>`).join("")}</div>` : ""}
       <div class="stack g8"><span class="caps">GIOCHI POSSIBILI QUESTA SERA</span>
         <p class="t13 muted">${n.possible.length >= 2 ? "Più giochi sono possibili: l'admin sceglie a cosa giocare." : n.possible.length === 1 ? "C'è un gioco possibile." : "Nessun gioco possibile questa sera con le disponibilità attuali."}</p>
-        ${n.evals.map(e => renderRow(e, M.date, e === n.rec)).join("")}
+        ${[...n.evals].sort((a, b) => byNameStr(a.g.name, b.g.name)).map(e => renderRow(e, M.date, false, myGameSeg)).join("")}
         ${n.allConf ? `<p class="t13 muted">Tutti i tuoi gruppi hanno già una serata confermata.</p>` : ""}</div>
-      <div class="stack g6"><span class="t13" style="font-weight:700">Tu quella sera:</span>${answersSeg(myV, "setMyDay", `data-date="${M.date}"`, ["Ci sono", "Forse", "Non ci sono"])}</div>
+      ${myV === "no" ? `<p class="t13 muted">${L("Nel calendario hai segnato NO per questo giorno: vale per tutti i giochi. Per cambiarlo vai in Disponibilità.", "In your calendar you marked NO for this day: it applies to every game. To change it go to Availability.")}</p>` : `<p class="t12 muted">${L("Puoi rispondere per ogni gioco: vale solo per questo giorno. Il resto lo gestisci dal calendario in Disponibilità.", "You can answer for each game: it only applies to this day. Everything else is managed from the calendar in Availability.")}</p>`}
       <button class="btn" data-action="closeModal">Chiudi</button>`;
   } else if (M.type === "f5") {
     const groups = groupList().filter(g => isAdmin(g)), d = M.draft || {};
@@ -1726,6 +1738,7 @@ const EN = {
   "Nessun gioco possibile questa sera con le disponibilità attuali.": "No game possible this night with the current availability.",
   "Tutti i tuoi gruppi hanno già una serata confermata.": "All your groups already have a confirmed night.",
   "Tu quella sera:": "You that night:",
+  "Tu per": "You for",
   "Non ci sono": "I'm out",
   "Tutti i membri del gruppo riceveranno l'avviso.": "All group members will be notified.",
   "Note": "Notes",
@@ -2045,6 +2058,7 @@ document.addEventListener("click", e => {
       render(); window.scrollTo(0, 0);
       break;
     }
+    case "setGameDay": { const gg = S.groups[d.g] && getGroup(d.g); if (!gg) break; run(() => store.setGameDay(d.g, d.date, gameDay(gg, me, d.date) === d.v ? null : d.v)); break; }
     case "propAnswer": { const p = S.groups[d.g]?.proposals?.[d.pid]; if (p) run(() => store.propAnswer(d.g, d.pid, ansOf(p, me) === d.v ? null : d.v)); break; }
     case "withdrawProp": ask("Ritiri questa proposta per tutto il gruppo?", "Ritira", () => run(() => store.deleteProposal(d.g, d.pid))); break;
 
