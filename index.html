@@ -31,7 +31,7 @@
   --primary:#1b6d4f; --primary-d:#00533a; --shelf:#124935; --on-primary:#ffffff; --logo-fg:#9eecc6;
   --mint:#a5f3cd; --mint-t:#002114; --mint-line:#89d6b1;
   --orange:#fea047; --orange-t:#6d3a00; --peach:#ffdcc2; --peach-t:#2e1500; --peach-soft:#fff3e8;
-  --err-bg:#ffdad6; --err-t:#93000a; --red:#ba1a1a; --rose:#e11d48;
+  --err-bg:#ffdad6; --err-t:#93000a; --red:#ba1a1a; --red-t:#ba1a1a; --rose:#e11d48; --warn-t:#6d3a00; --today-t:#8f4e00;
   --brass:#8f4e00; --brass-shelf:#6d3a00;
   --indigo:#4d3c88; --indigo-shelf:#1f0559; --lav:#e7deff; --lav-line:#cdc0ff; --lav-soft:#f1ecff; --lav-t:#1f0559;
   --rec-bg:#fef3c7; --rec-line:#d9822b; --rec-t:#78350f;
@@ -46,7 +46,7 @@
   --primary:#1f7a58; --primary-d:#8fe0bb; --shelf:#0b3626; --on-primary:#ffffff; --logo-fg:#9eecc6;
   --mint:#1f5a43; --mint-t:#c8f7e1; --mint-line:#2f7a5c;
   --orange:#d98a3c; --orange-t:#231100; --peach:#4a3122; --peach-t:#ffdcc2; --peach-soft:#33261b;
-  --err-bg:#4a2222; --err-t:#ffb4ab; --red:#e05555; --rose:#fb7185;
+  --err-bg:#4a2222; --err-t:#ffb4ab; --red:#e05555; --red-t:#ff8f87; --rose:#fb7185; --warn-t:#ffc78f; --today-t:#ffb35c;
   --brass:#b0670f; --brass-shelf:#6d3a00;
   --indigo:#6a58b0; --indigo-shelf:#2c1c66; --lav:#352b5c; --lav-line:#54468c; --lav-soft:#272140; --lav-t:#e2d9ff;
   --rec-bg:#3a2e14; --rec-line:#d9822b; --rec-t:#ffd99a;
@@ -107,8 +107,8 @@ h1,h2,h3{margin:0}
 .mi-txt{flex:1;display:flex;flex-direction:column;min-width:0}
 .mi-txt b{font-size:14px;font-weight:600}
 .mi-txt small{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mi.red{color:var(--red);font-size:14px;font-weight:700}
-.mi.red .ms{color:var(--red)}
+.mi.red{color:var(--red-t);font-size:14px;font-weight:700}
+.mi.red .ms{color:var(--red-t)}
 .mi.red:hover{background:var(--err-bg)}
 .toggle2{display:flex;gap:2px;background:var(--soft2);padding:3px;border-radius:9999px}
 .toggle2 button{width:36px;height:30px;border:none;border-radius:9999px;display:flex;align-items:center;justify-content:center;background:transparent;color:var(--muted)}
@@ -143,7 +143,7 @@ h1,h2,h3{margin:0}
 .btn.p:active,.btn.ind:active,.btn.brass:active{transform:translateY(2px);box-shadow:none}
 .btn.ind{border:none;background:var(--indigo);color:#fff;box-shadow:0 2px 0 var(--indigo-shelf)}
 .btn.brass{border:none;background:var(--brass);color:#fff;box-shadow:0 2px 0 var(--brass-shelf)}
-.btn.redtxt{border:none;background:transparent;color:var(--red)}
+.btn.redtxt{border:none;background:transparent;color:var(--red-t)}
 .btn.redtxt:hover{background:var(--err-bg)}
 .btn.rose{border-color:var(--rose);color:var(--rose)}
 .btn.grey{border:none;background:var(--soft2)}
@@ -187,10 +187,10 @@ h1,h2,h3{margin:0}
 .chip.p{font-size:12px;padding:4px 10px}
 .c-green{background:#1b6d4f;color:#fff}
 .c-mint{background:var(--mint);color:var(--mint-t)}
-.c-peach{background:var(--peach);color:var(--orange-t)}
+.c-peach{background:var(--peach);color:var(--warn-t)}
 .c-err{background:var(--err-bg);color:var(--err-t)}
 .c-grey{background:var(--soft3);color:var(--muted)}
-.c-lav{background:var(--lav);color:var(--indigo)}
+.c-lav{background:var(--lav);color:var(--lav-t)}
 .tag{font-size:11px;font-weight:800;padding:3px 8px;border-radius:9999px;white-space:nowrap}
 .tag-admin{font-size:10px;font-weight:800;letter-spacing:.04em;background:var(--mint);color:var(--mint-t);padding:1px 6px;border-radius:9999px}
 .tag-rec{font-size:10px;font-weight:800;letter-spacing:.04em;background:var(--rec-bg);border:1px solid var(--rec-line);color:var(--rec-t);padding:1px 6px;border-radius:9999px}
@@ -263,7 +263,7 @@ input[type=date].in::-webkit-calendar-picker-indicator{margin-left:auto}
 .day{height:52px;border-radius:8px;padding:4px 3px;display:flex;flex-direction:column;justify-content:space-between;align-items:center;background:var(--card);border:1.5px solid var(--line);color:var(--text)}
 .day .n{font-size:13px;font-weight:600}
 .day.today{border-color:var(--brass)}
-.day.today .n{font-weight:800;color:var(--brass)}
+.day.today .n{font-weight:800;color:var(--today-t)}
 .day.yes{background:var(--day-yes)}.day.maybe{background:var(--day-maybe)}.day.no{background:var(--day-no)}
 .day:disabled{opacity:.4;cursor:default}
 .day.pad{visibility:hidden}
@@ -282,7 +282,7 @@ input[type=date].in::-webkit-calendar-picker-indicator{margin-left:auto}
 .notif.u-ev{background:var(--peach-soft)}
 .notif.u-prop{background:var(--lav-soft)}
 .notif b{font-size:14px;line-height:19px}
-.notif .new{color:var(--red)}
+.notif .new{color:var(--red-t)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));width:calc(100% - 32px);max-width:448px;z-index:95;background:var(--toast-bg);color:var(--toast-t);border-radius:12px;padding:12px 14px;font-size:13px;font-weight:600;line-height:18px;box-shadow:var(--sh3);animation:gpFade .2s}
 .avopt{aspect-ratio:1;border-radius:9999px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;border:3px solid transparent;padding:0}
 .avopt.on{border-color:var(--text)}
@@ -1080,7 +1080,7 @@ function renderGroups() {
       return `<button class="card click stack g10" data-action="openGroup" data-g="${g.id}">
         <div class="row between" style="width:100%"><span style="font-size:18px;line-height:24px;font-weight:700">${esc(g.name)}</span><span class="t12 muted" style="font-weight:600;white-space:nowrap">${g.members.length === 1 ? L("1 membro", "1 member") : L(`${g.members.length} membri`, `${g.members.length} members`)}</span></div>
         <span class="t13 muted">${esc(g.game)} · ${ruleText(g)}</span>
-        ${incomplete(g) ? `<span class="t12" style="font-weight:700;color:var(--orange-t)">${missingText(g)}</span>` : ""}
+        ${incomplete(g) ? `<span class="t12" style="font-weight:700;color:var(--warn-t)">${missingText(g)}</span>` : ""}
         <div class="chips">${byName(g, g.members).map(u => `<span class="chip m">${esc(nameIn(g, u))}</span>`).join("")}</div>
         ${next ? `<div class="row wrapf" style="width:100%;border-top:1px solid var(--soft3);padding-top:10px;font-size:12px;font-weight:700"><span style="color:var(--primary-d)">${L("Prossima serata", "Next night")}: ${longDate(next.date)}</span></div>` : ""}
       </button>`;
@@ -1101,7 +1101,7 @@ function renderGroup(g) {
       <div class="row between" style="align-items:flex-start"><h1 class="h1" style="line-height:30px">${esc(g.name)}</h1>${admin ? `<button class="btn sm" style="flex:none" data-action="openF2Edit">${ic("edit", "s16")}Modifica</button>` : ""}</div>
       <span style="font-size:15px;font-weight:600">${esc(g.game)}</span>
       <span class="t13 muted">${ruleText(g)}</span>
-      ${incomplete(g) ? `<span class="t13" style="font-weight:700;color:var(--orange-t)">${missingText(g)}</span>` : ""}
+      ${incomplete(g) ? `<span class="t13" style="font-weight:700;color:var(--warn-t)">${missingText(g)}</span>` : ""}
       <div class="info">${ic("shield_person")}<span>${admin ? "Sei admin: inviti, gestisci i giocatori e confermi le serate." : L(`Admin: ${esc(byName(g, adminsOf(g)).map(u => nameIn(g, u)).join(", "))}. Sono loro a confermare le serate.`, `Admins: ${esc(byName(g, adminsOf(g)).map(u => nameIn(g, u)).join(", "))}. They confirm the nights.`)}</span></div>
     </div>
     <div class="card stack g4">
