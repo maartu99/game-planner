@@ -7,7 +7,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 
 const SA = process.env.FIREBASE_SERVICE_ACCOUNT;
-if (!SA) { console.log("FIREBASE_SERVICE_ACCOUNT non impostato: nessuna notifica."); process.exit(0); }
+if (!SA) { console.log("::warning::FIREBASE_SERVICE_ACCOUNT non impostato: nessuna notifica."); process.exit(0); }
 initializeApp({ credential: cert(JSON.parse(SA)) });
 const db = getFirestore(), fcm = getMessaging();
 
@@ -99,4 +99,4 @@ for (const gDoc of (await db.collection("groups").get()).docs) {
       : { title: `Nuova proposta: ${g.game}`, body: `${nameOf(p.by)} propone ${when(l, p.date, p.time)} al gruppo ${g.name}. Rispondi in Sessioni.` });
   }
 }
-console.log(`Notifiche inviate: ${sent}`);
+console.log(`::notice::Notifiche inviate: ${sent}`);
