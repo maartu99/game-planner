@@ -875,8 +875,9 @@ function render() {
   else if (S.authState === "unverified") html = renderVerify();
   else if (S.authState === "error") html = `<div class="auth">${hero()}<div class="card stack g12"><p class="sub">Non riesco a leggere i dati. Controlla la connessione e riprova.</p><button class="btn" data-action="logout">Esci</button></div></div>`;
   else if (!S.me) html = store.demo ? renderDemoLogin() : renderLogin();
+  else if (!S.me.username && !S.skipUser) html = renderUsernameSetup();
   else html = renderApp();
-  $("#app").innerHTML = html + (S.me ? renderModal() + renderAsk() : "");
+  $("#app").innerHTML = html + (S.me && (S.me.username || S.skipUser) ? renderModal() + renderAsk() : "");
 
   for (const [id, v] of Object.entries(keep)) { const el = document.getElementById(id); if (el && el.type !== "file") el.value = v; }
   if (focusId) { const el = document.getElementById(focusId); if (el) { el.focus({ preventScroll: true }); try { if (sel != null) el.setSelectionRange(sel, sel); } catch (e) {} } }
@@ -946,6 +947,24 @@ function renderVerify() {
     ${errBox(S.authErr)}
     <button class="btn p" data-action="checkVerify">Ho verificato, entra</button>
     <div class="grid2" style="gap:10px"><button class="btn" data-action="resendVerify">Rinvia email</button><button class="btn" data-action="logout">Esci</button></div>
+  </div>`;
+}
+// Primo accesso: lo username è obbligatorio, serve agli altri per invitarti
+const suggestUsername = () => (S.me.name || (S.me.email || "").split("@")[0] || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, ".").replace(/[^a-z0-9._]/g, "").slice(0, 20);
+function renderUsernameSetup() {
+  return `<div class="auth" style="padding-top:calc(90px + env(safe-area-inset-top));gap:20px">
+    <div class="hero" style="gap:8px">
+      <div class="logo" style="background:var(--mint);color:var(--primary-d);box-shadow:none;width:64px;height:64px;border-radius:9999px">${ic("alternate_email")}</div>
+      <h1 style="font-size:26px">Scegli il tuo username</h1>
+      <p class="d" style="max-width:320px">Gli amici ti trovano con questo nome e ti invitano nei gruppi direttamente dall'app. Potrai cambiarlo dal menu del profilo.</p>
+    </div>
+    <div class="card stack g12">
+      <label class="lbl">Username<input id="setupUser" data-keep class="in soft" type="text" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="es. mattia" value="${esc(suggestUsername())}"></label>
+      <p class="t12 muted">Da 3 a 20 caratteri: lettere minuscole, numeri, punto e trattino basso.</p>
+      ${errSlot("setupErr")}
+      <button class="btn p" data-action="saveSetupUser">Continua</button>
+    </div>
+    <button class="btn link sm" style="align-self:center" data-action="logout">Esci</button>
   </div>`;
 }
 function renderDemoLogin() {
@@ -1030,7 +1049,6 @@ function renderGroups() {
   const invs = S.invIn || [];
   return `<h1 class="h1 mb14">I miei gruppi</h1>
     ${invs.length ? `<div class="stack g10 mb16">${invs.map(invCard).join("")}</div>` : ""}
-    ${S.me.username ? "" : `<div class="card stack g8 mb16"><p class="t13">${L("Scegli il tuo username: gli amici ti trovano con quello e ti invitano nei gruppi direttamente dall'app.", "Pick your username: friends find you with it and invite you to groups right in the app.")}</p><button class="btn sm" style="align-self:flex-start" data-action="accUsername">${ic("alternate_email", "s16")}${L("Scegli username", "Pick username")}</button></div>`}
     ${list.length ? `<button class="btn p full" data-action="openF2">${ic("add")}Crea gruppo</button>${inviteLinkSmall}` : ""}
     ${list.length ? "" : `<div class="card stack g10" style="padding:20px">
       <h2 class="h2b">Benvenuto!</h2>
@@ -1764,6 +1782,8 @@ const EN = {
   "Username": "Username",
   "Cerca chi usa già l'app per username o email: riceve l'invito nell'app e può accettare o rifiutare.": "Search for people already using the app by username or email: they get the invite in the app and can accept or decline.",
   "Username o email": "Username or email",
+  "Scegli il tuo username": "Pick your username",
+  "Gli amici ti trovano con questo nome e ti invitano nei gruppi direttamente dall'app. Potrai cambiarlo dal menu del profilo.": "Friends find you by this name and invite you to groups right in the app. You can change it later from the profile menu.",
   "Invita": "Invite",
   "Oppure manda un link": "Or send a link",
   "es. mattia": "e.g. mattia",
@@ -1771,6 +1791,7 @@ const EN = {
   "Nessuno usa l'app con questo username o email. Puoi mandargli un link qui sotto.": "Nobody uses the app with this username or email. You can send them a link below.",
   "Questo username è già preso.": "This username is already taken.",
   "Username salvato.": "Username saved.",
+  "Per ora non si può salvare lo username: riprova più tardi dal menu del profilo.": "The username can't be saved right now: try again later from the profile menu.",
   "Da 3 a 20 caratteri: lettere minuscole, numeri, punto e trattino basso.": "3 to 20 characters: lowercase letters, numbers, dot and underscore.",
   "Annulla gli inviti": "Cancel invites",
   "Inviti annullati.": "Invites cancelled.",
@@ -1860,6 +1881,13 @@ document.addEventListener("click", e => {
         S.modal = null; render();
         run(async () => { await store.setProfile({ phone: p }); toast(p ? "Numero salvato." : "Numero rimosso."); });
       }
+      break;
+    }
+    case "saveSetupUser": {
+      const n = val("setupUser").toLowerCase().replace(/^@/, "");
+      if (!/^[a-z0-9._]{3,20}$/.test(n)) { showErr("setupErr", "Da 3 a 20 caratteri: lettere minuscole, numeri, punto e trattino basso."); break; }
+      el.disabled = true;
+      store.setUsername(n).then(() => toast("Username salvato.")).catch(err => { el.disabled = false; if (err?.code === "permission-denied") { S.skipUser = true; render(); toast("Per ora non si può salvare lo username: riprova più tardi dal menu del profilo."); } else showErr("setupErr", err.message); });
       break;
     }
     case "openAvatar": S.menuOpen = false; S.modal = { type: "avatar" }; render(); break;
@@ -2078,7 +2106,7 @@ document.addEventListener("click", e => {
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") { if (S.ask) S.ask = null; else if (S.menuOpen) S.menuOpen = false; else S.modal = null; render(); return; }
   if (e.key !== "Enter") return;
-  const map = { invQ: "inviteUser", demoName: "demoNew", nameInput: "saveName", authPw: "emailIn", pasteInput: "usePaste", gName: "saveGroup" };
+  const map = { setupUser: "saveSetupUser", invQ: "inviteUser", demoName: "demoNew", nameInput: "saveName", authPw: "emailIn", pasteInput: "usePaste", gName: "saveGroup" };
   const act = map[e.target.id];
   if (act) document.querySelector(`[data-action="${act}"]`)?.click();
   const gi = e.target.dataset?.gameInput;
