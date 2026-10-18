@@ -39,6 +39,34 @@ service cloud.firestore {
       allow read, write: if signedIn() && request.auth.uid == uid;
     }
 
+    // Username: uno per persona, unici. Si leggono uno alla volta (non si può
+    // elencarli tutti): servono a cercare qualcuno da invitare.
+    match /usernames/{name} {
+      allow get: if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid && name.matches('^[a-z0-9._]{3,20}$');
+      allow update: if signedIn() && resource.data.uid == request.auth.uid && request.resource.data.uid == request.auth.uid;
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // Indice per email: ognuno scrive solo il proprio, si legge uno alla volta
+    match /emailIndex/{em} {
+      allow get: if signedIn();
+      allow create, update: if signedIn() && request.resource.data.uid == request.auth.uid
+        && em == request.auth.token.email.lower()
+        && (resource == null || resource.data.uid == request.auth.uid);
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // Inviti dentro l'app: li manda un admin, li vede chi li riceve e chi li ha mandati.
+    // Chi lo riceve accetta (entra con il codice dell'invito) o rifiuta (lo cancella).
+    match /invitations/{id} {
+      allow read: if signedIn() && (resource.data.to == request.auth.uid || resource.data.by == request.auth.uid);
+      allow create, update: if signedIn() && request.resource.data.by == request.auth.uid
+        && id == request.resource.data.gid + '_' + request.resource.data.to
+        && isAdmin(request.resource.data.gid);
+      allow delete: if signedIn() && (resource.data.to == request.auth.uid || resource.data.by == request.auth.uid);
+    }
+
     match /groups/{gid} {
       allow read: if signedIn() && request.auth.uid in resource.data.members;
 

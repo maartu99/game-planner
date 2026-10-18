@@ -376,7 +376,7 @@ const S = {
   tab: "gruppi", groupId: null, brush: "yes",
   dMonth: curMonth(), sMonth: curMonth(), sGroup: "all", sFilter: "all", onlyPossible: true,
   fGame: "all", fGroup: "all", fYear: "all", fMonth: "all",
-  modal: null, ask: null, menuOpen: false, authErr: "", pendingJoin: null, gameSel: "", gameDrafts: {},
+  modal: null, ask: null, menuOpen: false, invIn: [], invOut: [], authErr: "", pendingJoin: null, gameSel: "", gameDrafts: {},
 };
 let store = null;
 
@@ -399,7 +399,8 @@ function makeLocalStore() {
       for (const m of g.members) { const x = db.users[m] || {}; names[m] = x.name || "?"; avail[m] = x.days || {}; emails[m] = x.email || ""; phones[m] = x.phone || ""; }
       groups[gid] = { ...g, names, emails, phones, avail, sessions: g.sessions || {}, proposals: g.proposals || {} };
     }
-    listener({ me, groups, authState: me ? "ready" : "signedOut", demoUsers: Object.entries(db.users).map(([id, x]) => ({ id, name: x.name })) });
+    const invs = Object.entries(db.invitations || {}).map(([id, x]) => ({ id, ...x }));
+    listener({ me, groups, invIn: me ? invs.filter(x => x.to === uid) : [], invOut: me ? invs.filter(x => x.by === uid) : [], authState: me ? "ready" : "signedOut", demoUsers: Object.entries(db.users).map(([id, x]) => ({ id, name: x.name })) });
   };
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {} emit(); };
   const id = () => Math.random().toString(36).slice(2, 10);
@@ -426,6 +427,23 @@ function makeLocalStore() {
       if (!g.members.includes(db.current)) g.members.push(db.current);
       g.prefs[db.current] ??= 2; save();
     },
+    async findUser(q) {
+      q = q.trim().toLowerCase().replace(/^@/, "");
+      const hit = Object.entries(db.users).find(([, x]) => q.includes("@") ? (x.email || "").toLowerCase() === q : (x.username || "") === q);
+      return hit ? { uid: hit[0], name: hit[1].name, username: hit[1].username || "" } : null;
+    },
+    async setUsername(n) {
+      if (Object.entries(db.users).some(([k, x]) => k !== db.current && x.username === n)) throw new Error("Questo username è già preso.");
+      me().username = n; save();
+    },
+    async sendInvitation(gid, u) {
+      const g = G(gid), code = id() + id(), now = Date.now();
+      (g.invites ||= {})[code] = { by: db.current, exp: now + INVITE_DAYS * 864e5, to: u.uid };
+      (db.invitations ||= {})[gid + "_" + u.uid] = { gid, groupName: g.name, game: g.game, to: u.uid, toName: u.name, by: db.current, byName: me().name, code, createdAt: now };
+      save();
+    },
+    async acceptInvitation(inv) { this.joinGroup(inv.gid, inv.code); delete db.invitations[inv.id]; save(); },
+    async deleteInvitation(inv) { delete (db.invitations || {})[inv.id]; save(); },
     addInvite(gid, code) { const g = G(gid), now = Date.now(); g.invites = Object.fromEntries(Object.entries(g.invites || {}).filter(([, v]) => v.exp > now)); g.invites[code] = { by: db.current, exp: now + INVITE_DAYS * 864e5 }; save(); },
     cancelInvites(gid) { G(gid).invites = {}; save(); },
     removeMember(gid, u) { const g = G(gid); g.members = g.members.filter(x => x !== u); g.admins = (g.admins || []).filter(x => x !== u); delete g.prefs[u]; save(); },
@@ -464,7 +482,7 @@ function makeLocalStore() {
         const days = {};
         [...AV[u]].forEach((c, i) => { const v = { s: "yes", f: "maybe", n: "no" }[c]; if (v) days[addDays(today, i)] = v; });
         for (let i = 15; i < 90; i++) { const x = rnd(); days[addDays(today, i)] = x < .55 ? "yes" : x < .68 ? "maybe" : "no"; }
-        db.users[u] = { name, email: u + "@esempio.it", days, games: [], seenAt: 0 };
+        db.users[u] = { name, username: u, email: u + "@esempio.it", days, games: [], seenAt: 0 };
       }
       db.users.gigi.days[addDays(today, 14)] = "yes";
       db.users.mattia.games = ["Dungeons & Dragons", "Pathfinder", "Root", "Terraforming Mars"];
@@ -515,15 +533,15 @@ async function makeFirebaseStore(cfg) {
   auth.languageCode = LANG;
   const db = F.getFirestore(app);
   let listener = () => {}, uid = null, email = "", authState = "loading", meDoc = null, provider = "password";
-  let base = []; const per = {}; const raw = {};
+  let base = []; const per = {}; const raw = {}; let invIn = [], invOut = [];
   const emit = () => {
     const groups = {};
     for (const [gid, r] of Object.entries(raw)) if (r.doc) groups[gid] = { prefs: {}, names: {}, emails: {}, phones: {}, admins: [r.doc.createdBy], ...r.doc, avail: r.avail, sessions: r.sessions, proposals: r.proposals };
-    listener({ authState, authEmail: email, groups, me: authState === "ready" && meDoc ? { uid, email, provider, days: {}, games: [], seenAt: 0, ...meDoc, email } : null });
+    listener({ authState, authEmail: email, groups, invIn, invOut, me: authState === "ready" && meDoc ? { uid, email, provider, days: {}, games: [], seenAt: 0, ...meDoc, email } : null });
   };
   const onErr = e => { console.error(e); emit(); };
   const dropGroup = g => { (per[g] || []).forEach(u => u()); delete per[g]; delete raw[g]; };
-  const stopAll = () => { base.forEach(u => u()); base = []; Object.keys(per).forEach(dropGroup); Object.keys(raw).forEach(g => delete raw[g]); meDoc = null; };
+  const stopAll = () => { base.forEach(u => u()); base = []; Object.keys(per).forEach(dropGroup); Object.keys(raw).forEach(g => delete raw[g]); meDoc = null; invIn = []; invOut = []; };
   const sub = (g, name, key, map) => F.onSnapshot(F.collection(db, "groups", g, name), s => { const o = {}; s.forEach(d => { o[d.id] = map(d.data()); }); if (raw[g]) { raw[g][key] = o; emit(); } }, onErr);
   function watchGroup(g) {
     if (per[g]) return;
@@ -544,10 +562,16 @@ async function makeFirebaseStore(cfg) {
     try {
       const s = await F.getDoc(ref);
       if (!s.exists()) await F.setDoc(ref, { name: user.displayName || email.split("@")[0], email, days: {}, games: [] });
+      // Indice per email: serve a farsi trovare e invitare dagli altri
+      const d = s.exists() ? s.data() : {};
+      if (email) F.setDoc(F.doc(db, "emailIndex", email), { uid, name: d.name || user.displayName || email.split("@")[0], username: d.username || "" }).catch(e => console.error(e));
     } catch (e) { console.error(e); authState = "error"; return emit(); }
     authState = "ready";
     base.push(F.onSnapshot(ref, s => { meDoc = s.data() || {}; emit(); }, onErr));
     watchGroups();
+    const invQ = field => F.query(F.collection(db, "invitations"), F.where(field, "==", uid));
+    base.push(F.onSnapshot(invQ("to"), s => { invIn = s.docs.map(d => ({ id: d.id, ...d.data() })); emit(); }, onErr));
+    base.push(F.onSnapshot(invQ("by"), s => { invOut = s.docs.map(d => ({ id: d.id, ...d.data() })); emit(); }, onErr));
     emit();
   }
   // Elenco dei gruppi di cui si è membri, in tempo reale
@@ -602,8 +626,34 @@ async function makeFirebaseStore(cfg) {
       const b = F.writeBatch(db);
       b.update(F.doc(db, "users", uid), { name: n });
       for (const g of myIds()) b.update(F.doc(db, "groups", g), { ["names." + uid]: n });
+      if (email) b.set(F.doc(db, "emailIndex", email), { uid, name: n, username: meDoc?.username || "" });
+      if (meDoc?.username) b.set(F.doc(db, "usernames", meDoc.username), { uid, name: n });
       await b.commit();
     },
+    async findUser(q) {
+      q = q.trim().toLowerCase().replace(/^@/, "");
+      const s = await F.getDoc(F.doc(db, q.includes("@") ? "emailIndex" : "usernames", q));
+      return s.exists() ? { uid: s.data().uid, name: s.data().name || "", username: s.data().username || (q.includes("@") ? "" : q) } : null;
+    },
+    async setUsername(n) {
+      const old = meDoc?.username, name = meDoc?.name || "";
+      await F.runTransaction(db, async t => {
+        const ref = F.doc(db, "usernames", n), cur = await t.get(ref);
+        if (cur.exists() && cur.data().uid !== uid) throw new Error("Questo username è già preso.");
+        if (old && old !== n) t.delete(F.doc(db, "usernames", old));
+        t.set(ref, { uid, name });
+        t.set(F.doc(db, "users", uid), { username: n }, { merge: true });
+        if (email) t.set(F.doc(db, "emailIndex", email), { uid, name, username: n });
+      });
+    },
+    async sendInvitation(gid, u) {
+      const g = raw[gid]?.doc || {}, code = rid(), b = F.writeBatch(db);
+      b.update(F.doc(db, "groups", gid), { ["invites." + code]: { by: uid, exp: F.Timestamp.fromMillis(Date.now() + INVITE_DAYS * 864e5), to: u.uid } });
+      b.set(F.doc(db, "invitations", gid + "_" + u.uid), { gid, groupName: g.name || "", game: g.game || "", to: u.uid, toName: u.name || "", by: uid, byName: meDoc?.name || "", code, createdAt: Date.now() });
+      await b.commit();
+    },
+    async acceptInvitation(inv) { await this.joinGroup(inv.gid, inv.code); await F.deleteDoc(F.doc(db, "invitations", inv.id)); },
+    deleteInvitation: inv => F.deleteDoc(F.doc(db, "invitations", inv.id)),
     setDays: map => writeDays(map),
     async setProfile(p) {
       const b = F.writeBatch(db);
@@ -740,8 +790,15 @@ function notifications() {
 const sessionText = (g, s) => L(`Confermato! ${longDate(s.date, true)} alle ${s.time || DEFAULT_TIME} si gioca a ${g.game} (gruppo ${g.name})${s.location ? ", " + s.location : ""}.${s.notes ? " " + s.notes : ""} Conferma la tua presenza su Game Planner: ${location.origin + location.pathname}`,
   `Confirmed! ${longDate(s.date, true)} at ${s.time || DEFAULT_TIME} we play ${g.game} (group ${g.name})${s.location ? ", " + s.location : ""}.${s.notes ? " " + s.notes : ""} Confirm you're coming on Game Planner: ${location.origin + location.pathname}`);
 let notifiedKeys = null;
+let notifiedInv = null;
 function browserNotify() {
   if (!S.me) return;
+  const invKeys = (S.invIn || []).map(i => i.id);
+  if (notifiedInv === null) notifiedInv = new Set(invKeys);
+  else for (const i of S.invIn || []) if (!notifiedInv.has(i.id)) {
+    notifiedInv.add(i.id);
+    try { if ("Notification" in window && Notification.permission === "granted") new Notification(L("Game Planner - nuovo invito", "Game Planner - new invite"), { body: L(`${i.byName} ti invita nel gruppo ${i.groupName}`, `${i.byName} invites you to the group ${i.groupName}`) }); } catch (e) {}
+  }
   const list = notifications().filter(n => n.unread);
   if (notifiedKeys === null) { notifiedKeys = new Set(list.map(n => n.key)); return; }
   for (const n of list) {
@@ -915,7 +972,7 @@ function renderApp() {
   const today = todayStr(), me = S.me.uid;
   const pendingEv = allSessions().filter(x => x.s.date >= today && !rsvpOf(x.g, x.s, me)).length;
   const pendingProp = allProposals().filter(x => !dayOf(x.g, me, x.p.date)).length;
-  const unread = notifications().filter(n => n.unread).length;
+  const unread = notifications().filter(n => n.unread).length + (S.invIn || []).length;
   let body;
   if (S.tab === "gruppi") body = S.groupId ? renderGroup(getGroup(S.groupId)) : renderGroups();
   else if (S.tab === "disp") body = renderDisp();
@@ -933,7 +990,7 @@ function renderApp() {
     ${S.menuOpen ? renderMenu() : ""}
     <main class="main">${body}</main>
     <nav class="nav"><div class="nav-in">
-      ${tab("gruppi", "groups", "Gruppi")}${tab("disp", "event_available", "Disponibilità")}${tab("serate", "casino", "Serate", pendingProp)}${tab("giocate", "history_edu", "Giocate", pendingEv)}
+      ${tab("gruppi", "groups", "Gruppi", (S.invIn || []).length)}${tab("disp", "event_available", "Disponibilità")}${tab("serate", "casino", "Serate", pendingProp)}${tab("giocate", "history_edu", "Giocate", pendingEv)}
     </div></nav>
   </div>`;
 }
@@ -946,6 +1003,7 @@ function renderMenu() {
     <div class="menu-head">${avatarHtml()}<div class="stack" style="min-width:0"><span style="font-size:15px;font-weight:700">${esc(S.me.name)}</span><span class="t12 muted" style="overflow-wrap:anywhere">${esc(S.me.email || "")}</span></div></div>
     <div class="menu-body">
       ${item("openName", "badge", "Nome", S.me.name)}
+      ${item("accUsername", "alternate_email", "Username", S.me.username ? "@" + S.me.username : "Non impostato")}
       ${item("accEmail", "mail", "Email", S.me.email || "")}
       ${item("accPwd", "lock", "Password", S.me.provider === "google" ? "Gestita da Google" : "••••••••")}
       ${item("accPhone", "smartphone", "Telefono", S.me.phone || "Non impostato")}
@@ -959,11 +1017,20 @@ function renderMenu() {
   </div>`;
 }
 
+// ----- INVITI RICEVUTI IN APP -----
+const invCard = i => `<div class="lav-card stack g10">
+    <p class="t13" style="font-size:14px;line-height:20px">${L(`<strong>${esc(i.byName || "Qualcuno")}</strong> ti invita nel gruppo <strong>${esc(i.groupName)}</strong>${i.game ? ` (${esc(i.game)})` : ""}.`, `<strong>${esc(i.byName || "Someone")}</strong> invites you to the group <strong>${esc(i.groupName)}</strong>${i.game ? ` (${esc(i.game)})` : ""}.`)}</p>
+    <div class="grid2" style="gap:8px"><button class="btn m44" data-action="declineInv" data-id="${esc(i.id)}">Rifiuta</button><button class="btn p m44" data-action="acceptInv" data-id="${esc(i.id)}">Accetta</button></div>
+  </div>`;
+
 // ----- GRUPPI -----
 function renderGroups() {
   const list = groupList(), today = todayStr();
   const inviteLinkSmall = `<p class="t13 muted" style="text-align:center;margin:10px 0 18px">Hai ricevuto un link di invito? <a data-action="openF3">Incollalo qui</a></p>`;
+  const invs = S.invIn || [];
   return `<h1 class="h1 mb14">I miei gruppi</h1>
+    ${invs.length ? `<div class="stack g10 mb16">${invs.map(invCard).join("")}</div>` : ""}
+    ${S.me.username ? "" : `<div class="card stack g8 mb16"><p class="t13">${L("Scegli il tuo username: gli amici ti trovano con quello e ti invitano nei gruppi direttamente dall'app.", "Pick your username: friends find you with it and invite you to groups right in the app.")}</p><button class="btn sm" style="align-self:flex-start" data-action="accUsername">${ic("alternate_email", "s16")}${L("Scegli username", "Pick username")}</button></div>`}
     ${list.length ? `<button class="btn p full" data-action="openF2">${ic("add")}Crea gruppo</button>${inviteLinkSmall}` : ""}
     ${list.length ? "" : `<div class="card stack g10" style="padding:20px">
       <h2 class="h2b">Benvenuto!</h2>
@@ -1013,9 +1080,12 @@ function renderGroup(g) {
       }).join("")}
     </div>
     ${admin ? `<div class="card stack g12">
-      <div class="stack g4"><h2 class="h2">Invita qualcuno</h2><p class="t13 muted">${L(`Ogni invito crea un link nuovo, valido per una sola persona e per ${INVITE_DAYS} giorni. Chi viene rimosso non può rientrare con un link vecchio.`, `Each invite creates a new link, valid for one person and for ${INVITE_DAYS} days. Someone you remove can't rejoin with an old link.`)}</p></div>
+      <div class="stack g4"><h2 class="h2">Invita qualcuno</h2><p class="t13 muted">Cerca chi usa già l'app per username o email: riceve l'invito nell'app e può accettare o rifiutare.</p></div>
+      <div class="row" style="gap:6px"><input id="invQ" data-keep class="in soft m44 grow" type="text" autocapitalize="off" autocorrect="off" placeholder="Username o email"><button class="btn p m44" data-action="inviteUser">Invita</button></div>
+      <div id="invErr"></div>
+      ${(S.invOut || []).filter(i => i.gid === g.id).map(i => `<div class="row between" style="gap:6px"><span class="t13"><span class="muted">${L("In attesa", "Waiting")}:</span> <strong>${esc(i.toName)}</strong></span><button class="btn redtxt sm" style="font-size:12px;padding:0 10px" data-action="cancelInv" data-id="${esc(i.id)}">${L("Annulla", "Cancel")}</button></div>`).join("")}
+      <div class="stack g4" style="border-top:1px solid var(--soft3);padding-top:12px"><span class="t12" style="font-weight:700">Oppure manda un link</span><p class="t12 muted">${L(`Per chi non ha ancora l'app. Ogni link vale per una sola persona e per ${INVITE_DAYS} giorni.`, `For people without the app yet. Each link works for one person and for ${INVITE_DAYS} days.`)}</p></div>
       <div class="grid2"><button class="btn p m44" data-action="copyLink">${ic("content_copy")}Copia link</button><button class="btn m44" data-action="shareLink">${ic("ios_share")}Condividi...</button></div>
-      <p class="t12 muted">Funziona anche con chi non ha ancora l'app: dal link si registra e entra direttamente nel gruppo.</p>
       ${openInvites(g) ? `<div class="row between wrapf" style="gap:6px"><span class="t12 muted">${L(openInvites(g) === 1 ? "1 invito non ancora usato" : `${openInvites(g)} inviti non ancora usati`, openInvites(g) === 1 ? "1 unused invite" : `${openInvites(g)} unused invites`)}</span><button class="btn redtxt sm" style="font-size:12px;padding:0 10px" data-action="cancelInvites">Annulla gli inviti</button></div>` : ""}
     </div>` : `<p class="t13 muted" style="padding:0 4px">Per invitare qualcuno chiedi a un admin del gruppo.</p>`}
     <div class="stack g10">
@@ -1242,7 +1312,8 @@ function renderModal() {
     const list = notifications();
     return `<div class="scrim" data-action="closeModal"></div><div class="dialog stack g12">
       <h3 style="font-size:20px;font-weight:700">Avvisi</h3>
-      ${list.length ? list.map(n => { const un = (M.unread || []).includes(n.key), d = n.kind === "ev" ? n.s : n.p, at = d.time ? `${L(" alle ", " at ")}${esc(d.time)}` : "";
+      ${(S.invIn || []).map(invCard).join("")}
+      ${list.length || (S.invIn || []).length ? list.map(n => { const un = (M.unread || []).includes(n.key), d = n.kind === "ev" ? n.s : n.p, at = d.time ? `${L(" alle ", " at ")}${esc(d.time)}` : "";
         return n.kind === "prop"
           ? `<div class="notif ${un ? "u-prop" : ""}"><b>${un ? `<span class="new">Nuova: </span>` : ""}${L("Proposta", "Proposal")}: ${esc(n.g.game)} · ${longDate(d.date)}${at}</b><span class="t13 muted">${L(`${esc(nameIn(n.g, d.by))} propone una serata al gruppo ${esc(n.g.name)}${d.place ? ", " + esc(d.place) : ""}. Rispondi in Serate.`, `${esc(nameIn(n.g, d.by))} proposes a night to the group ${esc(n.g.name)}${d.place ? ", " + esc(d.place) : ""}. Answer in Nights.`)}</span></div>`
           : `<div class="notif ${un ? "u-ev" : ""}"><b>${un ? `<span class="new">Nuova: </span>` : ""}${esc(n.g.game)} · ${longDate(d.date)}${at}</b><span class="t13 muted">${L(`${esc(nameIn(n.g, d.confirmedBy))} ha confermato la serata del gruppo ${esc(n.g.name)}${d.location ? ", " + esc(d.location) : ""}.`, `${esc(nameIn(n.g, d.confirmedBy))} confirmed the night for the group ${esc(n.g.name)}${d.location ? ", " + esc(d.location) : ""}.`)}</span></div>`; }).join("")
@@ -1264,6 +1335,7 @@ function renderModal() {
     else if (k === "pwd") inner = google
       ? `${titleBlock("Password", "Hai fatto l'accesso con Google: non c'è una password di Game Planner da cambiare.")}<button class="btn p" data-action="closeModal">Ho capito</button>`
       : `${titleBlock("Cambia password", "Almeno 6 caratteri.")}${fld("accCur", "Password attuale", "password")}${fld("accNew", "Nuova password", "password")}${fld("accRep", "Ripeti la nuova password", "password")}${errSlot("accErr")}${twoBtns(cancelBtn(), `<button class="btn p" data-action="saveAcc">Salva</button>`)}`;
+    else if (k === "username") inner = `${titleBlock("Username", L("Gli altri ti trovano con questo nome per invitarti nei gruppi. Da 3 a 20 caratteri: lettere minuscole, numeri, punto e trattino basso.", "Others find you by this name to invite you to groups. 3 to 20 characters: lowercase letters, numbers, dot and underscore."))}${fld("accUserIn", "Username", "text", "es. mattia", S.me.username || "")}${errSlot("accErr")}${twoBtns(cancelBtn(), `<button class="btn p" data-action="saveAcc">Salva</button>`)}`;
     else inner = `${titleBlock("Numero di telefono", "Serve agli admin per mandarti inviti e avvisi via SMS o WhatsApp.")}${fld("accPhoneIn", "Cellulare", "tel", "+39 333 1234567", S.me.phone || "")}${errSlot("accErr")}${twoBtns(cancelBtn(), `<button class="btn p" data-action="saveAcc">Salva</button>`)}`;
   } else if (M.type === "avatar") {
     const col = S.me.avColor || AV_COLORS[0];
@@ -1687,6 +1759,19 @@ const EN = {
   "Email inviata di nuovo.": "Email sent again.",
   "Non risulta ancora verificata. Apri il link nell'email e riprova.": "Not verified yet. Open the link in the email and try again.",
   "Scrivi un nome.": "Enter a name.",
+  "Rifiuta": "Decline",
+  "Accetta": "Accept",
+  "Username": "Username",
+  "Cerca chi usa già l'app per username o email: riceve l'invito nell'app e può accettare o rifiutare.": "Search for people already using the app by username or email: they get the invite in the app and can accept or decline.",
+  "Username o email": "Username or email",
+  "Invita": "Invite",
+  "Oppure manda un link": "Or send a link",
+  "es. mattia": "e.g. mattia",
+  "Scrivi un username o un'email.": "Enter a username or an email.",
+  "Nessuno usa l'app con questo username o email. Puoi mandargli un link qui sotto.": "Nobody uses the app with this username or email. You can send them a link below.",
+  "Questo username è già preso.": "This username is already taken.",
+  "Username salvato.": "Username saved.",
+  "Da 3 a 20 caratteri: lettere minuscole, numeri, punto e trattino basso.": "3 to 20 characters: lowercase letters, numbers, dot and underscore.",
   "Annulla gli inviti": "Cancel invites",
   "Inviti annullati.": "Invites cancelled.",
   "Invito non valido, già usato o scaduto. Chiedi un nuovo link a un admin del gruppo.": "Invalid, already used or expired invite. Ask a group admin for a new link.",
@@ -1750,7 +1835,7 @@ document.addEventListener("click", e => {
     // account
     case "openName": S.menuOpen = false; S.modal = { type: "f1" }; render(); break;
     case "saveName": { const n = val("nameInput"); if (!n) break; S.modal = null; run(() => store.setName(n)); render(); break; }
-    case "accEmail": case "accPwd": case "accPhone": S.menuOpen = false; S.modal = { type: "acc", kind: { accEmail: "email", accPwd: "pwd", accPhone: "phone" }[a] }; render(); break;
+    case "accEmail": case "accPwd": case "accPhone": case "accUsername": S.menuOpen = false; S.modal = { type: "acc", kind: { accEmail: "email", accPwd: "pwd", accPhone: "phone", accUsername: "username" }[a] }; render(); break;
     case "saveAcc": {
       const k = S.modal.kind;
       if (k === "email") {
@@ -1764,6 +1849,11 @@ document.addEventListener("click", e => {
         if (nw.length < 6) { showErr("accErr", "La password deve avere almeno 6 caratteri."); break; }
         if (nw !== rep) { showErr("accErr", "Le due password non coincidono."); break; }
         store.changePassword(cur, nw).then(() => { S.modal = null; render(); toast("Password aggiornata."); }).catch(err => showErr("accErr", authMsg(err)));
+      } else if (k === "username") {
+        const n = val("accUserIn").toLowerCase().replace(/^@/, "");
+        if (!/^[a-z0-9._]{3,20}$/.test(n)) { showErr("accErr", "Da 3 a 20 caratteri: lettere minuscole, numeri, punto e trattino basso."); break; }
+        if (n === S.me.username) { S.modal = null; render(); break; }
+        store.setUsername(n).then(() => { S.modal = null; render(); toast("Username salvato."); }).catch(err => showErr("accErr", err.message));
       } else {
         const p = val("accPhoneIn");
         if (p && !okPhone(p)) { showErr("accErr", "Scrivi un numero di cellulare valido."); break; }
@@ -1830,6 +1920,30 @@ document.addEventListener("click", e => {
       break;
     }
     case "deleteGroup": ask(L(`Elimini il gruppo "${g.name}" per tutti?`, `Delete the group "${g.name}" for everyone?`), L("Elimina", "Delete"), () => { const id = g.id; go("gruppi"); run(() => store.deleteGroup(id)); }); break;
+    case "inviteUser": {
+      const q = val("invQ");
+      if (!q) { showErr("invErr", "Scrivi un username o un'email."); break; }
+      showErr("invErr", "");
+      const gg = g;
+      store.findUser(q).then(u => {
+        if (!u) return showErr("invErr", "Nessuno usa l'app con questo username o email. Puoi mandargli un link qui sotto.");
+        if (gg.members.includes(u.uid)) return showErr("invErr", L(`${u.name} fa già parte del gruppo.`, `${u.name} is already in the group.`));
+        if ((S.invOut || []).some(i => i.gid === gg.id && i.to === u.uid)) return showErr("invErr", L(`Hai già invitato ${u.name}.`, `You already invited ${u.name}.`));
+        return store.sendInvitation(gg.id, u).then(() => { const el = document.getElementById("invQ"); if (el) el.value = ""; toast(L(`Invito inviato a ${u.name}.`, `Invite sent to ${u.name}.`)); });
+      }).catch(err => { console.error(err); showErr("invErr", err?.code === "permission-denied" ? "Permesso negato: controlla le regole Firestore." : (err?.message || String(err))); });
+      break;
+    }
+    case "cancelInv": { const inv = (S.invOut || []).find(i => i.id === d.id); if (inv) run(() => store.deleteInvitation(inv)); break; }
+    case "declineInv": { const inv = (S.invIn || []).find(i => i.id === d.id); if (inv) ask(L(`Rifiuti l'invito nel gruppo "${inv.groupName}"?`, `Decline the invite to the group "${inv.groupName}"?`), L("Rifiuta", "Decline"), () => run(() => store.deleteInvitation(inv))); break; }
+    case "acceptInv": {
+      const inv = (S.invIn || []).find(i => i.id === d.id); if (!inv) break;
+      run(async () => {
+        try { await store.acceptInvitation(inv); } catch (err) { toast(err.message); return; }
+        S.modal = null; S.menuOpen = false; S.tab = "gruppi"; S.groupId = inv.gid; render(); window.scrollTo(0, 0);
+        toast("Sei entrato nel gruppo. Segna le tue disponibilità!");
+      });
+      break;
+    }
     case "copyLink": copy(inviteLink(g, newInvite(g))); break;
     case "shareLink": { const t = inviteText(g, newInvite(g)); if (navigator.share) navigator.share({ title: "Game Planner", text: t }).catch(() => {}); else copy(t); break; }
     case "cancelInvites": ask(L("Annulli tutti gli inviti non ancora usati? Quei link smettono di funzionare.", "Cancel all unused invites? Those links will stop working."), L("Annulla inviti", "Cancel invites"), () => run(async () => { await store.cancelInvites(g.id); toast("Inviti annullati."); })); break;
@@ -1964,7 +2078,7 @@ document.addEventListener("click", e => {
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") { if (S.ask) S.ask = null; else if (S.menuOpen) S.menuOpen = false; else S.modal = null; render(); return; }
   if (e.key !== "Enter") return;
-  const map = { demoName: "demoNew", nameInput: "saveName", authPw: "emailIn", pasteInput: "usePaste", gName: "saveGroup" };
+  const map = { invQ: "inviteUser", demoName: "demoNew", nameInput: "saveName", authPw: "emailIn", pasteInput: "usePaste", gName: "saveGroup" };
   const act = map[e.target.id];
   if (act) document.querySelector(`[data-action="${act}"]`)?.click();
   const gi = e.target.dataset?.gameInput;
