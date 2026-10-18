@@ -1183,8 +1183,8 @@ function memberChip(x) {
 }
 function renderRow(e, k, isRec) {
   const pos = e.status !== "none", admin = isAdmin(e.g), st = ROW_ST[e.status];
-  return `<div class="row-g ${isRec ? "rec" : ""} ${pos ? "" : "dim"}">
-    <div class="row wrapf" style="gap:6px"><span style="font-size:15px;font-weight:700">${esc(e.g.name)}</span>${isRec ? `<span class="tag-rec">CONSIGLIATO</span>` : ""}</div>
+  return `<div class="row-g ${pos ? "" : "dim"}">
+    <div class="row wrapf" style="gap:6px"><span style="font-size:15px;font-weight:700">${esc(e.g.name)}</span></div>
     <span class="t12 muted" style="margin-top:-4px">${esc(e.g.game)} · ${L(`servono ${e.need} su ${e.M}`, `needs ${e.need} of ${e.M}`)}</span>
     <span class="status ${st[1]}">${st[0]}</span>
     <div class="chips">${e.st.map(memberChip).join("")}</div>
@@ -1236,7 +1236,6 @@ function renderSerate() {
         <div class="row"><h2 class="grow" style="font-size:17px;line-height:22px;font-weight:700">${longDate(n.k)}</h2><span class="tag ${b[1]}">${b[0]}</span>
           <button class="btn grey sm" ${first ? `data-action="openEv" data-g="${first.g.id}" data-s="${first.sid}"` : `data-action="openF4" data-date="${n.k}"`}>Apri</button></div>
         ${n.confirmed.map(x => `<button class="conf-item" data-action="openEv" data-g="${x.g.id}" data-s="${x.sid}">${ic("event_available")}<span class="grow">${L(`Si gioca ${esc(x.g.game)} con ${esc(x.g.name)} alle`, `${esc(x.g.game)} with ${esc(x.g.name)} at`)} ${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " · " + esc(x.s.location) : ""}</span>${ic("chevron_right")}</button>`).join("")}
-        ${n.rec && n.shared.length ? `<div class="peach-box">${L(`${n.possible.length} gruppi possibili con persone in comune (${esc(n.shared.join(", "))}): si gioca a uno solo. Consigliato ${esc(n.rec.g.name)}, il gruppo con più persone disponibili.`, `${n.possible.length} possible groups with people in common (${esc(n.shared.join(", "))}): only one can play. Recommended: ${esc(n.rec.g.name)}, the group with the most people available.`)}</div>` : ""}
         ${nProps.map(x => renderProposal(x, true)).join("")}
         ${rows.map(e => renderRow(e, n.k, e === n.rec)).join("")}
       </div>` };
@@ -1426,7 +1425,7 @@ function renderModal() {
     inner = `<h3>${longDate(M.date, true)}</h3>
       ${n.confirmed.length ? `<div class="stack g6"><span class="caps">CONFERMATE</span>${n.confirmed.map(x => `<button class="conf-item" data-action="openEv" data-g="${x.g.id}" data-s="${x.sid}">${esc(x.g.game)} ${L("con", "with")} ${esc(x.g.name)}${L(" alle ", " at ")}${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " · " + esc(x.s.location) : ""}</button>`).join("")}</div>` : ""}
       <div class="stack g8"><span class="caps">GIOCHI POSSIBILI QUESTA SERA</span>
-        <p class="t13 muted">${n.possible.length >= 2 ? "Più giochi sono possibili: l'admin sceglie a cosa giocare. Il consigliato è quello con più persone disponibili." : n.possible.length === 1 ? "C'è un gioco possibile." : "Nessun gioco possibile questa sera con le disponibilità attuali."}</p>
+        <p class="t13 muted">${n.possible.length >= 2 ? "Più giochi sono possibili: l'admin sceglie a cosa giocare." : n.possible.length === 1 ? "C'è un gioco possibile." : "Nessun gioco possibile questa sera con le disponibilità attuali."}</p>
         ${n.evals.map(e => renderRow(e, M.date, e === n.rec)).join("")}
         ${n.allConf ? `<p class="t13 muted">Tutti i tuoi gruppi hanno già una serata confermata.</p>` : ""}</div>
       <div class="stack g6"><span class="t13" style="font-weight:700">Tu quella sera:</span>${answersSeg(myV, "setMyDay", `data-date="${M.date}"`, ["Ci sono", "Forse", "Non ci sono"])}</div>
@@ -1708,7 +1707,7 @@ const EN = {
   "Continua": "Continue",
   "CONFERMATE": "CONFIRMED",
   "GIOCHI POSSIBILI QUESTA SERA": "POSSIBLE GAMES THIS NIGHT",
-  "Più giochi sono possibili: l'admin sceglie a cosa giocare. Il consigliato è quello con più persone disponibili.": "Several games are possible: the admin picks what to play. The recommended one has the most people available.",
+  "Più giochi sono possibili: l'admin sceglie a cosa giocare.": "Several games are possible: the admin picks what to play.",
   "C'è un gioco possibile.": "One game is possible.",
   "Nessun gioco possibile questa sera con le disponibilità attuali.": "No game possible this night with the current availability.",
   "Tutti i tuoi gruppi hanno già una serata confermata.": "All your groups already have a confirmed night.",
