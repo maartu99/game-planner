@@ -343,6 +343,7 @@ const MONTHS_EN = ["January", "February", "March", "April", "May", "June", "July
 const DOWS = () => L(DOWS_IT, DOWS_EN), MONTHS = () => L(MONTHS_IT, MONTHS_EN);
 const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
 const longDate = (k, yr) => { const d = parseYmd(k); return `${DOWS()[d.getDay()]} ${d.getDate()} ${MONTHS()[d.getMonth()]}${yr ? " " + d.getFullYear() : ""}`; };
+const dayMonth = k => { const d = parseYmd(k); return `${d.getDate()} ${MONTHS()[d.getMonth()]}`; };
 const todayStr = () => ymd(new Date());
 const LAST_DAY = `${LAST_YEAR}-12-31`;
 const curMonth = () => todayStr().slice(0, 7);
@@ -1248,7 +1249,7 @@ function renderSerate() {
       const rows = (S.onlyPossible || sF === "conf" ? n.possible : n.evals).filter(e => !propG.includes(e.g.id));
       const first = n.confirmed[0];
       return { date: n.k, prop: 0, html: `<div class="card night stack g10">
-        <div class="row"><h2 class="grow" style="font-size:17px;line-height:22px;font-weight:700">${longDate(n.k)}</h2><span class="tag ${b[1]}">${b[0]}</span>
+        <div class="row"><div class="grow stack" style="min-width:0"><h2 style="font-size:17px;line-height:22px;font-weight:700">${dayMonth(n.k)}</h2><span class="t13 muted" style="font-weight:600">${DOWS()[parseYmd(n.k).getDay()]}</span></div><span class="tag ${b[1]}">${b[0]}</span>
           <button class="btn grey sm" ${first ? `data-action="openEv" data-g="${first.g.id}" data-s="${first.sid}"` : `data-action="openF4" data-date="${n.k}"`}>Apri</button></div>
         ${n.confirmed.map(x => `<button class="conf-item" data-action="openEv" data-g="${x.g.id}" data-s="${x.sid}">${ic("event_available")}<span class="grow">${L(`Si gioca ${esc(x.g.game)} con ${esc(x.g.name)} alle`, `${esc(x.g.game)} with ${esc(x.g.name)} at`)} ${esc(x.s.time || DEFAULT_TIME)}${x.s.location ? " · " + esc(x.s.location) : ""}</span>${ic("chevron_right")}</button>`).join("")}
         ${nProps.map(x => renderProposal(x, true)).join("")}
