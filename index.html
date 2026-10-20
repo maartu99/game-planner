@@ -295,6 +295,13 @@ input[type=date].in::-webkit-calendar-picker-indicator{margin-left:auto}
 .sheet{position:fixed;left:0;right:0;bottom:0;margin:0 auto;max-width:480px;z-index:71;background:var(--card);border-radius:24px 24px 0 0;padding:10px 16px calc(28px + env(safe-area-inset-bottom));box-shadow:0 -20px 25px -5px rgba(30,36,41,.12);animation:gpUp .25s cubic-bezier(.2,.8,.2,1);max-height:88vh;overflow-y:auto}
 .sheet .grab{width:40px;height:4px;border-radius:9999px;background:var(--soft3);margin:0 auto 14px}
 .sheet h3{font-size:20px;font-weight:700}
+.noanim{animation:none!important}
+.dialog.tut{max-height:calc(100vh - 32px);overflow:auto}
+.tut-ill{background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:14px;min-height:150px;display:flex;flex-direction:column;justify-content:center;pointer-events:none;text-align:center}
+.tut-ill .btn,.tut-ill .in{pointer-events:none}
+.tut-dots{display:flex;justify-content:center;gap:6px}
+.tut-dots button{width:8px;height:8px;border-radius:9999px;border:none;background:var(--line2);padding:0}
+.tut-dots button.on{width:20px;background:var(--primary)}
 .dialog{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:calc(100% - 32px);max-width:448px;z-index:73;background:var(--card);border-radius:20px;padding:20px 16px 16px;max-height:76vh;overflow-y:auto;box-shadow:var(--sh3);animation:gpFade .2s}
 .dialog.ask{z-index:91;max-width:420px;width:calc(100% - 48px);padding:20px;border-radius:16px}
 .scrim.top{z-index:90}
@@ -513,7 +520,7 @@ function makeLocalStore() {
         const days = {};
         [...AV[u]].forEach((c, i) => { const v = { s: "yes", f: "maybe", n: "no" }[c]; if (v) days[addDays(today, i)] = v; });
         for (let i = 15; i < 90; i++) { const x = rnd(); days[addDays(today, i)] = x < .55 ? "yes" : x < .68 ? "maybe" : "no"; }
-        db.users[u] = { name, username: u, email: u + "@esempio.it", days, games: [], seenAt: 0 };
+        db.users[u] = { name, username: u, email: u + "@esempio.it", days, games: [], seenAt: 0, tutorialSeen: true };
       }
       db.users.gigi.days[addDays(today, 14)] = "yes";
       db.users.mattia.games = ["Dungeons & Dragons", "Pathfinder", "Root", "Terraforming Mars"];
@@ -970,6 +977,7 @@ function render() {
   if (ae && ae.id) { focusId = ae.id; try { sel = ae.selectionStart; } catch (e) {} }
   const sheetScroll = document.querySelector(".sheet")?.scrollTop || 0;
 
+  if (S.me && S.me.username && !S.me.tutorialSeen && !S.tutAuto && !S.modal && !S.pendingJoin && !S.ask) { S.tutAuto = true; S.modal = { type: "tut", i: 0 }; }
   if (S.me && S.pendingJoin && !S.modal) {
     if (S.groups[S.pendingJoin.gid]) { S.tab = "gruppi"; S.groupId = S.pendingJoin.gid; S.pendingJoin = null; clearPending(); }
     else S.modal = { type: "f7" };
@@ -1133,6 +1141,7 @@ function renderMenu() {
       ${item("accEmail", "mail", "Email", S.me.email || "")}
       ${item("accPwd", "lock", "Password", S.me.provider === "google" ? "Gestita da Google" : "••••••••")}
       ${item("accPhone", "smartphone", "Telefono", S.me.phone || "Non impostato")}
+      ${item("openTut", "school", L("Tutorial", "Tutorial"), L("Rivedi come funziona l'app", "See how the app works"))}
       ${item("pushMenu", "notifications_active", L("Notifiche", "Notifications"), PUSH_LABEL())}
       ${item("openAvatar", "face", "Avatar", "")}
       <div class="mi" style="cursor:default">${ic("contrast")}<span class="mi-txt"><b>Tema</b></span>
@@ -1477,6 +1486,7 @@ const errSlot = id => `<div id="${id}"></div>`;
 
 function renderModal() {
   const M = S.modal; if (!M) return "";
+  if (M.type === "tut") return renderTut(M);
   const me = S.me.uid;
   if (M.type === "f8") {
     const list = notifications();
@@ -1609,6 +1619,44 @@ function renderModal() {
       ${twoBtns(`<button class="btn" data-action="ignoreJoin">Non ora</button>`, `<button class="btn p" data-action="doJoin">Unisciti</button>`)}`;
   }
   return `<div class="scrim" data-action="closeModal"></div><div class="sheet"><div class="grab"></div><div class="stack g12">${inner}</div></div>`;
+}
+// ----- TUTORIAL -----
+// Immagini disegnate con gli stessi elementi dell'app, così seguono tema e lingua
+function tutSteps() {
+  const chip = (t, c) => `<span class="chip ${c}">${t}</span>`;
+  const seg = (labs, on) => `<div class="seg c3" style="pointer-events:none">${labs.map((l, i) => `<button class="${i === on ? "on-yes" : ""}">${l}</button>`).join("")}</div>`;
+  const pills = [["SI", "yes"], ["FORSE", "maybe"], ["NO", "no"], ["SI", "yes"], ["", ""], ["SI", "yes"], ["FORSE", "maybe"]];
+  return [
+    { t: L("Benvenuto in Game Planner", "Welcome to Game Planner"), d: L("Organizza le sessioni di gioco con i tuoi gruppi: segni quando ci sei e l'app trova i giorni in cui si può giocare. Ti mostro come in pochi passi.", "Organise game sessions with your groups: mark when you're free and the app finds the days you can play. Here's how in a few steps."),
+      img: `<div class="hero" style="gap:6px"><div class="logo">${ic("casino")}</div><h1 style="font-size:24px">Game Planner</h1><p class="tag">${L("Quando si gioca?", "When do we play?")}</p></div>` },
+    { t: L("1. Crea o entra in un gruppo", "1. Create or join a group"), d: L("Un gruppo è una campagna di un gioco con le persone che ci giocano. Chi lo crea è admin e sceglie il minimo di giocatori per giocare.", "A group is a campaign of one game with the people who play it. Whoever creates it is admin and picks the minimum number of players."),
+      img: `<div class="card stack g8" style="text-align:left"><div class="row between"><b style="font-size:16px">Campagna D&amp;D</b><span class="t12 muted">5 ${L("membri", "members")}</span></div><span class="t13 muted">Dungeons &amp; Dragons · ${L("Si gioca con almeno 4 giocatori", "Plays with at least 4 players")}</span><div class="chips">${["Gigi", "Iole", "Mattia", "Roberto", "Gian"].map(n => chip(n, "m")).join("")}</div></div>` },
+    { t: L("2. Invita gli amici", "2. Invite your friends"), d: L("Nella pagina del gruppo cerca un amico per username o email: riceve l'invito nell'app e accetta o rifiuta. Per chi non ha ancora l'app c'è il link, valido una sola volta.", "On the group page search a friend by username or email: they get the invite in the app and accept or decline. For people without the app there's a single-use link."),
+      img: `<div class="stack g8"><div class="row" style="gap:6px"><div class="in soft m44 grow" style="display:flex;align-items:center;text-align:left">@gigi</div><span class="btn p m44">${L("Invita", "Invite")}</span></div><div class="lav-card" style="text-align:left"><span class="t13"><b>Mattia</b> ${L("ti invita nel gruppo", "invites you to the group")} <b>Campagna D&amp;D</b>.</span><div class="grid2" style="gap:8px"><span class="btn m44">${L("Rifiuta", "Decline")}</span><span class="btn p m44">${L("Accetta", "Accept")}</span></div></div></div>` },
+    { t: L("3. Segna quando ci sei", "3. Mark when you're free"), d: L("Nel Calendario scegli SI, FORSE o NO e tocca i giorni. Vale per tutti i tuoi gruppi: lo fai una volta sola.", "In Calendar pick YES, MAYBE or NO and tap the days. It applies to all your groups: you do it once."),
+      img: `<div class="cal"><div class="cal-h">${L(["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"], ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]).map(w => `<span>${w}</span>`).join("")}</div><div class="cal-g">${pills.map(([lab, v], i) => `<span class="day ${v}"><span class="n">${19 + i}</span>${lab ? `<span class="dpill ${v}">${L(lab, { SI: "YES", FORSE: "MAYBE", NO: "NO" }[lab])}</span>` : ""}</span>`).join("")}</div></div>` },
+    { t: L("4. Scopri quando si gioca", "4. See when you can play"), d: L("In Sessioni, vista Possibili, trovi i giorni in cui il gruppo arriva al minimo. Puoi guardarli in lista o in calendario. Tocca un giorno per rispondere per ogni gioco.", "In Sessions, Possible view, you find the days where the group reaches the minimum. See them as a list or a calendar. Tap a day to answer for each game."),
+      img: `<div class="card night stack g8" style="text-align:left"><div class="row"><div class="grow stack"><b style="font-size:16px">24 ${MONTHS()[9]}</b><span class="t12 muted">${DOWS()[6]}</span></div><span class="tag c-mint">${L("Si può giocare", "Can play")}</span></div><div class="row-g"><b>Campagna D&amp;D</b><span class="t12 muted">Dungeons &amp; Dragons · ${L("4 su 5 ci sono · minimo 4", "4 of 5 in · minimum 4")}</span>${seg([L("Sì", "Yes"), L("Forse", "Maybe"), "No"], 0)}</div></div>` },
+    { t: L("5. Proponi una sessione", "5. Propose a session"), d: L("Chiunque può proporre un giorno al gruppo. Ognuno risponde Sì, Forse o No e l'admin conferma: la sessione passa In programma.", "Anyone can propose a day to the group. Everyone answers Yes, Maybe or No and the admin confirms: the session moves to Scheduled."),
+      img: `<div class="card prop stack g8" style="text-align:left"><div class="row" style="gap:6px"><span class="tag c-lav">${L("Proposta", "Proposal")}</span><b class="t13">Campagna D&amp;D</b></div><b>${DOWS()[5]} 30 ${MONTHS()[9]}${L(" alle ", " at ")}21:00</b><div class="chips">${chip("Gigi", "c-green")}${chip("Mattia", "c-green")}${chip(`Iole · ${L("in attesa", "waiting")}`, "c-grey")}</div><span class="btn p m44">${L("Conferma la sessione", "Confirm the session")}</span></div>` },
+    { t: L("6. Le sessioni in programma", "6. Scheduled sessions"), d: L("In Sessioni, vista In programma, rispondi Ci sono, Forse o Non posso e aggiungi la sessione al tuo calendario. Se si scende sotto il minimo diventa \"A rischio\" e l'admin decide.", "In Sessions, Scheduled view, answer I'm in, Maybe or Can't and add the session to your calendar. If it drops below the minimum it becomes \"At risk\" and the admin decides."),
+      img: `<div class="card ev stack g8" style="text-align:left"><div class="row between"><div class="stack"><b style="font-size:16px">Campagna D&amp;D</b><span class="t13 muted">Dungeons &amp; Dragons</span></div><span class="tag c-green">${L("Confermata", "Confirmed")}</span></div><span class="t13" style="font-weight:600">${DOWS()[5]} 30 ${MONTHS()[9]}${L(" alle ", " at ")}21:00</span>${seg([L("Ci sono", "I'm in"), L("Forse", "Maybe"), L("Non posso", "Can't")], 0)}</div>` },
+    { t: L("7. Lo storico", "7. History"), d: L("Nello Storico trovi le sessioni in arrivo e quelle giocate, con i conteggi e i filtri per gioco, gruppo, anno e mese.", "History shows upcoming and played sessions, with counts and filters by game, group, year and month."),
+      img: `<div class="seg c3" style="background:transparent;padding:0;gap:8px">${[[2, L("in programma", "scheduled")], [12, L("giocate in totale", "played in total")], [4, L("giochi provati", "games tried")]].map(([n, l]) => `<div class="counter"><b>${n}</b><span>${l}</span></div>`).join("")}</div>` },
+    { t: L("8. Notifiche e profilo", "8. Notifications and profile"), d: L("Tocca il tuo avatar in alto a destra: attivi le notifiche, cambi nome, username, tema e lingua, e da qui puoi rivedere questo tutorial quando vuoi.", "Tap your avatar at the top right: turn on notifications, change name, username, theme and language, and see this tutorial again whenever you like."),
+      img: `<div class="card stack" style="padding:6px 10px;text-align:left">${[["notifications_active", L("Notifiche", "Notifications"), L("Attive", "On")], ["alternate_email", "Username", "@mattia"], ["school", "Tutorial", L("Rivedi come funziona l'app", "See how the app works")]].map(([i, a, b]) => `<div class="row" style="gap:10px;padding:8px 0;border-bottom:1px solid var(--soft)">${ic(i)}<div class="stack"><b class="t13">${a}</b><span class="t12 muted">${b}</span></div></div>`).join("")}</div>` },
+  ];
+}
+function renderTut(M) {
+  const steps = tutSteps(), i = Math.max(0, Math.min(M.i || 0, steps.length - 1)), st = steps[i], last = i === steps.length - 1;
+  const na = M.moved ? " noanim" : "";
+  return `<div class="scrim${na}" data-action="tutClose"></div><div class="dialog tut stack g14${na}">
+    <div class="row between"><span class="t12 muted" style="font-weight:700">${i + 1} / ${steps.length}</span><button class="btn link sm" style="min-height:32px;padding:0 4px" data-action="tutClose">${last ? L("Chiudi", "Close") : L("Salta", "Skip")}</button></div>
+    <div class="tut-ill" aria-hidden="true">${st.img}</div>
+    <div class="stack g6"><h3 style="font-size:19px;line-height:24px">${st.t}</h3><p class="t13" style="font-size:14px;line-height:20px;color:var(--muted)">${st.d}</p></div>
+    <div class="tut-dots">${steps.map((_, k) => `<button class="${k === i ? "on" : ""}" data-action="tutGo" data-i="${k}" aria-label="${k + 1}"></button>`).join("")}</div>
+    <div class="grid2">${i ? `<button class="btn" data-action="tutGo" data-i="${i - 1}">${L("Indietro", "Back")}</button>` : `<span></span>`}<button class="btn p" data-action="${last ? "tutClose" : "tutGo"}" data-i="${i + 1}">${last ? L("Inizia", "Start") : L("Avanti", "Next")}</button></div>
+  </div>`;
 }
 function renderAsk() {
   if (!S.ask) return "";
@@ -2239,6 +2287,9 @@ document.addEventListener("click", e => {
     case "cancelSession": ask("Annulli questa sessione per tutti?", "Annulla sessione", () => { S.modal = null; run(async () => { await store.deleteSession(d.g, d.s); toast("Sessione annullata."); }); }); break;
     case "fGameChip": S.fGame = S.fGame === d.game ? "all" : d.game; render(); break;
     case "clearFilters": S.fGame = S.fGroup = S.fYear = S.fMonth = "all"; render(); break;
+    case "openTut": S.menuOpen = false; S.modal = { type: "tut", i: 0 }; render(); break;
+    case "tutGo": if (S.modal?.type === "tut") { S.modal.i = +d.i; S.modal.moved = true; render(); } break;
+    case "tutClose": S.modal = null; render(); if (!S.me.tutorialSeen) { S.me.tutorialSeen = true; run(() => store.setProfile({ tutorialSeen: true })); } break;
     case "pushBannerOff": S.me.pushBanner = "off"; render(); run(() => store.setProfile({ pushBanner: "off" })); toast(L("Puoi attivarle quando vuoi dal menu del profilo, alla voce Notifiche.", "You can turn them on anytime from the profile menu, under Notifications.")); break;
     case "pushMenu": {
       const ps = pushState(); S.menuOpen = false;
@@ -2290,7 +2341,7 @@ document.addEventListener("click", e => {
 });
 
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") { if (S.ask) S.ask = null; else if (S.menuOpen) S.menuOpen = false; else S.modal = null; render(); return; }
+  if (e.key === "Escape") { if (S.ask) S.ask = null; else if (S.menuOpen) S.menuOpen = false; else if (S.modal?.type === "tut") { document.querySelector('[data-action="tutClose"]')?.click(); return; } else S.modal = null; render(); return; }
   if (e.key !== "Enter") return;
   const map = { setupUser: "saveSetupUser", invQ: "inviteUser", demoName: "demoNew", nameInput: "saveName", authPw: "emailIn", pasteInput: "usePaste", gName: "saveGroup" };
   const act = map[e.target.id];
