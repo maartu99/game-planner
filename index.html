@@ -974,7 +974,10 @@ function render() {
   const keep = {}; let focusId = null, sel = null;
   document.querySelectorAll("[data-keep]").forEach(el => { keep[el.id] = el.value; });
   const ae = document.activeElement;
-  if (ae && ae.id) { focusId = ae.id; try { sel = ae.selectionStart; } catch (e) {} }
+  // Il focus si ridà solo ai campi di testo: ridarlo a una tendina o a un campo data
+  // dopo il ridisegno la riapre da sola (succede su iPhone)
+  if (ae && ae.id && ae.tagName !== "SELECT" && !/^(date|time|checkbox|radio)$/.test(ae.type || "")) { focusId = ae.id; try { sel = ae.selectionStart; } catch (e) {} }
+  if (ae && ae.tagName === "SELECT") ae.blur();
   const sheetScroll = document.querySelector(".sheet")?.scrollTop || 0;
 
   if (S.me && S.me.username && !S.me.tutorialSeen && !S.tutAuto && !S.modal && !S.pendingJoin && !S.ask) { S.tutAuto = true; S.modal = { type: "tut", i: 0 }; }
