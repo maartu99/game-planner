@@ -14,7 +14,7 @@ const db = getFirestore(), fcm = getMessaging();
 const APP = "https://maartu99.github.io/game-planner/";
 const TZ = "Europe/Rome";
 const NOW = Date.now();
-const FRESH = 6 * 3600e3;            // si notificano solo novità delle ultime 6 ore
+const FRESH = 24 * 3600e3;           // si notificano solo novità delle ultime 24 ore (GitHub può ritardare i giri)
 const REMIND_FROM_HOUR = 10;          // promemoria del giorno prima, dalle 10
 const ymdIn = d => new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(d);
 const TODAY = ymdIn(new Date(NOW)), TOMORROW = ymdIn(new Date(NOW + 864e5));
@@ -58,6 +58,14 @@ function rsvpOf(avail, s, u) {
   if (base === "no") return "no";
   const r = (s.rsvps || {})[u]; if (r) return r;
   return (a.over || {})[s.date] || base;
+}
+
+// ---- diagnosi: quanti dispositivi sono registrati ed eventuali errori di attivazione
+{
+  const us = await db.collection("users").get(); let devs = 0, people = 0;
+  us.forEach(d => { const u = d.data(); users[d.id] = u; const n = (u.pushTokens || []).length; devs += n; if (n) people++;
+    if (u.pushError) console.log(`::notice::Errore attivazione (${d.id.slice(0, 5)}): ${u.pushError.msg} | iOS ${u.pushError.ios} standalone ${u.pushError.standalone} permesso ${u.pushError.perm}`); });
+  console.log(`::notice::Dispositivi registrati: ${devs} (persone: ${people})`);
 }
 
 // ---- inviti dentro l'app

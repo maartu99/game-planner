@@ -447,6 +447,7 @@ function makeLocalStore() {
     logout() { db.current = null; save(); },
     setName(n) { me().name = n; save(); },
     async enablePush() { throw new Error("demo"); },
+    async reportPushError() {},
     async disablePush() {},
     setGameDay(gid, date, v) { const o = ((me().over ||= {})[gid] ||= {}); if (v) o[date] = v; else delete o[date]; save(); },
     setDays(map) { const d = me().days ||= {}; for (const [k, v] of Object.entries(map)) { if (v) d[k] = v; else delete d[k]; } save(); },
@@ -706,10 +707,12 @@ async function makeFirebaseStore(cfg) {
       const old = (() => { try { return localStorage.getItem("gp-push"); } catch (e) { return null; } })();
       const b = F.writeBatch(db), ref = F.doc(db, "users", uid);
       if (old && old !== token) b.set(ref, { pushTokens: F.arrayRemove(old) }, { merge: true });
-      b.set(ref, { pushTokens: F.arrayUnion(token), lang: LANG }, { merge: true });
+      b.set(ref, { pushTokens: F.arrayUnion(token), lang: LANG, pushError: F.deleteField() }, { merge: true });
       await b.commit();
       try { localStorage.setItem("gp-push", token); } catch (e) {}
     },
+    // Diagnosi: se l'attivazione fallisce, il motivo si salva nel profilo (lo legge il controllo su GitHub)
+    reportPushError: msg => F.setDoc(F.doc(db, "users", uid), { pushError: { msg: String(msg).slice(0, 300), at: Date.now(), ios: IS_IOS, standalone: STANDALONE, perm: ("Notification" in window) ? Notification.permission : "none" } }, { merge: true }).catch(() => {}),
     async disablePush() {
       const old = (() => { try { return localStorage.getItem("gp-push"); } catch (e) { return null; } })();
       if (old) await F.setDoc(F.doc(db, "users", uid), { pushTokens: F.arrayRemove(old) }, { merge: true });
@@ -901,7 +904,7 @@ let pushRefreshed = false;
 function refreshPush() {
   // Il token può cambiare nel tempo: all'apertura si aggiorna in silenzio se le notifiche sono già permesse
   if (pushRefreshed || !S.me || !VAPID_KEY || store?.demo || !pushToken() || !("Notification" in window) || Notification.permission !== "granted") return;
-  pushRefreshed = true; store.enablePush().catch(e => console.error(e));
+  pushRefreshed = true; store.enablePush().catch(e => { console.error(e); store.reportPushError?.(`refresh: ${e?.code || ""} ${e?.message || e}`); });
 }
 let notifiedInv = null;
 function browserNotify() {
@@ -2304,7 +2307,7 @@ document.addEventListener("click", e => {
       Notification.requestPermission().then(p => {
         if (p !== "granted") { render(); return; }
         return store.enablePush().then(() => { render(); toast(L("Notifiche attivate su questo dispositivo.", "Notifications turned on for this device.")); });
-      }).catch(e => { console.error(e); const msg = String(e?.code || e?.message || e).slice(0, 120); try { localStorage.setItem("gp-push-err", msg); } catch (x) {} render(); toast(L("Notifiche non attivate: ", "Notifications not turned on: ") + msg); });
+      }).catch(e => { console.error(e); const msg = String(e?.code || e?.message || e).slice(0, 120); try { localStorage.setItem("gp-push-err", msg); } catch (x) {} store.reportPushError?.(`${e?.code || ""} ${e?.message || e}`); render(); toast(L("Notifiche non attivate: ", "Notifications not turned on: ") + msg); });
       break;
     }
     case "enableNotif": Notification.requestPermission().then(p => { render(); if (p === "granted") toast("Avvisi attivati su questo dispositivo."); }); break;
