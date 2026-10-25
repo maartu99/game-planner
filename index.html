@@ -2364,6 +2364,8 @@ document.addEventListener("keydown", e => {
   if (inv) { try { sessionStorage.setItem("gp-join", JSON.stringify(inv)); } catch (e) {} history.replaceState(null, "", location.pathname); }
   else { try { inv = JSON.parse(sessionStorage.getItem("gp-join") || "null"); } catch (e) {} }
   S.pendingJoin = inv;
+  // Link dalle notifiche: ?open=prop|prog apre Sessioni nella sezione giusta
+  try { const o = new URLSearchParams(location.search).get("open"); if (o === "prop" || o === "prog") { S.tab = "serate"; S.sFilter = o; history.replaceState(null, "", location.pathname); } } catch (e) {}
   // Service worker: rende l'app installabile su Android (così i link di invito aprono l'app)
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(e => console.error(e));
   try { store = FIREBASE_CONFIG ? await makeFirebaseStore(FIREBASE_CONFIG) : makeLocalStore(); }
