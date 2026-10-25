@@ -2307,7 +2307,7 @@ document.addEventListener("click", e => {
       if (ps !== "ask") { toast(PUSH_LABEL()); render(); break; }
       // La richiesta del permesso deve partire subito dal tocco (iPhone lo pretende)
       Notification.requestPermission().then(p => {
-        if (p !== "granted") { render(); return; }
+        if (p !== "granted") { render(); toast(p === "denied" ? L("Permesso negato: riattivalo da Impostazioni, Notifiche, Game Planner.", "Permission denied: turn it on in Settings, Notifications, Game Planner.") : L("Il telefono non ha mostrato la richiesta. Prova da Impostazioni, Notifiche, Game Planner, oppure rimuovi l'icona dalla Home e aggiungila di nuovo.", "The phone did not show the prompt. Try Settings, Notifications, Game Planner, or remove the Home Screen icon and add it again.")); return; }
         return store.enablePush().then(() => { render(); toast(L("Notifiche attivate su questo dispositivo.", "Notifications turned on for this device.")); });
       }).catch(e => { console.error(e); const msg = String(e?.code || e?.message || e).slice(0, 120); try { localStorage.setItem("gp-push-err", msg); } catch (x) {} store.reportPushError?.(`${e?.code || ""} ${e?.message || e}`); render(); toast(L("Notifiche non attivate: ", "Notifications not turned on: ") + msg); });
       break;
