@@ -897,13 +897,14 @@ function pushState() {
   if (IS_IOS && !STANDALONE) return "ios-home";
   if (!("Notification" in window) || !("serviceWorker" in navigator)) return "unsupported";
   if (Notification.permission === "denied") return "denied";
-  return Notification.permission === "granted" && pushToken() && (S.me?.pushTokens || []).includes(pushToken()) ? "on" : "ask";
+  if (Notification.permission === "granted") return pushToken() && (S.me?.pushTokens || []).includes(pushToken()) ? "on" : "retry";
+  return "ask";
 }
-const PUSH_LABEL = () => ({ on: L("Attive", "On"), ask: L("Non attive", "Off"), "ios-home": L("Aggiungi l'app alla schermata Home", "Add the app to your Home Screen"), denied: L("Bloccate nelle impostazioni", "Blocked in settings"), unsupported: L("Non disponibili su questo browser", "Not available in this browser"), off: L("Presto disponibili", "Coming soon") })[pushState()];
+const PUSH_LABEL = () => ({ on: L("Attive", "On"), ask: L("Non attive", "Off"), retry: L("Attivazione in corso", "Activating"), "ios-home": L("Aggiungi l'app alla schermata Home", "Add the app to your Home Screen"), denied: L("Bloccate nelle impostazioni", "Blocked in settings"), unsupported: L("Non disponibili su questo browser", "Not available in this browser"), off: L("Presto disponibili", "Coming soon") })[pushState()];
 let pushRefreshed = false;
 function refreshPush() {
   // Il token può cambiare nel tempo: all'apertura si aggiorna in silenzio se le notifiche sono già permesse
-  if (pushRefreshed || !S.me || !VAPID_KEY || store?.demo || !pushToken() || !("Notification" in window) || Notification.permission !== "granted") return;
+  if (pushRefreshed || !S.me || !VAPID_KEY || store?.demo || !("Notification" in window) || Notification.permission !== "granted") return;
   pushRefreshed = true; store.enablePush().catch(e => { console.error(e); store.reportPushError?.(`refresh: ${e?.code || ""} ${e?.message || e}`); });
 }
 let notifiedInv = null;
@@ -1393,7 +1394,7 @@ function renderSerate() {
     top = `${groupSel}<button class="btn ind full" data-action="openProp">${ic("campaign", "s22")}Proponi una sessione</button>`;
     list = sorted.length ? sorted.map(x => renderProposal(x)) : [`<div class="card dashed">${L("Nessuna proposta aperta. Proponi una sessione e il gruppo potrà rispondere Sì, Forse o No.", "No open proposals. Propose a session and the group can answer Yes, Maybe or No.")}</div>`];
   } else {
-    const ps = pushState(), dismissed = S.me.pushBanner === "off";
+    const ps = pushState(), dismissed = S.me.pushBanner === "off" || (() => { try { return localStorage.getItem("gp-push-off") === "1"; } catch (e) { return false; } })();
     top = groupSel + (dismissed ? "" : ps === "ask" ? `<div class="lav-card"><p style="font-size:14px;line-height:20px">${L("Vuoi le notifiche sul telefono, anche ad app chiusa? Sessioni confermate, proposte, inviti e promemoria del giorno prima.", "Want notifications on your phone, even with the app closed? Confirmed sessions, proposals, invites and day-before reminders.")}</p><div class="row" style="gap:8px"><button class="btn ind sm" style="min-height:40px;box-shadow:none" data-action="pushMenu">${L("Attiva notifiche", "Turn on notifications")}</button><button class="btn link sm" style="min-height:40px" data-action="pushBannerOff">${L("Non ora", "Not now")}</button></div>${(() => { try { const er = localStorage.getItem("gp-push-err"); return er ? `<span class="t12 muted">${L("Ultimo errore", "Last error")}: ${esc(er)}</span>` : ""; } catch (e) { return ""; } })()}</div>`
       : ps === "ios-home" ? `<div class="lav-card"><p class="t13">${L("Per ricevere le notifiche su iPhone aggiungi l'app alla schermata Home (Condividi, Aggiungi alla schermata Home) e aprila da lì.", "To get notifications on iPhone add the app to your Home Screen (Share, Add to Home Screen) and open it from there.")}</p><button class="btn link sm" style="align-self:flex-start;min-height:36px" data-action="pushBannerOff">${L("Non mostrare più", "Don't show again")}</button></div>` : "");
     list = upcoming.length ? upcoming.map(x => eventCard(x.g, x.sid, x.s)) : [`<div class="card dashed">${L("Nessuna sessione in programma. Quando un admin conferma una sessione, la trovi qui.", "No scheduled sessions. When an admin confirms a session, you'll find it here.")}</div>`];
@@ -2296,12 +2297,13 @@ document.addEventListener("click", e => {
     case "openTut": S.menuOpen = false; S.modal = { type: "tut", i: 0 }; render(); break;
     case "tutGo": if (S.modal?.type === "tut") { S.modal.i = +d.i; S.modal.moved = true; render(); } break;
     case "tutClose": S.modal = null; render(); if (!S.me.tutorialSeen) { S.me.tutorialSeen = true; run(() => store.setProfile({ tutorialSeen: true })); } break;
-    case "pushBannerOff": S.me.pushBanner = "off"; render(); run(() => store.setProfile({ pushBanner: "off" })); toast(L("Puoi attivarle quando vuoi dal menu del profilo, alla voce Notifiche.", "You can turn them on anytime from the profile menu, under Notifications.")); break;
+    case "pushBannerOff": try { localStorage.setItem("gp-push-off", "1"); } catch (e) {} S.me.pushBanner = "off"; render(); run(() => store.setProfile({ pushBanner: "off" })); toast(L("Puoi attivarle quando vuoi dal menu del profilo, alla voce Notifiche.", "You can turn them on anytime from the profile menu, under Notifications.")); break;
     case "pushMenu": {
       const ps = pushState(); S.menuOpen = false;
       if (ps === "on") { ask(L("Disattivi le notifiche su questo dispositivo?", "Turn off notifications on this device?"), L("Disattiva", "Turn off"), () => run(async () => { await store.disablePush(); render(); toast(L("Notifiche disattivate.", "Notifications turned off.")); })); break; }
       if (ps === "ios-home") { toast(L("Su iPhone: Condividi, Aggiungi alla schermata Home, poi apri l'app da lì.", "On iPhone: Share, Add to Home Screen, then open the app from there.")); render(); break; }
       if (ps === "denied") { toast(L("Le notifiche sono bloccate: riattivale dalle impostazioni del telefono per questo sito.", "Notifications are blocked: allow them in your phone settings for this site.")); render(); break; }
+      if (ps === "retry") { store.enablePush().then(() => { render(); toast(L("Notifiche attivate su questo dispositivo.", "Notifications turned on for this device.")); }).catch(e => { toast(L("Notifiche non attivate: ", "Notifications not turned on: ") + String(e?.code || e?.message || e).slice(0, 120)); }); break; }
       if (ps !== "ask") { toast(PUSH_LABEL()); render(); break; }
       // La richiesta del permesso deve partire subito dal tocco (iPhone lo pretende)
       Notification.requestPermission().then(p => {
