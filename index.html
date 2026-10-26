@@ -876,6 +876,9 @@ function notifications() {
   const props = allProposals().filter(x => x.p.by !== me).map(x => ({ kind: "prop", key: x.g.id + x.pid, at: x.p.createdAt || 0, ...x }));
   return [...evs, ...props].map(n => ({ ...n, unread: n.at > seen })).sort((a, b) => b.at - a.at);
 }
+// Link alla chat del gruppo: solo servizi di chat noti e solo https
+const CHAT_HOSTS = ["chat.whatsapp.com", "wa.me", "discord.gg", "discord.com", "t.me", "telegram.me", "signal.group", "signal.me"];
+function safeChat(u) { try { const x = new URL(String(u || "").trim()); if (x.protocol !== "https:") return ""; return CHAT_HOSTS.includes(x.hostname.replace(/^www\./, "")) ? x.href : ""; } catch (e) { return ""; } }
 const sessionText = (g, s) => L(`Confermato! ${longDate(s.date, true)} alle ${s.time || DEFAULT_TIME} si gioca a ${g.game} (gruppo ${g.name})${s.location ? ", " + s.location : ""}.${s.notes ? " " + s.notes : ""} Conferma la tua presenza su Game Planner: ${location.origin + location.pathname}`,
   `Confirmed! ${longDate(s.date, true)} at ${s.time || DEFAULT_TIME} we play ${g.game} (group ${g.name})${s.location ? ", " + s.location : ""}.${s.notes ? " " + s.notes : ""} Confirm you're coming on Game Planner: ${location.origin + location.pathname}`);
 let notifiedKeys = null;
@@ -1208,6 +1211,7 @@ function renderGroup(g) {
       <span style="font-size:15px;font-weight:600">${esc(g.game)}</span>
       <span class="t13 muted">${ruleText(g)}</span>
       ${incomplete(g) ? `<span class="t13" style="font-weight:700;color:var(--warn-t)">${missingText(g)}</span>` : ""}
+      ${safeChat(g.chat) ? `<a class="btn p m44" style="margin-top:6px" href="${esc(safeChat(g.chat))}" target="_blank" rel="noopener noreferrer">${ic("forum")}${L("Apri la chat del gruppo", "Open the group chat")}</a>` : admin ? `<span class="t12 muted">${L("Puoi aggiungere il link alla chat del gruppo (WhatsApp, Discord...) da Modifica.", "You can add the group chat link (WhatsApp, Discord...) from Edit.")}</span>` : ""}
       <div class="info">${ic("shield_person")}<span>${admin ? "Sei admin: inviti, gestisci i giocatori e confermi le sessioni." : L(`Admin: ${esc(byName(g, adminsOf(g)).map(u => nameIn(g, u)).join(", "))}. Sono loro a confermare le sessioni.`, `Admins: ${esc(byName(g, adminsOf(g)).map(u => nameIn(g, u)).join(", "))}. They confirm the sessions.`)}</span></div>
     </div>
     <div class="card stack g4">
@@ -1421,8 +1425,9 @@ function eventCard(g, sid, s) {
     <div class="chips">${chips}</div>
     <div class="stack g6"><span class="t12" style="font-weight:700">La tua risposta <span class="faint">· puoi cambiarla quando vuoi</span></span>${answersSeg(mine, "rsvp", `data-g="${g.id}" data-s="${sid}"`)}</div>
     <div class="grid2" style="gap:6px"><button class="btn m44" style="font-size:12px" data-action="ics" data-g="${g.id}" data-s="${sid}">Aggiungi al calendario</button><a class="btn m44" style="font-size:12px" href="${esc(gcalLink(g, s))}" target="_blank" rel="noopener">Google Calendar</a></div>
+    <a class="btn m44" style="font-size:13px" href="https://wa.me/?text=${encodeURIComponent(sessionText(g, s))}" target="_blank" rel="noopener noreferrer">${ic("ios_share")}${L("Condividi su WhatsApp", "Share on WhatsApp")}</a>
     ${admin ? `<div class="grid2" style="gap:6px;border-top:1px solid var(--soft);padding-top:10px"><button class="btn m44" data-action="revoke" data-g="${g.id}" data-s="${sid}">${ic("undo")}Revoca conferma</button><button class="btn rose m44" data-action="cancelSession" data-g="${g.id}" data-s="${sid}">Annulla sessione</button></div>
-      <button class="btn link sm" style="align-self:center;min-height:36px;font-size:12px" data-action="openF6" data-g="${g.id}" data-s="${sid}">${ic("share", "s16")}${L("Avvisa anche su WhatsApp o email", "Also notify via WhatsApp or email")}</button>` : ""}
+      <button class="btn link sm" style="align-self:center;min-height:36px;font-size:12px" data-action="openF6" data-g="${g.id}" data-s="${sid}">${ic("share", "s16")}${L("Avvisa per email o copia il messaggio", "Notify by email or copy the message")}</button>` : ""}
   </div>`;
 }
 function renderGiocate() {
@@ -1448,6 +1453,13 @@ function renderGiocate() {
   const N = filtered.length;
   const sel = (id, label, opts) => `<select id="${id}" class="sel small" data-change="${id}" aria-label="${label}">${opts.map(([v, l]) => `<option value="${esc(v)}" ${S[id] === v ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
   const pd = topFirst && parseYmd(topFirst);
+  // Statistiche: con chi giochi di più e quante settimane di fila hai giocato
+  const co = {}; hist.forEach(x => x.g.members.filter(u => u !== me && rsvpOf(x.g, x.s, u) !== "no").forEach(u => { const k = nameIn(x.g, u); co[k] = (co[k] || 0) + 1; }));
+  const topCo = Object.entries(co).sort((a, b) => b[1] - a[1] || byNameStr(a[0], b[0])).slice(0, 3);
+  const wk = ds => { const d = parseYmd(ds); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+  const weeks = new Set(hist.map(x => wk(x.s.date)));
+  let streak = 0; { const d = parseYmd(todayStr()); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); const key = () => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; if (!weeks.has(key())) d.setDate(d.getDate() - 7); while (weeks.has(key())) { streak++; d.setDate(d.getDate() - 7); } }
+  const thisYear = String(new Date().getFullYear()), nYear = hist.filter(x => x.s.date.startsWith(thisYear)).length;
   const myTag = x => { const v = rsvpOf(x.g, x.s, me); return v === "yes" ? `<span class="tag c-mint">Ci sono</span>` : v === "maybe" ? `<span class="tag c-peach">Forse</span>` : v === "no" ? `<span class="tag c-err">Non posso</span>` : `<span class="tag c-grey">${L("Da rispondere", "To answer")}</span>`; };
   return `<h1 class="h1 mb16">Storico</h1>
     <div class="card stack g12 mb16">
@@ -1455,6 +1467,9 @@ function renderGiocate() {
       <p style="font-size:14px;line-height:20px">${nx ? L(`Prossima giocata: ${longDate(nx.s.date)} alle ${esc(nx.s.time || DEFAULT_TIME)}, ${esc(nx.g.game)} con ${esc(nx.g.name)}.`, `Next game: ${longDate(nx.s.date)} at ${esc(nx.s.time || DEFAULT_TIME)}, ${esc(nx.g.game)} with ${esc(nx.g.name)}.`) : "Nessuna giocata in programma."}</p>
       <div class="seg c3" style="background:transparent;padding:0;gap:8px">${[[inProg.length, "in programma"], [hist.length, "giocate in totale"], [ranked.length, "giochi provati"]].map(([n, l]) => `<div class="counter"><b>${n}</b><span>${l}</span></div>`).join("")}</div>
       ${ranked.length ? `<div class="chips" style="gap:6px">${ranked.map(([gm, c]) => `<button class="gchip ${S.fGame === gm ? "on" : ""}" data-action="fGameChip" data-game="${esc(gm)}">${esc(gm)}: ${c}</button>`).join("")}</div>` : ""}
+      ${hist.length ? `<div class="stack g4" style="border-top:1px solid var(--soft3);padding-top:10px">
+        <p class="t13">${L(`Quest'anno hai giocato ${nYear} ${nYear === 1 ? "volta" : "volte"}.`, `This year you played ${nYear} ${nYear === 1 ? "time" : "times"}.`)}${streak >= 2 ? " " + L(`Sono ${streak} settimane di fila con almeno una giocata.`, `That's ${streak} weeks in a row with at least one game.`) : ""}</p>
+        ${topCo.length ? `<p class="t13 muted">${L("Giochi più spesso con", "You play most often with")}: ${topCo.map(([n, c]) => `${esc(n)} (${c})`).join(", ")}.</p>` : ""}</div>` : ""}
       ${top ? `<p class="t13 muted">${L(`Il gioco a cui hai giocato di più è ${esc(top)}; la prima giocata registrata è del ${pd.getDate()} ${MONTHS()[pd.getMonth()]} ${pd.getFullYear()}.`, `Your most played game is ${esc(top)}; the first recorded play was on ${pd.getDate()} ${MONTHS()[pd.getMonth()]} ${pd.getFullYear()}.`)}</p>` : ""}
     </div>
     ${pool.length ? `<div class="grid2 mb10">
@@ -1576,6 +1591,8 @@ function renderModal() {
       ${gameSel === "__new" ? `<label class="lbl">Nome del nuovo gioco<input id="gGame" data-keep class="in" placeholder="Es. Pathfinder" value="${esc(M.newName || "")}"></label>` : ""}
       <label class="lbl">Minimo di giocatori per giocare<select id="gMin" class="in" data-change="gMin">${["2", "3", "4", "5", "6", "7", "8", "9", "10"].map(n => `<option ${n === min ? "selected" : ""}>${n}</option>`).join("")}</select></label>
       <p class="t12 muted" style="margin-top:-6px">${L("Una sessione compare tra quelle possibili quando almeno questo numero di giocatori ha detto SI. L'admin può comunque confermare una sessione anche con meno persone.", "A session shows as possible when at least this many players said YES. An admin can still confirm a session with fewer people.")}</p>
+      <label class="lbl">${L("Link alla chat del gruppo (facoltativo)", "Group chat link (optional)")}<input id="gChat" data-keep class="in" type="url" autocapitalize="off" autocorrect="off" placeholder="https://chat.whatsapp.com/..." value="${esc(M.chatDraft ?? g?.chat ?? "")}"></label>
+      <p class="t12 muted" style="margin-top:-6px">${L("WhatsApp, Discord, Telegram o Signal. Chi è nel gruppo vede un pulsante per aprire la chat.", "WhatsApp, Discord, Telegram or Signal. Group members get a button to open the chat.")}</p>
       ${errSlot("gErr")}
       ${twoBtns(cancelBtn(), `<button class="btn p" data-action="saveGroup">${g ? "Salva" : "Crea gruppo"}</button>`)}`;
   } else if (M.type === "f3") {
@@ -2122,7 +2139,9 @@ document.addEventListener("click", e => {
       const name = val("gName"), game = S.gameSel === "__new" ? val("gGame") : S.gameSel;
       if (!name || !game) { showErr("gErr", "Scrivi il nome del gruppo e il gioco."); break; }
       const min = +(document.getElementById("gMin")?.value || 4);
-      const data = { name, game, rule: "min", min }, gid = S.modal.gid;
+      const chatRaw = val("gChat"), chat = chatRaw ? safeChat(chatRaw) : "";
+      if (chatRaw && !chat) { showErr("gErr", L("Il link alla chat non è valido: usa un link https di WhatsApp, Discord, Telegram o Signal.", "The chat link is not valid: use an https link from WhatsApp, Discord, Telegram or Signal.")); break; }
+      const data = { name, game, rule: "min", min, chat }, gid = S.modal.gid;
       if (!(S.me.games || []).includes(game)) run(() => store.setProfile({ games: [...(S.me.games || []), game] }));
       S.modal = null;
       if (gid) run(() => store.updateGroup(gid, data));
@@ -2132,7 +2151,7 @@ document.addEventListener("click", e => {
     }
     case "openGames": {
       const n = S.gameSel === "__new" ? val("gGame") : "";
-      S.modal = { type: "games", back: { ...S.modal, type: "f2", newName: n, nameDraft: val("gName"), min: document.getElementById("gMin")?.value || S.modal.min } }; S.gameDrafts = {};
+      S.modal = { type: "games", back: { ...S.modal, type: "f2", newName: n, nameDraft: val("gName"), chatDraft: val("gChat"), min: document.getElementById("gMin")?.value || S.modal.min } }; S.gameDrafts = {};
       if (!(S.me.games || []).length && myGames().length) run(() => store.setProfile({ games: myGames() }));
       render(); break;
     }
