@@ -19,6 +19,8 @@ const REMIND_FROM_HOUR = 10;          // promemoria del giorno prima, dalle 10
 const ymdIn = d => new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(d);
 const TODAY = ymdIn(new Date(NOW)), TOMORROW = ymdIn(new Date(NOW + 864e5));
 const HOUR = +new Intl.DateTimeFormat("en-GB", { timeZone: TZ, hour: "2-digit", hour12: false }).format(new Date(NOW));
+const MINUTES = HOUR * 60 + +new Intl.DateTimeFormat("en-GB", { timeZone: TZ, minute: "2-digit" }).format(new Date(NOW));
+const TODAY_FROM = 9 * 60 + 30;       // promemoria del giorno stesso, dalle 9:30
 
 const T = {
   it: { dows: ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"], months: ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"], at: "alle" },
@@ -34,13 +36,14 @@ async function user(uid) {
   return users[uid];
 }
 let sent = 0;
-async function notify(key, uids, build) {
+// cat: tipo di notifica; ognuno può spegnere quelli che non vuole (profilo: pushPrefs)
+async function notify(key, uids, build, cat) {
   const logRef = db.collection("pushLog").doc(key);
   if ((await logRef.get()).exists) return;
   await logRef.set({ at: NOW });
   for (const uid of new Set(uids)) {
     const u = await user(uid), tokens = u.pushTokens || [];
-    if (!tokens.length) continue;
+    if (!tokens.length || (cat && (u.pushPrefs || {})[cat] === false)) continue;
     const { title, body, tag, open } = build(u.lang === "en" ? "en" : "it");
     let res;
     try { res = await fcm.sendEachForMulticast({ tokens, data: { title, body, url: open ? APP + "?open=" + open : APP, tag: tag || key }, webpush: { headers: { Urgency: "high", TTL: "86400" } } }); }
@@ -74,7 +77,7 @@ for (const d of (await db.collection("invitations").get()).docs) {
   if (NOW - ms(i.createdAt) > FRESH) continue;
   await notify(`inv_${d.id}_${ms(i.createdAt)}`, [i.to], l => l === "en"
     ? { title: "New group invite", body: `${i.byName} invites you to the group ${i.groupName}${i.game ? ` (${i.game})` : ""}.` }
-    : { title: "Nuovo invito", body: `${i.byName} ti invita nel gruppo ${i.groupName}${i.game ? ` (${i.game})` : ""}.` });
+    : { title: "Nuovo invito", body: `${i.byName} ti invita nel gruppo ${i.groupName}${i.game ? ` (${i.game})` : ""}.` }, "inv");
 }
 
 // ---- gruppi: sessioni confermate, proposte, sessioni a rischio, promemoria
@@ -93,20 +96,23 @@ for (const gDoc of (await db.collection("groups").get()).docs) {
     const by = s.confirmedBy || s.createdBy;
     if (NOW - ms(s.confirmedAt) < FRESH) await notify(`ev_${gid}_${sd.id}`, members.filter(u => u !== by), l => l === "en"
       ? { title: `Game on: ${g.game}`, body: `${nameOf(by)} confirmed ${when(l, s.date, s.time)} with ${g.name}${s.location ? `, ${s.location}` : ""}.`, open: "prog" }
-      : { title: `Si gioca: ${g.game}`, body: `${nameOf(by)} ha confermato ${when(l, s.date, s.time)} con ${g.name}${s.location ? `, ${s.location}` : ""}.`, open: "prog" });
+      : { title: `Si gioca: ${g.game}`, body: `${nameOf(by)} ha confermato ${when(l, s.date, s.time)} con ${g.name}${s.location ? `, ${s.location}` : ""}.`, open: "prog" }, "ev");
     const yes = members.filter(u => rsvpOf(avail, s, u) === "yes").length;
     if (yes < need(g)) await notify(`risk_${gid}_${sd.id}_${s.date}`, admins, l => l === "en"
       ? { title: `At risk: ${g.game}`, body: `${when(l, s.date, s.time)}: ${yes} of ${members.length} are in, the minimum is ${need(g)}. Decide whether to keep, move or revoke it.`, open: "prog" }
-      : { title: `A rischio: ${g.game}`, body: `${when(l, s.date, s.time)}: ci sono ${yes} su ${members.length}, il minimo è ${need(g)}. Decidi se tenerla, spostarla o revocarla.`, open: "prog" });
+      : { title: `A rischio: ${g.game}`, body: `${when(l, s.date, s.time)}: ci sono ${yes} su ${members.length}, il minimo è ${need(g)}. Decidi se tenerla, spostarla o revocarla.`, open: "prog" }, "risk");
     if (s.date === TOMORROW && HOUR >= REMIND_FROM_HOUR) await notify(`rem_${gid}_${sd.id}_${s.date}`, members.filter(u => rsvpOf(avail, s, u) !== "no"), l => l === "en"
       ? { title: `Tomorrow: ${g.game}`, body: `Tomorrow ${T.en.at} ${s.time || "21:00"} with ${g.name}${s.location ? `, ${s.location}` : ""}.`, open: "prog" }
-      : { title: `Domani si gioca a ${g.game}`, body: `Domani ${T.it.at} ${s.time || "21:00"} con ${g.name}${s.location ? `, ${s.location}` : ""}.`, open: "prog" });
+      : { title: `Domani si gioca a ${g.game}`, body: `Domani ${T.it.at} ${s.time || "21:00"} con ${g.name}${s.location ? `, ${s.location}` : ""}.`, open: "prog" }, "rem");
+    if (s.date === TODAY && MINUTES >= TODAY_FROM) await notify(`today_${gid}_${sd.id}_${s.date}`, members.filter(u => rsvpOf(avail, s, u) !== "no"), l => l === "en"
+      ? { title: `Game day: ${g.game}`, body: `Today ${T.en.at} ${s.time || "21:00"} with ${g.name}${s.location ? `, ${s.location}` : ""}.`, open: "prog" }
+      : { title: `Oggi si gioca a ${g.game}`, body: `Oggi ${T.it.at} ${s.time || "21:00"} con ${g.name}${s.location ? `, ${s.location}` : ""}.`, open: "prog" }, "today");
   }
   for (const pd of proposals.docs) {
     const p = pd.data(); if (p.date < TODAY || NOW - ms(p.createdAt) > FRESH) continue;
     await notify(`prop_${gid}_${pd.id}`, members.filter(u => u !== p.by), l => l === "en"
       ? { title: `New proposal: ${g.game}`, body: `${nameOf(p.by)} proposes ${when(l, p.date, p.time)} to ${g.name}. Answer in Sessions.`, open: "prop" }
-      : { title: `Nuova proposta: ${g.game}`, body: `${nameOf(p.by)} propone ${when(l, p.date, p.time)} al gruppo ${g.name}. Rispondi in Sessioni.`, open: "prop" });
+      : { title: `Nuova proposta: ${g.game}`, body: `${nameOf(p.by)} propone ${when(l, p.date, p.time)} al gruppo ${g.name}. Rispondi in Sessioni.`, open: "prop" }, "prop");
   }
 }
 console.log(`::notice::Notifiche inviate: ${sent}`);

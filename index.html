@@ -1387,7 +1387,7 @@ function renderMenu() {
       ${item("accPwd", "lock", "Password", S.me.provider === "google" ? "Gestita da Google" : "••••••••")}
       ${item("accPhone", "smartphone", "Telefono", S.me.phone || "Non impostato")}
       ${item("openTut", "school", L("Tutorial", "Tutorial"), L("Rivedi come funziona l'app", "See how the app works"))}
-      ${item("pushMenu", "notifications_active", L("Notifiche", "Notifications"), PUSH_LABEL())}
+      ${item("openNotifPrefs", "notifications_active", L("Notifiche", "Notifications"), PUSH_LABEL())}
       ${item("openAvatar", "face", "Avatar", "")}
       <div class="mi" style="cursor:default">${ic("contrast")}<span class="mi-txt"><b>Tema</b></span>
         <div class="toggle2"><button class="${theme === "light" ? "on" : ""}" data-action="theme" data-v="light" aria-label="Chiaro">${ic("light_mode")}</button><button class="${theme === "dark" ? "on" : ""}" data-action="theme" data-v="dark" aria-label="Scuro">${ic("dark_mode")}</button></div></div>
@@ -1925,6 +1925,17 @@ function renderModal() {
       <label class="lbl">Note<textarea id="sNotes" data-keep class="in" rows="2" placeholder="Es. portate le schede, si cena prima">${esc(d.notes || "")}</textarea></label>
       ${errSlot("sErr")}
       ${twoBtns(cancelBtn(), `<button class="btn p" data-action="submitF5">Conferma</button>`)}`;
+  } else if (M.type === "notif") {
+    const ps = pushState(), pr = S.me.pushPrefs || {};
+    const cats = [["inv", L("Inviti nei gruppi", "Group invites"), ""], ["prop", L("Nuove proposte", "New proposals"), ""], ["ev", L("Sessioni confermate", "Confirmed sessions"), ""],
+      ["today", L("Oggi si gioca", "Game day"), L("La mattina del giorno della sessione, verso le 9:30", "On the morning of the session, around 9:30")], ["rem", L("Domani si gioca", "Game tomorrow"), L("Il giorno prima, dalle 10", "The day before, from 10:00")],
+      ["risk", L("Sessioni a rischio", "Sessions at risk"), L("Solo se sei admin: quando una sessione scende sotto il minimo", "Only if you're admin: when a session drops below the minimum")]];
+    inner = `${titleBlock(L("Notifiche", "Notifications"), "")}
+      <div class="card stack g8" style="padding:14px"><div class="row between" style="gap:10px"><span class="t13" style="font-weight:700">${L("Su questo telefono", "On this phone")}</span><span class="t13 muted">${esc(PUSH_LABEL())}</span></div>
+        ${ps === "on" ? `<button class="btn m44" data-action="pushMenu">${L("Disattiva su questo telefono", "Turn off on this phone")}</button>` : ps === "ask" || ps === "retry" ? `<button class="btn p m44" data-action="pushMenu">${L("Attiva su questo telefono", "Turn on for this phone")}</button>` : ps === "ios-home" ? `<p class="t12 muted">${L("Su iPhone aggiungi l'app alla schermata Home e aprila da lì.", "On iPhone add the app to your Home Screen and open it from there.")}</p>` : ""}</div>
+      <div class="stack g4"><span class="t13" style="font-weight:700">${L("Cosa vuoi ricevere", "What you want to get")}</span><span class="t12 muted">${L("Vale per tutti i tuoi telefoni.", "Applies to all your phones.")}</span></div>
+      <div class="stack" style="gap:2px">${cats.map(([k, t, sub]) => `<button class="toggle" data-action="pushCat" data-k="${k}" style="align-items:center"><span class="stack" style="gap:1px;text-align:left"><span>${t}</span>${sub ? `<span class="t12 muted" style="font-weight:400">${sub}</span>` : ""}</span><span class="sw ${pr[k] === false ? "" : "on"}"><i></i></span></button>`).join("")}</div>
+      <button class="btn link m44" data-action="closeModal">${L("Fatto", "Done")}</button>`;
   } else if (M.type === "f6") {
     const g = getGroup(M.gid), s = g?.sessions?.[M.sid];
     if (!s) { S.modal = null; return ""; }
@@ -2632,6 +2643,8 @@ document.addEventListener("click", e => {
     case "tutGo": if (S.modal?.type === "tut") { S.modal.i = +d.i; S.modal.moved = true; render(); } break;
     case "tutClose": S.modal = null; render(); if (!S.me.tutorialSeen) { S.me.tutorialSeen = true; run(() => store.setProfile({ tutorialSeen: true })); } break;
     case "pushBannerOff": try { localStorage.setItem("gp-push-off", "1"); } catch (e) {} S.me.pushBanner = "off"; render(); run(() => store.setProfile({ pushBanner: "off" })); toast(L("Puoi attivarle quando vuoi dal menu del profilo, alla voce Notifiche.", "You can turn them on anytime from the profile menu, under Notifications.")); break;
+    case "openNotifPrefs": S.menuOpen = false; S.modal = { type: "notif" }; render(); break;
+    case "pushCat": { const pr = { ...(S.me.pushPrefs || {}) }; pr[d.k] = pr[d.k] === false; S.me.pushPrefs = pr; render(); run(() => store.setProfile({ pushPrefs: pr })); break; }
     case "pushMenu": {
       const ps = pushState(); S.menuOpen = false;
       if (ps === "on") { ask(L("Disattivi le notifiche su questo dispositivo?", "Turn off notifications on this device?"), L("Disattiva", "Turn off"), () => run(async () => { await store.disablePush(); render(); toast(L("Notifiche disattivate.", "Notifications turned off.")); })); break; }
