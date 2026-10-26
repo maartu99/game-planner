@@ -82,6 +82,83 @@ h1,h2,h3{margin:0}
 .av .ms{font-size:22px;font-variation-settings:"FILL" 1}
 .av.ring{box-shadow:0 0 0 3px #a5f3cd}
 .demo-bar{background:var(--peach);color:var(--peach-t);font-size:12px;font-weight:600;text-align:center;padding:6px 12px}
+/* ===== HOME ===== */
+.home{display:flex;flex-direction:column;gap:22px}
+.h-hello small{display:block;font-size:12px;font-weight:800;color:var(--faint);text-transform:uppercase;letter-spacing:.06em}
+.h-hello h1{font-size:27px;line-height:33px;font-weight:800}
+.h-sec{display:flex;flex-direction:column;gap:10px}
+.h-sec>.h-head{display:flex;align-items:center;gap:8px}
+.h-sec>.h-head h2{font-size:18px;font-weight:800}
+.h-cnt{min-width:24px;height:24px;padding:0 7px;border-radius:12px;background:var(--orange);color:#fff;font-size:13px;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
+.htodo{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:18px;background:var(--card);border:1px solid var(--line);box-shadow:var(--sh1)}
+.htodo .hic{width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;flex:none}
+.htodo .k{font-size:12px;font-weight:700;color:var(--faint)}
+.htodo .t{font-size:15px;font-weight:800;line-height:20px}
+.htodo .s{font-size:13px;color:var(--muted)}
+.hbtns{display:flex;gap:6px;flex-wrap:wrap}
+.hb{min-height:40px;border-radius:999px;border:1px solid var(--line2);background:var(--card);color:var(--text);font-size:14px;font-weight:700;padding:0 14px;display:inline-flex;align-items:center;gap:6px}
+.hb:active{transform:scale(.95)}
+.hb.yes{background:var(--mint);color:var(--mint-t);border-color:transparent}.hb.maybe{background:var(--peach);color:var(--peach-t);border-color:transparent}.hb.no{background:var(--err-bg);color:var(--err-t);border-color:transparent}
+.hb.p{background:var(--primary);color:#fff;border-color:transparent}.hb.ind{background:var(--indigo);color:#fff;border-color:transparent}
+.hmore{align-self:flex-start;font-size:13px}
+.hdone{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:18px;background:var(--card);border:1px solid var(--line)}
+.hdone .ck{width:44px;height:44px;border-radius:50%;background:var(--mint);color:var(--mint-t);display:flex;align-items:center;justify-content:center;flex:none}
+.hnext{border-radius:26px;background:var(--gc);color:#fff;padding:20px;display:flex;flex-direction:column;gap:14px;position:relative;overflow:hidden}
+.hnext:before{content:"";position:absolute;right:-34px;top:-34px;width:150px;height:150px;border-radius:40px;background:rgba(255,255,255,.08);transform:rotate(18deg)}
+.hnext .lab{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.8)}
+.hnext .gname{font-size:23px;line-height:28px;font-weight:800}
+.hnext .game{font-size:15px;font-weight:600;color:rgba(255,255,255,.82)}
+.hnext .when{font-size:31px;line-height:34px;font-weight:800;color:#ffd3a8;text-align:right}
+.hnext .when2{font-size:13px;font-weight:700;color:rgba(255,255,255,.85);text-align:right}
+.hnext .info{display:flex;flex-direction:column;gap:6px;padding:11px 13px;border-radius:16px;background:rgba(255,255,255,.12);font-size:14px}
+.hnext .info span{display:flex;gap:8px;align-items:flex-start}
+.hav{display:flex}
+.hav i{font-style:normal;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;background:#fff;color:#16302a;border:3px solid #7ee2b0;margin-left:-8px}
+.hav i:first-child{margin-left:0}
+.hav i.maybe{border-color:#ffc078}.hav i.no{opacity:.45;border-color:#ff9b95}.hav i.wait{border:3px dashed #ffd3a8;background:rgba(255,255,255,.18);color:#fff}
+.hnudge{display:flex;align-items:center;gap:10px;min-height:46px;padding:0 14px;border-radius:14px;border:1px dashed #ffd3a8;background:rgba(255,211,168,.14);color:#ffe7d1;font-size:14px;font-weight:700;text-decoration:none}
+.hseg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.hseg button{min-height:44px;border-radius:14px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-size:14px;font-weight:700}
+.hseg button.on{background:#fff;color:#16302a;border-color:#fff}
+.hacts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.hacts>*{min-height:44px;border-radius:14px;border:0;background:#fff;color:#16302a;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none}
+.pulse{width:10px;height:10px;border-radius:50%;background:#ffb070;flex:none}
+.hweek{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.hday{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 0 9px;border-radius:16px;background:var(--card);border:1px solid var(--line);color:var(--text);min-width:0}
+.hday.today{background:var(--primary);border-color:var(--primary);color:#fff}
+.hday .w{font-size:11px;font-weight:700;opacity:.75;text-transform:uppercase}
+.hday .n{font-size:17px;font-weight:800;line-height:1}
+.hday .bar{width:22px;height:5px;border-radius:3px;background:var(--soft3)}
+.hday .bar.yes{background:#34c38f}.hday .bar.maybe{background:#f5a524}.hday .bar.no{background:#ef6461}
+.hday .dots{display:flex;gap:3px;height:7px}
+.hday .dots b{width:7px;height:7px;border-radius:50%;background:var(--gc)}
+.hday .dots b.pr{background:transparent;border:2px solid var(--gc);box-sizing:border-box}
+.hday.today .dots b{box-shadow:0 0 0 1.5px #fff}
+.hfree{border-radius:22px;border:2px dashed var(--lav-line);background:var(--lav);color:var(--lav-t);padding:16px;display:flex;gap:14px;align-items:center}
+.hfree .die{width:52px;height:52px;border-radius:16px;background:var(--indigo);color:#fff;display:flex;align-items:center;justify-content:center;flex:none;transform:rotate(-8deg)}
+.hgroups{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:0 16px 4px;scrollbar-width:none}
+.hgroups::-webkit-scrollbar{display:none}
+.hg{flex:none;width:164px;border-radius:20px;padding:14px;display:flex;flex-direction:column;gap:8px;scroll-snap-align:start;background:var(--gl);color:var(--gd);border:0;text-align:left}
+.hg .nm{font-size:15px;font-weight:800;color:var(--text)}
+.hg .gm{font-size:12px;font-weight:600;color:var(--muted)}
+.hg .st{font-size:13px;font-weight:700}
+.hmem{display:flex;gap:12px;align-items:center;padding:14px 16px;border-radius:18px;background:var(--card);border:1px solid var(--line)}
+.gc0{--gc:#1b6d4f;--gl:#e3f6ec;--gd:#1b6d4f}.gc1{--gc:#4d3c88;--gl:#ece6ff;--gd:#4d3c88}.gc2{--gc:#9a4a00;--gl:#ffeedd;--gd:#8f4e00}.gc3{--gc:#0a5f8a;--gl:#ddf1fd;--gd:#075985}.gc4{--gc:#a3214a;--gl:#ffe3ec;--gd:#9f1239}
+:root[data-theme="dark"] .gc0{--gl:#173a2c;--gd:#8fe0bb}:root[data-theme="dark"] .gc1{--gl:#2a2350;--gd:#cfc3ff}:root[data-theme="dark"] .gc2{--gl:#3d2a17;--gd:#ffc78f}:root[data-theme="dark"] .gc3{--gl:#123a52;--gd:#bae6fd}:root[data-theme="dark"] .gc4{--gl:#46192a;--gd:#fda4bf}
+.h-in{animation:hIn .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes hIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.pulse.anim{animation:hPulse 1.6s ease-in-out infinite}
+@keyframes hPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.6);opacity:.35}}
+.wig{animation:hWig .9s ease-in-out 1.2s 2}
+@keyframes hWig{0%,100%{transform:rotate(0)}25%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}75%{transform:rotate(-2deg)}}
+.htodo.leaving{animation:hOut .32s ease-in forwards}
+@keyframes hOut{to{opacity:0;transform:translateX(60px)}}
+.hdone.pop{animation:hPop .5s cubic-bezier(.2,.9,.3,1.3) both}
+@keyframes hPop{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
+.confetti{position:fixed;left:0;right:0;top:0;height:70vh;pointer-events:none;z-index:40;overflow:hidden}
+.confetti i{position:absolute;top:-20px;width:9px;height:14px;border-radius:2px;animation:hFall 2.4s cubic-bezier(.3,.6,.4,1) both}
+@keyframes hFall{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(70vh) rotate(540deg);opacity:0}}
+@media (prefers-reduced-motion: reduce){.home *,.confetti{animation:none!important}.confetti{display:none}}
 .main{padding:20px 16px calc(100px + env(safe-area-inset-bottom))}
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--bg);border-top:1px solid var(--soft3);padding-bottom:env(safe-area-inset-bottom)}
 .nav-in{max-width:480px;margin:0 auto;display:flex;justify-content:space-around;padding:6px 8px 10px}
@@ -411,7 +488,7 @@ function parseInvite(str) {
 
 const S = {
   authState: "loading", me: null, groups: {}, demoUsers: [],
-  tab: "gruppi", groupId: null, brush: "yes",
+  tab: "home", groupId: null, brush: "yes",
   dMonth: curMonth(), sMonth: curMonth(), sGroup: "all", sFilter: "poss", onlyPossible: true,
   fGame: "all", fGroup: "all", fYear: "all", fMonth: "all",
   modal: null, ask: null, menuOpen: false, invIn: [], invOut: [], authErr: "", pendingJoin: null, gameSel: "", gameDrafts: {},
@@ -1117,6 +1194,108 @@ const avatarHtml = (cls = "") => {
   return `<span class="av ${cls}" style="background:${esc(col)}">${icon ? ic(icon) : esc((S.me.name || "?").trim().charAt(0).toUpperCase())}</span>`;
 };
 
+// ----- HOME -----
+// Colore di un gruppo: sempre lo stesso per lo stesso gruppo
+const gColor = g => { let h = 0; for (const ch of String(g.id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return "gc" + (h % 5); };
+const initials = n => String(n || "?").replace(/[._]/g, " ").trim().split(/\s+/).slice(0, 2).map(w => w.charAt(0).toUpperCase()).join("") || "?";
+const startOf = s => { const [hh, mm] = (s.time || DEFAULT_TIME).split(":").map(Number); const d = parseYmd(s.date); d.setHours(hh || 0, mm || 0, 0, 0); return d; };
+function whenBig(s) {
+  const today = todayStr(), diff = Math.round((parseYmd(s.date) - parseYmd(today)) / 864e5), t = s.time || DEFAULT_TIME;
+  const hrs = Math.max(0, Math.round((startOf(s) - Date.now()) / 36e5));
+  if (diff <= 0) return [+t.slice(0, 2) >= 17 ? L("Stasera", "Tonight") : L("Oggi", "Today"), hrs >= 1 ? L(`alle ${t} · tra ${hrs} ${hrs === 1 ? "ora" : "ore"}`, `at ${t} · in ${hrs} ${hrs === 1 ? "hour" : "hours"}`) : L(`alle ${t} · ci siamo`, `at ${t} · it's time`)];
+  if (diff === 1) return [L("Domani", "Tomorrow"), L(`alle ${t}`, `at ${t}`)];
+  if (diff < 7) return [cap(DOWS()[parseYmd(s.date).getDay()]), L(`alle ${t} · tra ${diff} giorni`, `at ${t} · in ${diff} days`)];
+  return [L(`Tra ${diff} giorni`, `In ${diff} days`), `${dayMonth(s.date)} ${L("alle", "at")} ${t}`];
+}
+let homeAnimated = false, homeTodoPrev = null, confettiUntil = 0;
+function homeTodos() {
+  const me = S.me.uid, out = [];
+  for (const i of S.invIn || []) out.push({ ic: "group_add", col: "gc3", k: L("Invito", "Invite"), t: L(`${esc(i.byName)} ti invita in ${esc(i.groupName)}`, `${esc(i.byName)} invites you to ${esc(i.groupName)}`), s: i.game ? esc(i.game) : "",
+    b: `<button class="hb p" data-action="acceptInv" data-id="${esc(i.id)}" data-leave="1">${L("Accetta", "Accept")}</button><button class="hb" data-action="declineInv" data-id="${esc(i.id)}">${L("Rifiuta", "Decline")}</button>` });
+  for (const x of allProposals()) if (!ansOf(x.p, me) && !propImpossible(x.g, x.p)) out.push({ ic: "campaign", col: gColor(x.g), k: L(`Proposta da ${esc(nameIn(x.g, x.p.by))}`, `Proposal by ${esc(nameIn(x.g, x.p.by))}`), t: `${esc(x.g.name)} · ${esc(x.g.game)}`, s: `${cap(longDate(x.p.date))}${x.p.time ? L(" alle ", " at ") + esc(x.p.time) : ""}`,
+    b: ["yes", "maybe", "no"].map((v, i) => `<button class="hb ${v}" data-action="propAnswer" data-g="${x.g.id}" data-pid="${x.pid}" data-v="${v}" data-leave="1">${[L("Sì", "Yes"), L("Forse", "Maybe"), "No"][i]}</button>`).join("") });
+  for (const x of allSessions()) if (!ended(x.s) && !rsvpOf(x.g, x.s, me)) out.push({ ic: "event_available", col: gColor(x.g), k: L("Sessione confermata, manca la tua risposta", "Confirmed session, your answer is missing"), t: `${esc(x.g.name)} · ${esc(x.g.game)}`, s: `${cap(longDate(x.s.date))}${L(" alle ", " at ")}${esc(x.s.time || DEFAULT_TIME)}`,
+    b: ["yes", "maybe", "no"].map((v, i) => `<button class="hb ${v}" data-action="rsvp" data-g="${x.g.id}" data-s="${x.sid}" data-v="${v}" data-leave="1">${[L("Ci sono", "I'm in"), L("Forse", "Maybe"), L("Non posso", "Can't")][i]}</button>`).join("") });
+  for (const x of allProposals()) if (isAdmin(x.g) && x.g.members.filter(u => ansOf(x.p, u) === "yes").length >= need(x.g)) out.push({ ic: "verified", col: "gc0", k: L("Sei admin", "You're admin"), t: L(`${esc(x.g.name)}: ci sono abbastanza Sì`, `${esc(x.g.name)}: enough Yes answers`), s: `${cap(longDate(x.p.date))}${x.p.time ? L(" alle ", " at ") + esc(x.p.time) : ""}`,
+    b: `<button class="hb p" data-action="openF5" data-g="${x.g.id}" data-date="${x.p.date}" data-pid="${x.pid}">${L("Conferma la sessione", "Confirm the session")}</button>` });
+  for (const x of allSessions()) if (isAdmin(x.g) && atRisk(x.g, x.s)) out.push({ ic: "warning", col: "gc2", k: L("Sei admin · a rischio", "You're admin · at risk"), t: L(`${esc(x.g.name)}: ${yesCount(x.g, x.s)} su ${x.g.members.length}, minimo ${need(x.g)}`, `${esc(x.g.name)}: ${yesCount(x.g, x.s)} of ${x.g.members.length}, minimum ${need(x.g)}`), s: `${cap(longDate(x.s.date))}${L(" alle ", " at ")}${esc(x.s.time || DEFAULT_TIME)}`,
+    b: `<button class="hb" data-action="openEv" data-g="${x.g.id}" data-s="${x.sid}">${L("Decidi", "Decide")}</button>` });
+  const today = todayStr(), marked = Object.keys(S.me.days || {}).filter(k => k >= today && k <= addDays(today, 13)).length;
+  if (groupList().length && !marked) out.push({ ic: "edit_calendar", col: "gc1", k: L("Disponibilità", "Availability"), t: L("Non hai segnato nessun giorno delle prossime due settimane", "You haven't marked any day in the next two weeks"), s: L("Servono per trovare quando si può giocare.", "They're needed to find when you can play."),
+    b: `<button class="hb ind" data-action="tab" data-tab="disp">${L("Segna i giorni", "Mark your days")}</button>` });
+  return out;
+}
+function renderHome() {
+  const me = S.me.uid, today = todayStr(), groups = groupList(), anim = !homeAnimated;
+  const inA = (i) => anim ? ` h-in" style="animation-delay:${(i * 0.07).toFixed(2)}s` : "";
+  if (!groups.length && !(S.invIn || []).length) return `<div class="home"><div class="h-hello"><small>${cap(longDate(today))}</small><h1>${L("Benvenuto!", "Welcome!")}</h1></div>
+    <div class="card dashed">${L("Per cominciare crea un gruppo o entra in uno con un invito.", "To start, create a group or join one with an invite.")} <a data-action="tab" data-tab="gruppi">${L("Vai su Gruppi", "Go to Groups")}</a></div></div>`;
+  const todos = homeTodos();
+  if (homeTodoPrev !== null && homeTodoPrev > 0 && !todos.length) { confettiUntil = Date.now() + 2600; setTimeout(() => { if (S.tab === "home") render(); }, 2700); }
+  const justDone = homeTodoPrev !== null && homeTodoPrev > 0 && !todos.length;
+  homeTodoPrev = todos.length;
+  const next = allSessions().find(x => !ended(x.s) && rsvpOf(x.g, x.s, me) !== "no");
+  const dow = new Date().getDay();
+  const hello = next && next.s.date === today ? L("Oggi si gioca!", "Game day!") : !todos.length && !next ? L("Niente in programma: chi propone?", "Nothing planned: who proposes?") : dow === 5 ? L("Venerdì sera, profumo di partita", "Friday night, smells like a game") : dow === 6 || dow === 0 ? L("Weekend: dadi pronti?", "Weekend: dice ready?") : L("Pronti a tirare i dadi?", "Ready to roll the dice?");
+  const parts = [`<div class="h-hello${inA(0)}"><small>${cap(longDate(today))}</small><h1>${hello}</h1></div>`];
+  // Da fare
+  if (todos.length) parts.push(`<section class="h-sec${inA(1)}"><div class="h-head"><h2>${L("Da fare", "To do")}</h2><span class="h-cnt">${todos.length}</span></div>
+    ${todos.slice(0, 5).map(t => `<div class="htodo"><div class="row" style="gap:10px;align-items:flex-start"><span class="hic ${t.col}" style="background:var(--gc)">${ic(t.ic, "fill")}</span><div class="stack" style="gap:1px;min-width:0"><span class="k">${t.k}</span><span class="t">${t.t}</span>${t.s ? `<span class="s">${t.s}</span>` : ""}</div></div><div class="hbtns">${t.b}</div></div>`).join("")}
+    ${todos.length > 5 ? `<a class="hmore" data-action="tab" data-tab="serate">${L(`Altre ${todos.length - 5} in Sessioni`, `${todos.length - 5} more in Sessions`)}</a>` : ""}</section>`);
+  else if (groups.length) parts.push(`<div class="hdone${justDone ? " pop" : ""}${inA(1)}"><span class="ck">${ic("check", "fill")}</span><div class="stack" style="gap:2px"><b style="font-size:16px">${L("Tutto fatto", "All done")}</b><span class="t13 muted">${L("Nessuna risposta in sospeso.", "No answers pending.")}</span></div></div>`);
+  // Prossima sessione
+  if (next) {
+    const { g, s, sid } = next, [w1, w2] = whenBig(s), mine = rsvpOf(g, s, me);
+    const mem = byName(g, g.members).map(u => ({ u, n: nameIn(g, u), v: rsvpOf(g, s, u) }));
+    const yes = mem.filter(m => m.v === "yes").length, wait = mem.filter(m => !m.v && m.u !== me);
+    const nudgeTxt = L(`Ciao! ${cap(longDate(s.date))} alle ${s.time || DEFAULT_TIME} si gioca a ${g.game} con ${g.name}. Ci sei? Rispondi su Game Planner: ${location.origin + location.pathname}`, `Hi! ${cap(longDate(s.date))} at ${s.time || DEFAULT_TIME} we play ${g.game} with ${g.name}. Are you in? Answer on Game Planner: ${location.origin + location.pathname}`);
+    parts.push(`<section class="hnext ${gColor(g)}${inA(2)}">
+      <div class="lab"><span class="pulse${anim || true ? " anim" : ""}"></span>${L("Prossima sessione", "Next session")}</div>
+      <div class="row between" style="align-items:flex-end;gap:12px"><div class="stack" style="min-width:0"><span class="gname">${esc(g.name)}</span><span class="game">${esc(g.game)}</span></div><div class="stack" style="flex:none;align-items:flex-end"><span class="when">${w1}</span><span class="when2">${w2}</span></div></div>
+      ${s.location || s.notes ? `<div class="info">${s.location ? `<span>${ic("location_on", "s18")}${esc(s.location)}</span>` : ""}${s.notes ? `<span>${ic("sticky_note_2", "s18")}${esc(s.notes)}</span>` : ""}</div>` : ""}
+      <div class="row" style="gap:12px"><div class="hav">${mem.slice(0, 7).map(m => `<i class="${m.v === "yes" ? "" : m.v === "maybe" ? "maybe" : m.v === "no" ? "no" : "wait"}" title="${esc(m.n)}">${esc(initials(m.n))}</i>`).join("")}</div><span style="font-size:13px;font-weight:600;color:rgba(255,255,255,.85)">${L(`${yes} su ${mem.length} ci sono`, `${yes} of ${mem.length} in`)}${wait.length ? L(` · ${wait.length} in attesa`, ` · ${wait.length} waiting`) : ""}</span></div>
+      ${wait.length ? `<a class="hnudge" href="https://wa.me/?text=${encodeURIComponent(nudgeTxt)}" target="_blank" rel="noopener noreferrer">${ic("campaign")}<span class="grow">${wait.length === 1 ? L(`Manca ${esc(wait[0].n)}: mandale un messaggio`, `${esc(wait[0].n)} hasn't answered: send a message`) : L(`Mancano ${wait.length} risposte: manda un messaggio`, `${wait.length} answers missing: send a message`)}</span>${ic("chevron_right")}</a>` : ""}
+      <div class="stack" style="gap:6px"><span style="font-size:12px;font-weight:700;color:rgba(255,255,255,.85)">${L("La tua risposta", "Your answer")}</span><div class="hseg">${["yes", "maybe", "no"].map((v, i) => `<button class="${mine === v ? "on" : ""}" data-action="rsvp" data-g="${g.id}" data-s="${sid}" data-v="${v}">${[L("Ci sono", "I'm in"), L("Forse", "Maybe"), L("Non posso", "Can't")][i]}</button>`).join("")}</div></div>
+      <div class="hacts"><button data-action="ics" data-g="${g.id}" data-s="${sid}">${ic("event", "s18")}${L("Calendario", "Calendar")}</button><a href="https://wa.me/?text=${encodeURIComponent(sessionText(g, s))}" target="_blank" rel="noopener noreferrer">${ic("ios_share", "s18")}WhatsApp</a></div>
+    </section>`);
+  }
+  // Prossimi 7 giorni
+  const days = Array.from({ length: 7 }, (_, i) => addDays(today, i));
+  parts.push(`<section class="h-sec${inA(3)}"><div class="h-head"><h2 class="grow">${L("Prossimi 7 giorni", "Next 7 days")}</h2><span class="t12 muted" style="font-weight:600">${L("la barretta è la tua disponibilità", "the bar is your availability")}</span></div>
+    <div class="hweek">${days.map(k => { const d = parseYmd(k), v = (S.me.days || {})[k] || "";
+      const ses = allSessions().filter(x => x.s.date === k), prs = allProposals().filter(x => x.p.date === k);
+      const dots = [...ses.map(x => `<b class="${gColor(x.g)}"></b>`), ...prs.map(x => `<b class="pr ${gColor(x.g)}"></b>`)].slice(0, 3).join("");
+      return `<button class="hday ${k === today ? "today" : ""}" data-action="openF4" data-date="${k}" aria-label="${esc(longDate(k))}"><span class="w">${DOWS()[d.getDay()].slice(0, 3)}</span><span class="n">${d.getDate()}</span><span class="bar ${v}"></span><span class="dots">${dots}</span></button>`; }).join("")}</div></section>`);
+  // Serata libera
+  let free = null;
+  for (let i = 0; i < 30 && !free; i++) { const k = addDays(today, i), n = night(k, "all");
+    const e = n.possible.find(e => e.status === "ok" && !allProposals().some(x => x.g.id === e.g.id && x.p.date === k)); if (e) free = { k, e }; }
+  if (free) { const { k, e } = free, all = e.yes === e.M;
+    parts.push(`<section class="hfree${inA(4)}"><span class="die">${ic("casino", "fill s22")}</span><div class="stack" style="gap:8px;min-width:0"><span style="font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase">${all ? L("Serata libera per tutti", "A free night for everyone") : L("Si può giocare", "You can play")}</span>
+      <span style="font-size:15px;font-weight:700;line-height:20px">${all ? L(`${cap(longDate(k))} siete tutti liberi per ${esc(e.g.name)}.`, `${cap(longDate(k))} everyone in ${esc(e.g.name)} is free.`) : L(`${cap(longDate(k))} siete in ${e.yes} liberi per ${esc(e.g.name)}, il minimo è ${e.need}.`, `${cap(longDate(k))} ${e.yes} are free in ${esc(e.g.name)}, the minimum is ${e.need}.`)} ${L("Nessuno ha ancora proposto.", "Nobody has proposed yet.")}</span>
+      <button class="hb ind${anim ? " wig" : ""}" style="align-self:flex-start" data-action="openProp" data-g="${e.g.id}" data-date="${k}">${ic("add", "s18")}${L(`Proponi ${DOWS()[parseYmd(k).getDay()].toLowerCase()}`, `Propose ${DOWS()[parseYmd(k).getDay()]}`)}</button></div></section>`); }
+  // Gruppi
+  if (groups.length) parts.push(`<section class="h-sec${inA(5)}"><div class="h-head"><h2>${L("I tuoi gruppi", "Your groups")}</h2></div><div class="hgroups">${groups.map(g => {
+    const up = allSessions().find(x => x.g.id === g.id && !ended(x.s)), pr = allProposals().find(x => x.g.id === g.id);
+    const last = allSessions().filter(x => x.g.id === g.id && ended(x.s)).pop(), idle = last ? Math.floor((parseYmd(today) - parseYmd(last.s.date)) / 864e5) : null;
+    const [icn, st] = up ? ["local_fire_department", up.s.date === today ? L("Si gioca oggi", "Playing today") : L(`Si gioca ${DOWS()[parseYmd(up.s.date).getDay()].slice(0, 3)} ${parseYmd(up.s.date).getDate()}`, `Playing ${DOWS()[parseYmd(up.s.date).getDay()].slice(0, 3)} ${parseYmd(up.s.date).getDate()}`)]
+      : incomplete(g) ? ["group_add", L(`Mancano ${need(g) - g.members.length} giocatori`, `${need(g) - g.members.length} players missing`)]
+      : pr ? ["campaign", L(`Proposta aperta: ${dayMonth(pr.p.date)}`, `Open proposal: ${dayMonth(pr.p.date)}`)]
+      : idle !== null && idle >= 21 ? ["bedtime", L(`Fermo da ${Math.floor(idle / 7)} settimane`, `Idle for ${Math.floor(idle / 7)} weeks`)]
+      : ["event_busy", L("Niente in programma", "Nothing planned")];
+    return `<button class="hg ${gColor(g)}" data-action="homeGroup" data-g="${g.id}">${ic(icn, "fill s22")}<span class="stack" style="gap:1px"><span class="nm">${esc(g.name)}</span><span class="gm">${esc(g.game)}</span></span><span class="st">${st}</span></button>`; }).join("")}</div></section>`);
+  // Ricordo
+  const played = playedAll(), yearAgo = addDays(today, -365);
+  const memo = played.find(x => x.s.date >= addDays(yearAgo, -3) && x.s.date <= addDays(yearAgo, 3)), lastP = played[played.length - 1];
+  const memTxt = memo ? L(`<b>Un anno fa</b> giocavate a ${esc(memo.g.game)} con ${esc(memo.g.name)}.`, `<b>A year ago</b> you played ${esc(memo.g.game)} with ${esc(memo.g.name)}.`)
+    : lastP ? (() => { const dd = Math.floor((parseYmd(today) - parseYmd(lastP.s.date)) / 864e5), n = lastP.g.members.filter(u => rsvpOf(lastP.g, lastP.s, u) !== "no").length;
+      return L(`<b>L'ultima volta</b>, ${dd === 0 ? "oggi" : dd === 1 ? "ieri" : `${dd} giorni fa`}, ${esc(lastP.g.game)} con ${esc(lastP.g.name)}: eravate in ${n}.`, `<b>Last time</b>, ${dd === 0 ? "today" : dd === 1 ? "yesterday" : `${dd} days ago`}, ${esc(lastP.g.game)} with ${esc(lastP.g.name)}: ${n} of you.`); })() : "";
+  if (memTxt) parts.push(`<div class="hmem${inA(6)}">${ic("history", "s22")}<span class="t14" style="font-size:14px;line-height:20px;color:var(--muted)">${memTxt}</span></div>`);
+  if (anim) setTimeout(() => { homeAnimated = true; }, 50);
+  const conf = Date.now() < confettiUntil ? `<div class="confetti" aria-hidden="true">${Array.from({ length: 18 }, (_, i) => `<i style="left:${(i * 5.5 + 3) % 97}%;animation-delay:${((i * 7) % 6) / 10}s;background:${["#34c38f", "#f5a524", "#7c6cf2", "#38bdf8"][i % 4]}"></i>`).join("")}</div>` : "";
+  return `<div class="home">${parts.join("")}</div>${conf}`;
+}
+
 function renderApp() {
   const today = todayStr(), me = S.me.uid;
   const pendingEv = allSessions().filter(x => !ended(x.s) && !rsvpOf(x.g, x.s, me)).length;
@@ -1124,7 +1303,8 @@ function renderApp() {
   const pendingProp = allProposals().filter(x => !ansOf(x.p, me)).length;
   const unread = notifications().filter(n => n.unread).length + (S.invIn || []).length + allSessions().filter(x => isAdmin(x.g) && atRisk(x.g, x.s)).length;
   let body;
-  if (S.tab === "gruppi") body = S.groupId ? renderGroup(getGroup(S.groupId)) : renderGroups();
+  if (S.tab === "home") body = renderHome();
+  else if (S.tab === "gruppi") body = S.groupId ? renderGroup(getGroup(S.groupId)) : renderGroups();
   else if (S.tab === "disp") body = renderDisp();
   else if (S.tab === "serate") body = renderSerate();
   else body = renderGiocate();
@@ -1140,7 +1320,7 @@ function renderApp() {
     ${S.menuOpen ? renderMenu() : ""}
     <main class="main">${body}</main>
     <nav class="nav"><div class="nav-in">
-      ${tab("gruppi", "groups", "Gruppi", (S.invIn || []).length)}${tab("disp", "event_available", "Calendario")}${tab("serate", "casino", "Sessioni", pendingProp + pendingEv + riskN)}${tab("giocate", "history_edu", "Storico")}
+      ${tab("home", "home", "Home")}${tab("gruppi", "groups", "Gruppi", (S.invIn || []).length)}${tab("disp", "event_available", "Calendario")}${tab("serate", "casino", "Sessioni", pendingProp + pendingEv + riskN)}${tab("giocate", "history_edu", "Storico")}
     </div></nav>
   </div>`;
 }
@@ -1630,7 +1810,7 @@ function renderModal() {
     const groups = groupList(), d = M.draft || {};
     inner = `${titleBlock("Proponi una sessione", "Il gruppo riceve la proposta e ognuno risponde Sì, Forse o No.")}
       <label class="lbl">Gruppo<select id="pGroup" data-keep class="in" style="font-weight:600"><option value="">Scegli un gruppo</option>${groups.map(g => `<option value="${g.id}" ${g.id === (d.gid || "") ? "selected" : ""}>${esc(g.name)} · ${esc(g.game)}</option>`).join("")}</select></label>
-      <label class="lbl">Giorno<input id="pDate" data-keep class="in" type="date" min="${todayStr()}" max="${LAST_DAY}"></label>
+      <label class="lbl">Giorno<input id="pDate" data-keep class="in" type="date" min="${todayStr()}" max="${LAST_DAY}" value="${esc(d.date || "")}"></label>
       <label class="lbl"><span>Ora <span class="faint">(facoltativa)</span></span><input id="pTime" data-keep class="in" type="time"></label>
       <label class="lbl"><span>Dove <span class="faint">(facoltativo)</span></span><input id="pPlace" data-keep class="in ind" placeholder="Es. da Gigi, via Roma 12"></label>
       <label class="lbl"><span>Descrizione <span class="faint">(facoltativa)</span></span><textarea id="pDesc" data-keep class="in ind" rows="2" placeholder="Es. chiudiamo il capitolo, si cena prima"></textarea></label>
@@ -2144,6 +2324,10 @@ document.addEventListener("click", e => {
   if (!el) return;
   const a = el.dataset.action, d = el.dataset;
   if (el.tagName === "SELECT") return;
+  if (d.leave && !(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+    const card = el.closest(".htodo");
+    if (card && !card.classList.contains("leaving")) { card.classList.add("leaving"); setTimeout(() => el.click(), 300); return; }
+  }
   const g = S.groupId ? getGroup(S.groupId) : null;
   const me = S.me?.uid;
 
@@ -2323,7 +2507,8 @@ document.addEventListener("click", e => {
     }); break;
 
     // proposte
-    case "openProp": S.modal = { type: "prop", draft: { gid: S.sGroup !== "all" ? S.sGroup : (groupList()[0]?.id || "") } }; render(); break;
+    case "openProp": S.modal = { type: "prop", draft: { gid: d.g || (S.sGroup !== "all" ? S.sGroup : (groupList()[0]?.id || "")), date: d.date || "" } }; render(); break;
+    case "homeGroup": S.tab = "gruppi"; S.groupId = d.g; render(); window.scrollTo(0, 0); break;
     case "submitProp": {
       const gid = val("pGroup"), date = val("pDate"), gg = getGroup(gid);
       if (!gg) { showErr("propErr", "Scegli un gruppo."); break; }
