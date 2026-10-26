@@ -375,7 +375,7 @@ input[type=date].in::-webkit-calendar-picker-indicator{margin-left:auto}
 .cal{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px 8px}
 .cal-h,.cal-g{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .cal-h{margin-bottom:6px}
-.cal-top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px 10px}
+.cal-top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 2px}
 .cal-top b{font-size:17px;font-weight:800}
 .cal-top button{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--soft);color:var(--text);display:flex;align-items:center;justify-content:center}
 .cal-top button:disabled{opacity:.3}
@@ -1531,11 +1531,11 @@ function renderDisp() {
     ${hasGroups ? ""
       : `<div class="peach-box mb12">Ricorda: per vedere quando si gioca devi far parte di almeno un gruppo. <a data-action="tab" data-tab="gruppi" style="color:inherit">Vai ai tuoi gruppi.</a></div>`}
     <div class="seg c4 brushbar mb12">${brush("yes", "SI")}${brush("maybe", "FORSE")}${brush("no", "NO")}${brush("clear", "Cancella")}</div>
-    ${monthStep(S.dMonth, "dMonthStep")}
-    <div class="cal mb12">
+    <div class="stack g8 mb12">${monthStep(S.dMonth, "dMonthStep")}
+    <div class="cal">
       <div class="cal-h">${L(["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"], ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]).map(w => `<span>${w}</span>`).join("")}</div>
       <div class="cal-g">${cells}</div>
-    </div>
+    </div></div>
     <p class="sub mb12">${L(`Hai segnato ${marked} giorni su ${keys.length} da qui a fine mese.`, `You've marked ${marked} of ${keys.length} days until the end of the month.`)}</p>
     <div class="grid2" style="margin-bottom:6px"><button class="btn" style="font-size:13px" data-action="fillEmpty">Applica ai giorni vuoti</button><button class="btn" style="font-size:13px" data-action="fillWeekend">Applica ai weekend</button></div>
     <button class="btn redtxt m44 full" data-action="clearMonth">Svuota mese</button>
@@ -1612,7 +1612,7 @@ function renderSerate() {
     return `<div class="cal"><div class="cal-h">${L(["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"], ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]).map(w => `<span>${w}</span>`).join("")}</div><div class="cal-g">${cells}</div></div>
       <p class="t12 muted">${mode === "prop" ? L("Il numero è quante proposte ci sono quel giorno. Giallo: ce n'è una a cui devi rispondere. Tocca un giorno per aprirlo.", "The number is how many proposals that day. Yellow: one needs your answer. Tap a day to open it.") : L("Il numero è quante sessioni ci sono quel giorno. Giallo: devi ancora rispondere. Tocca un giorno per aprirlo.", "The number is how many sessions that day. Yellow: you still need to answer. Tap a day to open it.")}</p>`;
   };
-  let top, list;
+  let top, list, monthBlock = "";
   if (sF === "poss") {
     const keys = monthKeys(S.sMonth);
     const openProp = (g, k) => props.find(x => x.g.id === g.id && x.p.date === k);
@@ -1628,8 +1628,9 @@ function renderSerate() {
         ${rows.map(e => renderRow(e, n.k, false)).join("")}
       </div>`;
     });
-    top = `${monthRow}
+    monthBlock = monthRow + `
       ${sView() === "list" ? `<button class="toggle" data-action="toggleOnly">Solo le sessioni possibili<span class="sw ${onlyPoss() ? "on" : ""}"><i></i></span></button>` : ""}`;
+    top = "";
     if (sView() === "cal") {
       // Calendario del mese: ogni giorno mostra quanti giochi si possono fare; toccandolo si apre il dettaglio
       const [y, m] = S.sMonth.split("-").map(Number), lead = (new Date(y, m - 1, 1).getDay() + 6) % 7, dim = new Date(y, m, 0).getDate();
@@ -1654,11 +1655,13 @@ function renderSerate() {
     // prima quelle a cui devi rispondere, poi quelle aperte, in fondo quelle che non si possono fare
     const rank = x => propImpossible(x.g, x.p) ? 2 : ansOf(x.p, me) ? 1 : 0;
     const sorted = [...props].sort((a, b) => rank(a) - rank(b) || (a.p.date + (a.p.time || "")).localeCompare(b.p.date + (b.p.time || "")));
-    top = `<button class="btn ind full" data-action="openProp">${ic("campaign", "s22")}Proponi una sessione</button>${sView() === "cal" ? monthRow : ""}`;
+    top = `<button class="btn ind full" data-action="openProp">${ic("campaign", "s22")}Proponi una sessione</button>`;
+    if (sView() === "cal") monthBlock = monthRow;
     list = sView() === "cal" ? [simpleCal("prop")] : sorted.length ? sorted.map(x => renderProposal(x)) : [`<div class="card dashed">${L("Nessuna proposta aperta. Proponi una sessione e il gruppo potrà rispondere Sì, Forse o No.", "No open proposals. Propose a session and the group can answer Yes, Maybe or No.")}</div>`];
   } else {
     const ps = pushState(), dismissed = S.me.pushBanner === "off" || (() => { try { if (localStorage.getItem("gp-push-off") === "1") return true; if (ps === "ask" || ps === "ios-home") { if (!localStorage.getItem("gp-push-seen")) { localStorage.setItem("gp-push-seen", "1"); window.__gpPushFirst = true; } return !window.__gpPushFirst; } return false; } catch (e) { return false; } })();
-    top = (sView() === "cal" ? monthRow : "") + (dismissed ? "" : ps === "ask" ? `<div class="lav-card"><p style="font-size:14px;line-height:20px">${L("Vuoi le notifiche sul telefono, anche ad app chiusa? Sessioni confermate, proposte, inviti e promemoria del giorno prima.", "Want notifications on your phone, even with the app closed? Confirmed sessions, proposals, invites and day-before reminders.")}</p><div class="row" style="gap:8px"><button class="btn ind sm" style="min-height:40px;box-shadow:none" data-action="pushMenu">${L("Attiva notifiche", "Turn on notifications")}</button><button class="btn link sm" style="min-height:40px" data-action="pushBannerOff">${L("Non ora", "Not now")}</button></div>${(() => { try { const er = localStorage.getItem("gp-push-err"); return er ? `<span class="t12 muted">${L("Ultimo errore", "Last error")}: ${esc(er)}</span>` : ""; } catch (e) { return ""; } })()}</div>`
+    if (sView() === "cal") monthBlock = monthRow;
+    top = (dismissed ? "" : ps === "ask" ? `<div class="lav-card"><p style="font-size:14px;line-height:20px">${L("Vuoi le notifiche sul telefono, anche ad app chiusa? Sessioni confermate, proposte, inviti e promemoria del giorno prima.", "Want notifications on your phone, even with the app closed? Confirmed sessions, proposals, invites and day-before reminders.")}</p><div class="row" style="gap:8px"><button class="btn ind sm" style="min-height:40px;box-shadow:none" data-action="pushMenu">${L("Attiva notifiche", "Turn on notifications")}</button><button class="btn link sm" style="min-height:40px" data-action="pushBannerOff">${L("Non ora", "Not now")}</button></div>${(() => { try { const er = localStorage.getItem("gp-push-err"); return er ? `<span class="t12 muted">${L("Ultimo errore", "Last error")}: ${esc(er)}</span>` : ""; } catch (e) { return ""; } })()}</div>`
       : ps === "ios-home" ? `<div class="lav-card"><p class="t13">${L("Per ricevere le notifiche su iPhone aggiungi l'app alla schermata Home (Condividi, Aggiungi alla schermata Home) e aprila da lì.", "To get notifications on iPhone add the app to your Home Screen (Share, Add to Home Screen) and open it from there.")}</p><button class="btn link sm" style="align-self:flex-start;min-height:36px" data-action="pushBannerOff">${L("Non mostrare più", "Don't show again")}</button></div>` : "");
     list = sView() === "cal" ? [simpleCal("prog")] : upcoming.length ? upcoming.map(x => eventCard(x.g, x.sid, x.s)) : [`<div class="card dashed">${L("Nessuna sessione in programma. Quando un admin conferma una sessione, la trovi qui.", "No scheduled sessions. When an admin confirms a session, you'll find it here.")}</div>`];
   }
@@ -1667,7 +1670,7 @@ function renderSerate() {
       <div class="seg c3 h40">${tabB("poss", "Possibili")}${tabB("prop", "Proposte", propPending)}${tabB("prog", "In programma", progPending)}</div>
       ${top}
     </div>
-    <div class="stack g12">${list.join("")}</div>`;
+    <div class="stack g8">${monthBlock}<div class="stack g12">${list.join("")}</div></div>`;
 }
 
 // ----- IL TUO ANNO e TRAGUARDI -----
