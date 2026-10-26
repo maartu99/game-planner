@@ -61,7 +61,7 @@ function rsvpOf(avail, s, u) {
 }
 
 // ---- diagnosi: quanti dispositivi sono registrati ed eventuali errori di attivazione
-{
+if (new Date(NOW).getUTCMinutes() < 5) {
   const us = await db.collection("users").get(); let devs = 0, people = 0;
   us.forEach(d => { const u = d.data(); users[d.id] = u; const n = (u.pushTokens || []).length; devs += n; if (n) people++;
     if (u.pushError) console.log(`::notice::Errore attivazione (${d.id.slice(0, 5)}): ${u.pushError.msg} | iOS ${u.pushError.ios} standalone ${u.pushError.standalone} permesso ${u.pushError.perm}`); });
@@ -81,10 +81,12 @@ for (const d of (await db.collection("invitations").get()).docs) {
 for (const gDoc of (await db.collection("groups").get()).docs) {
   const g = gDoc.data(), gid = gDoc.id, members = g.members || [], admins = (g.admins || []).filter(u => members.includes(u));
   const nameOf = u => (g.names || {})[u] || "Qualcuno";
-  const [sessions, proposals, availSnap] = await Promise.all([
-    gDoc.ref.collection("sessions").get(), gDoc.ref.collection("proposals").get(), gDoc.ref.collection("availability").get(),
+  const [sessions, proposals] = await Promise.all([
+    gDoc.ref.collection("sessions").where("date", ">=", TODAY).get(), gDoc.ref.collection("proposals").where("date", ">=", TODAY).get(),
   ]);
-  const avail = {}; availSnap.forEach(a => { avail[a.id] = a.data(); });
+  if (sessions.empty && proposals.empty) continue;
+  const avail = {};
+  if (!sessions.empty) (await gDoc.ref.collection("availability").get()).forEach(a => { avail[a.id] = a.data(); });
 
   for (const sd of sessions.docs) {
     const s = sd.data(); if (s.date < TODAY) continue;
