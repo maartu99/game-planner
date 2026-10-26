@@ -89,7 +89,7 @@ h1,h2,h3{margin:0}
 .h-sec{display:flex;flex-direction:column;gap:10px}
 .h-sec>.h-head{display:flex;align-items:center;gap:8px}
 .h-sec>.h-head h2{font-size:18px;font-weight:800}
-.h-cnt{min-width:24px;height:24px;padding:0 7px;border-radius:12px;background:var(--orange);color:#fff;font-size:13px;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
+.h-cnt{min-width:24px;height:24px;padding:0 7px;border-radius:12px;background:#ff8a3d;color:#2a1200;font-size:13px;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
 .htodo{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:18px;background:var(--card);border:1px solid var(--line);box-shadow:var(--sh1)}
 .htodo .hic{width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;flex:none}
 .htodo .k{font-size:12px;font-weight:700;color:var(--faint)}
@@ -192,7 +192,7 @@ h1,h2,h3{margin:0}
 .nav button.on{color:var(--primary-d)}
 .nav button.on .pill{background:var(--mint)}
 .nav button.on .lbl{font-weight:800}
-.nav .badge{position:absolute;top:0;left:calc(50% + 10px);min-width:16px;height:16px;padding:0 4px;border-radius:9999px;background:var(--brass);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.nav .badge{position:absolute;top:0;left:calc(50% + 10px);min-width:16px;height:16px;padding:0 4px;border-radius:9999px;background:#ff8a3d;color:#2a1200;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center}
 
 /* menu account */
 .menu-ov{position:fixed;inset:0;z-index:60}
@@ -270,7 +270,7 @@ h1,h2,h3{margin:0}
 .seg button.on-clear{background:var(--muted);color:var(--bg)}
 .seg button.brush{font-weight:800}
 .seg button.brush[class*="on-"]{box-shadow:0 2px 0 rgba(0,0,0,.18)}
-.seg .cnt{min-width:18px;height:18px;padding:0 5px;border-radius:9999px;background:var(--brass);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.seg .cnt{min-width:18px;height:18px;padding:0 5px;border-radius:9999px;background:#ff8a3d;color:#2a1200;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center}
 
 /* card e chip */
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column}
@@ -1237,6 +1237,7 @@ const GSVG = {
 const GICONS = ["svg:flame", "local_fire_department", "swords", "shield", "castle", "skull", "auto_stories", "menu_book", "casino", "chess_knight", "extension", "rocket_launch", "pets", "forest", "landscape", "bolt", "star", "diamond", "military_tech", "explore", "map", "travel_explore", "psychology", "visibility", "bedtime", "dark_mode", "light_mode", "cyclone", "eco", "water_drop", "ac_unit", "bug_report", "sports_esports", "theater_comedy", "music_note", "nightlife", "hiking", "sailing", "key", "lock", "hourglass_empty", "science", "public", "flag"];
 const iconInner = name => name && name.startsWith("svg:") ? (GSVG[name.slice(4)] || "") : `<span class="ms">${esc(name)}</span>`;
 // Medaglione: cerchio bianco con bordo scuro, disegno scuro: si legge su qualunque colore
+const gBadge = (g, px = 26) => `<span class="${gColor(g)}" style="display:inline-flex;flex:none;padding:3px;border-radius:50%;background:var(--gc)">${gMed(g, px)}</span>`;
 function gMed(g, px = 40) {
   const icon = g.icon || "", letter = g.letter !== false || !icon, ini = esc(String(g.name || "?").trim().charAt(0).toUpperCase() || "?");
   const inner = letter ? `<span style="font-size:${Math.round(px * 0.48)}px">${ini}</span>${icon ? `<span class="bdg" style="font-size:${Math.round(px * 0.3)}px">${iconInner(icon)}</span>` : ""}` : `<span style="font-size:${Math.round(px * 0.55)}px;display:flex;width:100%;height:100%;align-items:center;justify-content:center">${iconInner(icon)}</span>`;
@@ -1486,7 +1487,7 @@ function renderGroup(g) {
     <div class="stack g10">
       <h2 style="margin-top:6px;font-size:18px;font-weight:700">Sessioni confermate</h2>
       ${sessions.length ? sessions.map(([sid, s]) => `<div class="card ev stack g12">
-        <div class="row between" style="align-items:flex-start"><div class="stack"><span style="font-size:18px;font-weight:700">${esc(g.name)}</span><span class="t13 muted" style="font-weight:600">${esc(g.game)}</span></div>${sessTag(g, s)}</div>
+        <div class="row between" style="align-items:flex-start;gap:8px"><div class="row" style="gap:10px;min-width:0">${gBadge(g, 34)}<div class="stack" style="min-width:0"><span style="font-size:18px;font-weight:700">${esc(g.name)}</span><span class="t13 muted" style="font-weight:600">${esc(g.game)}</span></div></div>${sessTag(g, s)}</div>
         <span style="font-size:15px;font-weight:700" class="row" >${ic("calendar_month", "s18")}<span>${longDate(s.date, true)}${L(" alle ", " at ")}${esc(s.time || DEFAULT_TIME)}</span></span>
         ${s.location ? `<span class="t13 muted row" style="margin-top:-6px;gap:6px">${ic("location_on", "s18")}${esc(s.location)}</span>` : ""}
         <span class="t12 muted">${esc(presenceLine(g, s))}</span>
@@ -1554,7 +1555,7 @@ function memberChip(x) {
 function renderRow(e, k, isRec, mine) {
   const pos = e.status !== "none", admin = isAdmin(e.g), st = ROW_ST[e.status];
   return `<div class="row-g ${pos ? "" : "dim"}">
-    <div class="row wrapf" style="gap:6px"><span style="font-size:15px;font-weight:700">${esc(e.g.name)}</span></div>
+    <div class="row" style="gap:8px">${gBadge(e.g, 24)}<span style="font-size:15px;font-weight:700">${esc(e.g.name)}</span></div>
     <span class="t12 muted" style="margin-top:-4px">${esc(e.g.game)} · ${L(`${e.yes} su ${e.M} ci sono · minimo ${e.need}`, `${e.yes} of ${e.M} in · minimum ${e.need}`)}</span>
     <span class="status ${st[1]}">${st[0]}</span>
     <div class="chips">${e.st.map(memberChip).join("")}</div>
@@ -1570,7 +1571,7 @@ function renderProposal(x, inline) {
   const yesN = mem.filter(m => m.v === "yes").length, ok = yesN === mem.length, admin = isAdmin(g);
   const impossible = propImpossible(g, p);
   return `<div class="${inline ? "row-g prop-in" : "card prop stack g10"}${impossible ? " dim-card" : ""}">
-    <div class="row wrapf" style="gap:6px"><span class="tag c-lav">Proposta</span><span class="t13 muted" style="font-weight:700">${esc(g.name)}</span>${impossible ? `<span class="tag c-grey">${L("Non si può fare: troppi No", "Not possible: too many No")}</span>` : ""}</div>
+    <div class="row wrapf" style="gap:6px"><span class="tag c-lav">Proposta</span>${gBadge(g, 20)}<span class="t13 muted" style="font-weight:700">${esc(g.name)}</span>${impossible ? `<span class="tag c-grey">${L("Non si può fare: troppi No", "Not possible: too many No")}</span>` : ""}</div>
     ${inline ? `<span class="t13 muted" style="margin-top:-4px">${esc(g.game)}${p.time ? L(" · ore ", " · at ") + esc(p.time) : ""}${p.place ? " · " + esc(p.place) : ""}</span>`
       : `<div class="stack" style="gap:2px"><span style="font-size:17px;font-weight:700">${longDate(p.date)}${p.time ? L(" alle ", " at ") + esc(p.time) : ""}</span><span class="t13 muted">${esc(g.game)}${p.place ? " · " + esc(p.place) : ""}</span></div>`}
     ${p.desc ? `<p class="t13" style="background:var(--bg);border-radius:8px;padding:8px 10px">${esc(p.desc)}</p>` : ""}
@@ -1734,7 +1735,7 @@ function eventCard(g, sid, s) {
   const chips = byName(g, g.members).map(u => { const v = rsvpOf(g, s, u), n = esc(nameIn(g, u));
     return v === "yes" ? `<span class="chip p c-mint">${n}</span>` : v === "maybe" ? `<span class="chip p c-peach">${n} · ${L("forse", "maybe")}</span>` : v === "no" ? `<span class="chip p c-err">${n} · ${L("non viene", "not coming")}</span>` : `<span class="chip p c-grey">${n} · ${L("in attesa", "waiting")}</span>`; }).join("");
   return `<div class="card ev raised stack g12">
-    <div class="row between" style="align-items:flex-start"><div class="stack"><span style="font-size:18px;font-weight:700">${esc(g.name)}</span><span class="t13 muted" style="font-weight:600">${esc(g.game)}</span></div>${sessTag(g, s)}</div>
+    <div class="row between" style="align-items:flex-start;gap:8px"><div class="row" style="gap:10px;min-width:0">${gBadge(g, 34)}<div class="stack" style="min-width:0"><span style="font-size:18px;font-weight:700">${esc(g.name)}</span><span class="t13 muted" style="font-weight:600">${esc(g.game)}</span></div></div>${sessTag(g, s)}</div>
     <span class="t12 muted">${esc(presenceLine(g, s))}</span>
     ${atRisk(g, s) && admin ? `<span class="t12" style="font-weight:700;color:var(--warn-t)">${L(`Sotto il minimo di ${need(g)} giocatori: decidi se tenerla, spostarla o revocarla.`, `Below the minimum of ${need(g)} players: decide whether to keep, move or revoke it.`)}</span>` : ""}
     <div class="box"><span class="when">${ic("calendar_month")}${longDate(s.date, true)}${L(" alle ", " at ")}${esc(s.time || DEFAULT_TIME)}</span>
