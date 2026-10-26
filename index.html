@@ -278,7 +278,7 @@ h1,h2,h3{margin:0}
 .card.click:hover{border-color:var(--mint-line)}
 .card.ev{border-color:var(--ev-line)}
 .card.ev.raised{box-shadow:var(--sh2)}
-.card.prop{border:1.5px solid var(--lav-line);padding:14px}
+.card.prop{border:1.5px solid var(--lav-line);padding:16px}
 .card.night{padding:14px;box-shadow:var(--sh1)}
 .dim-card{opacity:.6}
 .card.tap{cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -1570,10 +1570,14 @@ function renderProposal(x, inline) {
   const chip = m => m.v === "yes" ? `<span class="chip c-green">${esc(m.name)}</span>` : m.v === "maybe" ? `<span class="chip c-peach">${esc(m.name)} (${L("forse", "maybe")})</span>` : m.v === "no" ? `<span class="chip c-err">${esc(m.name)} · no</span>` : `<span class="chip c-grey">${esc(m.name)} · ${L("in attesa", "waiting")}</span>`;
   const yesN = mem.filter(m => m.v === "yes").length, ok = yesN === mem.length, admin = isAdmin(g);
   const impossible = propImpossible(g, p);
+  const tagP = impossible ? `<span class="tag c-grey" style="flex:none">${L("Non si può fare", "Not possible")}</span>` : `<span class="tag c-lav" style="flex:none">${L("Proposta", "Proposal")}</span>`;
   return `<div class="${inline ? "row-g prop-in" : "card prop stack g10"}${impossible ? " dim-card" : ""}">
-    <div class="row wrapf" style="gap:6px"><span class="tag c-lav">Proposta</span>${gBadge(g, 20)}<span class="t13 muted" style="font-weight:700">${esc(g.name)}</span>${impossible ? `<span class="tag c-grey">${L("Non si può fare: troppi No", "Not possible: too many No")}</span>` : ""}</div>
-    ${inline ? `<span class="t13 muted" style="margin-top:-4px">${esc(g.game)}${p.time ? L(" · ore ", " · at ") + esc(p.time) : ""}${p.place ? " · " + esc(p.place) : ""}</span>`
-      : `<div class="stack" style="gap:2px"><span style="font-size:17px;font-weight:700">${longDate(p.date)}${p.time ? L(" alle ", " at ") + esc(p.time) : ""}</span><span class="t13 muted">${esc(g.game)}${p.place ? " · " + esc(p.place) : ""}</span></div>`}
+    ${inline
+      ? `<div class="row between" style="gap:8px"><div class="row" style="gap:8px;min-width:0">${gBadge(g, 24)}<span style="font-size:15px;font-weight:700">${esc(g.name)}</span></div>${tagP}</div>
+    <span class="t13 muted" style="margin-top:-4px">${esc(g.game)}${p.time ? L(" · ore ", " · at ") + esc(p.time) : ""}${p.place ? " · " + esc(p.place) : ""}</span>`
+      : `<div class="row between" style="align-items:flex-start;gap:8px"><div class="row" style="gap:10px;min-width:0">${gBadge(g, 34)}<div class="stack" style="min-width:0"><span style="font-size:18px;font-weight:700">${esc(g.name)}</span><span class="t13 muted" style="font-weight:600">${esc(g.game)}</span></div></div>${tagP}</div>
+    <div class="box"><span class="when">${ic("calendar_month")}${cap(longDate(p.date, true))}${p.time ? L(" alle ", " at ") + esc(p.time) : ""}</span>${p.place ? `<span class="meta">${ic("location_on")}${esc(p.place)}</span>` : ""}</div>`}
+    ${impossible ? `<span class="t12" style="font-weight:700;color:var(--muted)">${L("Troppi No: il minimo di giocatori non si raggiunge.", "Too many No: the minimum number of players can't be reached.")}</span>` : ""}
     ${p.desc ? `<p class="t13" style="background:var(--bg);border-radius:8px;padding:8px 10px">${esc(p.desc)}</p>` : ""}
     <span class="t12 muted">${L("Proposta da", "Proposed by")} ${esc(nameIn(g, p.by))}.</span>
     <div class="chips">${mem.map(chip).join("")}</div>
