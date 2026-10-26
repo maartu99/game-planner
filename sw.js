@@ -2,13 +2,15 @@
 // Serve a rendere l'app installabile (su Android i link di invito aprono l'app).
 // Rete prima di tutto: si vede sempre la versione più recente; la copia salvata
 // si usa solo se manca la connessione.
-const CACHE = "gp-v16";
+const CACHE = "gp-v17";
 self.addEventListener("install", e => { self.skipWaiting(); e.waitUntil(caches.open(CACHE).then(c => c.addAll(["./", "./index.html"])).catch(() => {})); });
 self.addEventListener("activate", e => { e.waitUntil(self.clients.claim()); });
 self.addEventListener("fetch", e => {
   const r = e.request;
   if (r.method !== "GET" || new URL(r.url).origin !== location.origin) return;
-  e.respondWith(fetch(r).then(res => {
+  // La pagina si chiede sempre fresca al sito (senza la copia di 10 minuti del browser)
+  const req = r.mode === "navigate" ? new Request(r.url, { cache: "no-cache", credentials: "same-origin" }) : r;
+  e.respondWith(fetch(req).then(res => {
     if (res.ok && r.mode === "navigate") { const copy = res.clone(); caches.open(CACHE).then(c => c.put("./index.html", copy)); }
     return res;
   }).catch(() => caches.match(r).then(m => m || caches.match("./index.html"))));
