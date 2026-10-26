@@ -143,6 +143,21 @@ h1,h2,h3{margin:0}
 .hg .gm{font-size:12px;font-weight:600;color:var(--muted)}
 .hg .st{font-size:13px;font-weight:700}
 .hmem{display:flex;gap:12px;align-items:center;padding:14px 16px;border-radius:18px;background:var(--card);border:1px solid var(--line)}
+.gc5{--gc:#0f6e66;--gl:#dcf5f2;--gd:#0f6e66}.gc6{--gc:#3a4450;--gl:#e8ecf0;--gd:#3a4450}.gc7{--gc:#7a5800;--gl:#fbf0d3;--gd:#6b4d00}
+:root[data-theme="dark"] .gc5{--gl:#123a37;--gd:#99f0e4}:root[data-theme="dark"] .gc6{--gl:#262d34;--gd:#c9d2db}:root[data-theme="dark"] .gc7{--gl:#3a2f12;--gd:#f5d27a}
+.gmed{position:relative;display:inline-flex;align-items:center;justify-content:center;flex:none;border-radius:50%;background:#fff;color:#141a1f;border:2px solid #141a1f;box-sizing:border-box;font-weight:800;line-height:1}
+.gmed svg{width:62%;height:62%;fill:#141a1f}
+.gmed .ms{font-size:inherit;font-variation-settings:"FILL" 1}
+.gmed .bdg{position:absolute;right:-10%;bottom:-10%;width:46%;height:46%;border-radius:50%;background:#141a1f;color:#fff;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:inherit}
+.gmed .bdg svg{fill:#fff;width:66%;height:66%}
+.swatches{display:flex;flex-wrap:wrap;gap:8px}
+.swatches button{width:36px;height:36px;border-radius:50%;border:3px solid transparent;background:var(--gc);box-shadow:0 0 0 1px var(--line2)}
+.swatches button.on{border-color:var(--card);box-shadow:0 0 0 3px var(--text)}
+.icgrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;max-height:212px;overflow-y:auto;padding:2px}
+.icgrid button{aspect-ratio:1;border-radius:12px;border:1px solid var(--line2);background:var(--card);color:var(--text);display:flex;align-items:center;justify-content:center}
+.icgrid button .ms{font-size:24px}
+.icgrid button svg{width:24px;height:24px;fill:currentColor}
+.icgrid button.on{background:var(--primary);color:#fff;border-color:var(--primary)}
 .gc0{--gc:#1b6d4f;--gl:#e3f6ec;--gd:#1b6d4f}.gc1{--gc:#4d3c88;--gl:#ece6ff;--gd:#4d3c88}.gc2{--gc:#9a4a00;--gl:#ffeedd;--gd:#8f4e00}.gc3{--gc:#0a5f8a;--gl:#ddf1fd;--gd:#075985}.gc4{--gc:#a3214a;--gl:#ffe3ec;--gd:#9f1239}
 :root[data-theme="dark"] .gc0{--gl:#173a2c;--gd:#8fe0bb}:root[data-theme="dark"] .gc1{--gl:#2a2350;--gd:#cfc3ff}:root[data-theme="dark"] .gc2{--gl:#3d2a17;--gd:#ffc78f}:root[data-theme="dark"] .gc3{--gl:#123a52;--gd:#bae6fd}:root[data-theme="dark"] .gc4{--gl:#46192a;--gd:#fda4bf}
 .h-in{animation:hIn .5s cubic-bezier(.2,.8,.2,1) both}
@@ -1194,9 +1209,25 @@ const avatarHtml = (cls = "") => {
   return `<span class="av ${cls}" style="background:${esc(col)}">${icon ? ic(icon) : esc((S.me.name || "?").trim().charAt(0).toUpperCase())}</span>`;
 };
 
+// ----- COLORE E ICONA DEL GRUPPO -----
+// Il colore lo sceglie l'admin; se non l'ha scelto, uno fisso ricavato dal gruppo
+const GCOLORS = ["gc0", "gc1", "gc2", "gc3", "gc4", "gc5", "gc6", "gc7"];
+const autoColor = id => { let h = 0; for (const ch of String(id || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return "gc" + (h % 5); };
+const gColor = g => GCOLORS.includes(g.color) ? g.color : autoColor(g.id);
+// Icone disegnate apposta (sagome originali)
+const GSVG = {
+  flame: `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 1.5 15.2 7.2 16.6 5.2 19.4 10.4 20.6 8.6C21.6 11 21.8 13.2 21.4 15.2 20.6 19.2 16.8 22.2 12 22.2S3.4 19.2 2.6 15.2C2.2 13.2 2.6 11 3.6 9.4L5 11.6 7.4 6 9 8.6ZM12 13 14.4 16.4C14.9 17.2 15 18 14.8 18.6 14.4 19.8 13.3 20.6 12 20.6S9.6 19.8 9.2 18.6C9 18 9.1 17.2 9.6 16.4Z"/></svg>`,
+};
+const GICONS = ["svg:flame", "local_fire_department", "swords", "shield", "castle", "skull", "auto_stories", "menu_book", "casino", "chess_knight", "extension", "rocket_launch", "pets", "forest", "landscape", "bolt", "star", "diamond", "military_tech", "explore", "map", "travel_explore", "psychology", "visibility", "bedtime", "dark_mode", "light_mode", "cyclone", "eco", "water_drop", "ac_unit", "bug_report", "sports_esports", "theater_comedy", "music_note", "nightlife", "hiking", "sailing", "key", "lock", "hourglass_empty", "science", "public", "flag"];
+const iconInner = name => name && name.startsWith("svg:") ? (GSVG[name.slice(4)] || "") : `<span class="ms">${esc(name)}</span>`;
+// Medaglione: cerchio bianco con bordo scuro, disegno scuro: si legge su qualunque colore
+function gMed(g, px = 40) {
+  const icon = g.icon || "", letter = g.letter !== false || !icon, ini = esc(String(g.name || "?").trim().charAt(0).toUpperCase() || "?");
+  const inner = letter ? `<span style="font-size:${Math.round(px * 0.48)}px">${ini}</span>${icon ? `<span class="bdg" style="font-size:${Math.round(px * 0.3)}px">${iconInner(icon)}</span>` : ""}` : `<span style="font-size:${Math.round(px * 0.55)}px;display:flex;width:100%;height:100%;align-items:center;justify-content:center">${iconInner(icon)}</span>`;
+  return `<span class="gmed" style="width:${px}px;height:${px}px">${inner}</span>`;
+}
+
 // ----- HOME -----
-// Colore di un gruppo: sempre lo stesso per lo stesso gruppo
-const gColor = g => { let h = 0; for (const ch of String(g.id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return "gc" + (h % 5); };
 const initials = n => String(n || "?").replace(/[._]/g, " ").trim().split(/\s+/).slice(0, 2).map(w => w.charAt(0).toUpperCase()).join("") || "?";
 const startOf = s => { const [hh, mm] = (s.time || DEFAULT_TIME).split(":").map(Number); const d = parseYmd(s.date); d.setHours(hh || 0, mm || 0, 0, 0); return d; };
 function whenBig(s) {
@@ -1251,7 +1282,7 @@ function renderHome() {
     const nudgeTxt = L(`Ciao! ${cap(longDate(s.date))} alle ${s.time || DEFAULT_TIME} si gioca a ${g.game} con ${g.name}. Ci sei? Rispondi su Game Planner: ${location.origin + location.pathname}`, `Hi! ${cap(longDate(s.date))} at ${s.time || DEFAULT_TIME} we play ${g.game} with ${g.name}. Are you in? Answer on Game Planner: ${location.origin + location.pathname}`);
     parts.push(`<section class="hnext ${gColor(g)}${inA(2)}">
       <div class="lab"><span class="pulse${anim || true ? " anim" : ""}"></span>${L("Prossima sessione", "Next session")}</div>
-      <div class="row between" style="align-items:flex-end;gap:12px"><div class="stack" style="min-width:0"><span class="gname">${esc(g.name)}</span><span class="game">${esc(g.game)}</span></div><div class="stack" style="flex:none;align-items:flex-end"><span class="when">${w1}</span><span class="when2">${w2}</span></div></div>
+      <div class="row between" style="align-items:flex-end;gap:12px"><div class="row" style="gap:12px;min-width:0;align-items:center">${gMed(g, 48)}<div class="stack" style="min-width:0"><span class="gname">${esc(g.name)}</span><span class="game">${esc(g.game)}</span></div></div><div class="stack" style="flex:none;align-items:flex-end"><span class="when">${w1}</span><span class="when2">${w2}</span></div></div>
       ${s.location || s.notes ? `<div class="info">${s.location ? `<span>${ic("location_on", "s18")}${esc(s.location)}</span>` : ""}${s.notes ? `<span>${ic("sticky_note_2", "s18")}${esc(s.notes)}</span>` : ""}</div>` : ""}
       <div class="row" style="gap:12px"><div class="hav">${mem.slice(0, 7).map(m => `<i class="${m.v === "yes" ? "" : m.v === "maybe" ? "maybe" : m.v === "no" ? "no" : "wait"}" title="${esc(m.n)}">${esc(initials(m.n))}</i>`).join("")}</div><span style="font-size:13px;font-weight:600;color:rgba(255,255,255,.85)">${L(`${yes} su ${mem.length} ci sono`, `${yes} of ${mem.length} in`)}${wait.length ? L(` · ${wait.length} in attesa`, ` · ${wait.length} waiting`) : ""}</span></div>
       ${wait.length ? `<a class="hnudge" href="https://wa.me/?text=${encodeURIComponent(nudgeTxt)}" target="_blank" rel="noopener noreferrer">${ic("campaign")}<span class="grow">${wait.length === 1 ? L(`Manca ${esc(wait[0].n)}: mandale un messaggio`, `${esc(wait[0].n)} hasn't answered: send a message`) : L(`Mancano ${wait.length} risposte: manda un messaggio`, `${wait.length} answers missing: send a message`)}</span>${ic("chevron_right")}</a>` : ""}
@@ -1283,7 +1314,7 @@ function renderHome() {
       : pr ? ["campaign", L(`Proposta aperta: ${dayMonth(pr.p.date)}`, `Open proposal: ${dayMonth(pr.p.date)}`)]
       : idle !== null && idle >= 21 ? ["bedtime", L(`Fermo da ${Math.floor(idle / 7)} settimane`, `Idle for ${Math.floor(idle / 7)} weeks`)]
       : ["event_busy", L("Niente in programma", "Nothing planned")];
-    return `<button class="hg ${gColor(g)}" data-action="homeGroup" data-g="${g.id}">${ic(icn, "fill s22")}<span class="stack" style="gap:1px"><span class="nm">${esc(g.name)}</span><span class="gm">${esc(g.game)}</span></span><span class="st">${st}</span></button>`; }).join("")}</div></section>`);
+    return `<button class="hg ${gColor(g)}" data-action="homeGroup" data-g="${g.id}"><span class="row between" style="width:100%">${gMed(g, 40)}${ic(icn, "fill s22")}</span><span class="stack" style="gap:1px"><span class="nm">${esc(g.name)}</span><span class="gm">${esc(g.game)}</span></span><span class="st">${st}</span></button>`; }).join("")}</div></section>`);
   // Ricordo
   const played = playedAll(), yearAgo = addDays(today, -365);
   const memo = played.find(x => x.s.date >= addDays(yearAgo, -3) && x.s.date <= addDays(yearAgo, 3)), lastP = played[played.length - 1];
@@ -1373,7 +1404,7 @@ function renderGroups() {
     <div class="stack g12">${list.map(g => {
       const next = Object.values(g.sessions || {}).filter(s => s.date >= today).sort((a, b) => a.date.localeCompare(b.date))[0];
       return `<button class="card click stack g10" data-action="openGroup" data-g="${g.id}">
-        <div class="row between" style="width:100%"><span style="font-size:18px;line-height:24px;font-weight:700">${esc(g.name)}</span><span class="t12 muted" style="font-weight:600;white-space:nowrap">${g.members.length === 1 ? L("1 membro", "1 member") : L(`${g.members.length} membri`, `${g.members.length} members`)}</span></div>
+        <div class="row between" style="width:100%;gap:10px"><span class="row ${gColor(g)}" style="gap:10px;min-width:0"><span style="display:flex;padding:4px;border-radius:50%;background:var(--gc)">${gMed(g, 34)}</span><span style="font-size:18px;line-height:24px;font-weight:700">${esc(g.name)}</span></span><span class="t12 muted" style="font-weight:600;white-space:nowrap">${g.members.length === 1 ? L("1 membro", "1 member") : L(`${g.members.length} membri`, `${g.members.length} members`)}</span></div>
         <span class="t13 muted">${esc(g.game)} · ${ruleText(g)}</span>
         ${incomplete(g) ? `<span class="t12" style="font-weight:700;color:var(--warn-t)">${missingText(g)}</span>` : ""}
         <div class="chips">${byName(g, g.members).map(u => `<span class="chip m">${esc(nameIn(g, u))}</span>`).join("")}</div>
@@ -1393,7 +1424,7 @@ function renderGroup(g) {
   return `<button class="btn link sm" style="padding:0 0 12px;min-height:0" data-action="closeGroup">${ic("chevron_left")}I miei gruppi</button>
   <div class="stack g14">
     <div class="card stack g6">
-      <div class="row between" style="align-items:flex-start"><h1 class="h1" style="line-height:30px">${esc(g.name)}</h1>${admin ? `<button class="btn sm" style="flex:none" data-action="openF2Edit">${ic("edit", "s16")}Modifica</button>` : ""}</div>
+      <div class="row between" style="align-items:flex-start"><div class="row ${gColor(g)}" style="gap:12px;min-width:0"><span style="display:flex;padding:5px;border-radius:50%;background:var(--gc)">${gMed(g, 44)}</span><h1 class="h1" style="line-height:30px">${esc(g.name)}</h1></div>${admin ? `<button class="btn sm" style="flex:none" data-action="openF2Edit">${ic("edit", "s16")}Modifica</button>` : ""}</div>
       <span style="font-size:15px;font-weight:600">${esc(g.game)}</span>
       <span class="t13 muted">${ruleText(g)}</span>
       ${incomplete(g) ? `<span class="t13" style="font-weight:700;color:var(--warn-t)">${missingText(g)}</span>` : ""}
@@ -1839,6 +1870,11 @@ function renderModal() {
       ${gameSel === "__new" ? `<label class="lbl">Nome del nuovo gioco<input id="gGame" data-keep class="in" placeholder="Es. Pathfinder" value="${esc(M.newName || "")}"></label>` : ""}
       <label class="lbl">Minimo di giocatori per giocare<select id="gMin" class="in" data-change="gMin">${["2", "3", "4", "5", "6", "7", "8", "9", "10"].map(n => `<option ${n === min ? "selected" : ""}>${n}</option>`).join("")}</select></label>
       <p class="t12 muted" style="margin-top:-6px">${L("Una sessione compare tra quelle possibili quando almeno questo numero di giocatori ha detto SI. L'admin può comunque confermare una sessione anche con meno persone.", "A session shows as possible when at least this many players said YES. An admin can still confirm a session with fewer people.")}</p>
+      <div class="lbl"><span>${L("Colore del gruppo", "Group color")}</span><div class="swatches">${GCOLORS.map(c => `<button class="${c} ${c === M.color ? "on" : ""}" data-action="pickColor" data-v="${c}" aria-label="${L("Colore", "Color")} ${c.slice(2)}"></button>`).join("")}</div></div>
+      <div class="lbl"><span class="row between">${L("Icona del gruppo", "Group icon")}<span class="${M.color}" style="display:flex;padding:5px;border-radius:50%;background:var(--gc)">${gMed({ name: val("gName") || M.nameDraft || g?.name || "?", icon: M.icon, letter: M.letter }, 40)}</span></span>
+        <button class="toggle" data-action="toggleLetter" style="margin:2px 0 4px">${L("Mostra l'iniziale del gruppo", "Show the group's initial")}<span class="sw ${M.letter ? "on" : ""}"><i></i></span></button>
+        <div class="icgrid">${GICONS.map(n => `<button class="${n === M.icon ? "on" : ""}" data-action="pickIcon" data-v="${n}" aria-label="${esc(n.replace("svg:", ""))}">${n.startsWith("svg:") ? GSVG[n.slice(4)] : `<span class="ms">${n}</span>`}</button>`).join("")}</div>
+        <span class="t12 muted" style="font-weight:400">${L("Con l'iniziale accesa l'icona va nell'angolo. Tocca di nuovo un'icona per toglierla.", "With the initial on, the icon goes in the corner. Tap an icon again to remove it.")}</span></div>
       <label class="lbl">${L("Link alla chat del gruppo (facoltativo)", "Group chat link (optional)")}<input id="gChat" data-keep class="in" type="url" autocapitalize="off" autocorrect="off" placeholder="https://chat.whatsapp.com/..." value="${esc(M.chatDraft ?? g?.chat ?? "")}"></label>
       <p class="t12 muted" style="margin-top:-6px">${L("WhatsApp, Discord, Telegram o Signal. Chi è nel gruppo vede un pulsante per aprire la chat.", "WhatsApp, Discord, Telegram or Signal. Group members get a button to open the chat.")}</p>
       ${errSlot("gErr")}
@@ -2387,15 +2423,18 @@ document.addEventListener("click", e => {
     case "logout": S.modal = null; S.menuOpen = false; S.tab = "gruppi"; S.groupId = null; notifiedKeys = null; run(() => store.logout()); break;
 
     // gruppi
-    case "openF2": S.gameSel = ""; S.modal = { type: "f2" }; render(); break;
-    case "openF2Edit": S.gameSel = g.game || ""; S.modal = { type: "f2", gid: S.groupId }; render(); break;
+    case "openF2": S.gameSel = ""; S.modal = { type: "f2", color: GCOLORS[Math.floor(Math.random() * GCOLORS.length)], icon: "", letter: true }; render(); break;
+    case "openF2Edit": S.gameSel = g.game || ""; S.modal = { type: "f2", gid: S.groupId, color: gColor(g), icon: g.icon || "", letter: g.letter !== false || !g.icon }; render(); break;
+    case "pickColor": S.modal.nameDraft = val("gName") || S.modal.nameDraft; S.modal.chatDraft = val("gChat"); S.modal.color = d.v; render(); break;
+    case "pickIcon": S.modal.nameDraft = val("gName") || S.modal.nameDraft; S.modal.chatDraft = val("gChat"); S.modal.icon = S.modal.icon === d.v ? "" : d.v; render(); break;
+    case "toggleLetter": S.modal.nameDraft = val("gName") || S.modal.nameDraft; S.modal.chatDraft = val("gChat"); S.modal.letter = !S.modal.letter; render(); break;
     case "saveGroup": {
       const name = val("gName"), game = S.gameSel === "__new" ? val("gGame") : S.gameSel;
       if (!name || !game) { showErr("gErr", "Scrivi il nome del gruppo e il gioco."); break; }
       const min = +(document.getElementById("gMin")?.value || 4);
       const chatRaw = val("gChat"), chat = chatRaw ? safeChat(chatRaw) : "";
       if (chatRaw && !chat) { showErr("gErr", L("Il link alla chat non è valido: usa un link https di WhatsApp, Discord, Telegram o Signal.", "The chat link is not valid: use an https link from WhatsApp, Discord, Telegram or Signal.")); break; }
-      const data = { name, game, rule: "min", min, chat }, gid = S.modal.gid;
+      const data = { name, game, rule: "min", min, chat, color: S.modal.color || "", icon: S.modal.icon || "", letter: S.modal.letter !== false }, gid = S.modal.gid;
       if (!(S.me.games || []).includes(game)) run(() => store.setProfile({ games: [...(S.me.games || []), game] }));
       S.modal = null;
       if (gid) run(() => store.updateGroup(gid, data));
