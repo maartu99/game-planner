@@ -142,6 +142,14 @@ h1,h2,h3{margin:0}
 .hg .nm{font-size:15px;font-weight:800;color:var(--text)}
 .hg .gm{font-size:12px;font-weight:600;color:var(--muted)}
 .hg .st{font-size:13px;font-weight:700}
+.hprop{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
+.hprop .go{flex:1;min-width:0;display:flex;align-items:center;gap:10px;background:none;border:0;padding:0;text-align:left;color:var(--text)}
+.hprop .tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.hprop .t1{font-size:14px;font-weight:800;line-height:19px}
+.hprop .t2{font-size:12px;color:var(--muted);line-height:17px}
+.hprop .me{display:inline-block;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:800;margin-right:4px}
+.hprop .me.yes{background:var(--mint);color:var(--mint-t)}.hprop .me.maybe{background:var(--peach);color:var(--peach-t)}.hprop .me.no{background:var(--err-bg);color:var(--err-t)}.hprop .me.off{background:var(--soft2);color:var(--muted)}
+.hprop .nudge{flex:none;min-height:36px;padding:0 10px;border-radius:999px;border:1px solid var(--line2);font-size:12px;font-weight:700;color:var(--text);text-decoration:none;display:inline-flex;align-items:center;gap:4px}
 .hmem{display:flex;gap:12px;align-items:center;padding:14px 16px;border-radius:18px;background:var(--card);border:1px solid var(--line)}
 .gc5{--gc:#0f6e66;--gl:#dcf5f2;--gd:#0f6e66}.gc6{--gc:#3a4450;--gl:#e8ecf0;--gd:#3a4450}.gc7{--gc:#7a5800;--gl:#fbf0d3;--gd:#6b4d00}
 :root[data-theme="dark"] .gc5{--gl:#123a37;--gd:#99f0e4}:root[data-theme="dark"] .gc6{--gl:#262d34;--gd:#c9d2db}:root[data-theme="dark"] .gc7{--gl:#3a2f12;--gd:#f5d27a}
@@ -1290,9 +1298,19 @@ function renderHome() {
       <div class="hacts"><button data-action="ics" data-g="${g.id}" data-s="${sid}">${ic("event", "s18")}${L("Calendario", "Calendar")}</button><a href="https://wa.me/?text=${encodeURIComponent(sessionText(g, s))}" target="_blank" rel="noopener noreferrer">${ic("ios_share", "s18")}WhatsApp</a></div>
     </section>`);
   }
+  // Proposte aperte: cosa si sta organizzando (quelle a cui devi rispondere sono già in Da fare)
+  const confirmable = x => isAdmin(x.g) && x.g.members.filter(u => ansOf(x.p, u) === "yes").length >= need(x.g);
+  const openP = allProposals().filter(x => (ansOf(x.p, me) || propImpossible(x.g, x.p)) && !confirmable(x));
+  if (openP.length) parts.push(`<section class="h-sec${inA(3)}"><div class="h-head"><h2 class="grow">${L("Proposte aperte", "Open proposals")}</h2>${openP.length > 3 ? `<a class="t13" data-action="goProp">${L(`Vedi tutte (${openP.length})`, `See all (${openP.length})`)}</a>` : ""}</div>
+    ${openP.slice(0, 3).map(x => { const { g, p } = x, my = ansOf(p, me), yesN = g.members.filter(u => ansOf(p, u) === "yes").length, miss = byName(g, g.members.filter(u => !ansOf(p, u) && u !== me)).map(u => nameIn(g, u));
+      const imp = propImpossible(g, p), myLab = { yes: L("Hai detto Sì", "You said Yes"), maybe: L("Hai detto Forse", "You said Maybe"), no: L("Hai detto No", "You said No") }[my];
+      const txt = L(`Ciao! C'è una proposta per ${g.game} con ${g.name}: ${longDate(p.date)}${p.time ? " alle " + p.time : ""}. Rispondi su Game Planner: ${location.origin + location.pathname}`, `Hi! There's a proposal for ${g.game} with ${g.name}: ${longDate(p.date)}${p.time ? " at " + p.time : ""}. Answer on Game Planner: ${location.origin + location.pathname}`);
+      return `<div class="hprop ${gColor(g)}"><button class="go" data-action="goProp"><span style="display:flex;padding:3px;border-radius:50%;background:var(--gc)">${gMed(g, 30)}</span><span class="tx"><span class="t1">${esc(g.name)} · ${esc(DOWS()[parseYmd(p.date).getDay()].slice(0, 3))} ${parseYmd(p.date).getDate()}${p.time ? " · " + esc(p.time) : ""}</span>
+        <span class="t2">${my ? `<span class="me ${my}">${myLab}</span>` : ""}${imp ? L("Non si può fare: troppi No", "Can't happen: too many No") : `${L(`${yesN} Sì su ${g.members.length}`, `${yesN} Yes of ${g.members.length}`)}${miss.length ? L(` · manca ${esc(miss.slice(0, 2).join(", "))}${miss.length > 2 ? ` e altri ${miss.length - 2}` : ""}`, ` · waiting for ${esc(miss.slice(0, 2).join(", "))}${miss.length > 2 ? ` and ${miss.length - 2} more` : ""}`) : ""}`}</span></span></button>
+        ${miss.length && !imp ? `<a class="nudge" href="https://wa.me/?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener noreferrer">${L("Sollecita", "Nudge")}</a>` : ""}</div>`; }).join("")}</section>`);
   // Prossimi 7 giorni
   const days = Array.from({ length: 7 }, (_, i) => addDays(today, i));
-  parts.push(`<section class="h-sec${inA(3)}"><div class="h-head"><h2 class="grow">${L("Prossimi 7 giorni", "Next 7 days")}</h2><span class="t12 muted" style="font-weight:600">${L("la barretta è la tua disponibilità", "the bar is your availability")}</span></div>
+  parts.push(`<section class="h-sec${inA(4)}"><div class="h-head"><h2 class="grow">${L("Prossimi 7 giorni", "Next 7 days")}</h2><span class="t12 muted" style="font-weight:600">${L("la barretta è la tua disponibilità", "the bar is your availability")}</span></div>
     <div class="hweek">${days.map(k => { const d = parseYmd(k), v = (S.me.days || {})[k] || "";
       const ses = allSessions().filter(x => x.s.date === k), prs = allProposals().filter(x => x.p.date === k);
       const dots = [...ses.map(x => `<b class="${gColor(x.g)}"></b>`), ...prs.map(x => `<b class="pr ${gColor(x.g)}"></b>`)].slice(0, 3).join("");
@@ -1302,11 +1320,11 @@ function renderHome() {
   for (let i = 0; i < 30 && !free; i++) { const k = addDays(today, i), n = night(k, "all");
     const e = n.possible.find(e => e.status === "ok" && !allProposals().some(x => x.g.id === e.g.id && x.p.date === k)); if (e) free = { k, e }; }
   if (free) { const { k, e } = free, all = e.yes === e.M;
-    parts.push(`<section class="hfree${inA(4)}"><span class="die">${ic("casino", "fill s22")}</span><div class="stack" style="gap:8px;min-width:0"><span style="font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase">${all ? L("Serata libera per tutti", "A free night for everyone") : L("Si può giocare", "You can play")}</span>
+    parts.push(`<section class="hfree${inA(5)}"><span class="die">${ic("casino", "fill s22")}</span><div class="stack" style="gap:8px;min-width:0"><span style="font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase">${all ? L("Serata libera per tutti", "A free night for everyone") : L("Si può giocare", "You can play")}</span>
       <span style="font-size:15px;font-weight:700;line-height:20px">${all ? L(`${cap(longDate(k))} siete tutti liberi per ${esc(e.g.name)}.`, `${cap(longDate(k))} everyone in ${esc(e.g.name)} is free.`) : L(`${cap(longDate(k))} siete in ${e.yes} liberi per ${esc(e.g.name)}, il minimo è ${e.need}.`, `${cap(longDate(k))} ${e.yes} are free in ${esc(e.g.name)}, the minimum is ${e.need}.`)} ${L("Nessuno ha ancora proposto.", "Nobody has proposed yet.")}</span>
       <button class="hb ind${anim ? " wig" : ""}" style="align-self:flex-start" data-action="openProp" data-g="${e.g.id}" data-date="${k}">${ic("add", "s18")}${L(`Proponi ${DOWS()[parseYmd(k).getDay()].toLowerCase()}`, `Propose ${DOWS()[parseYmd(k).getDay()]}`)}</button></div></section>`); }
   // Gruppi
-  if (groups.length) parts.push(`<section class="h-sec${inA(5)}"><div class="h-head"><h2>${L("I tuoi gruppi", "Your groups")}</h2></div><div class="hgroups">${groups.map(g => {
+  if (groups.length) parts.push(`<section class="h-sec${inA(6)}"><div class="h-head"><h2>${L("I tuoi gruppi", "Your groups")}</h2></div><div class="hgroups">${groups.map(g => {
     const up = allSessions().find(x => x.g.id === g.id && !ended(x.s)), pr = allProposals().find(x => x.g.id === g.id);
     const last = allSessions().filter(x => x.g.id === g.id && ended(x.s)).pop(), idle = last ? Math.floor((parseYmd(today) - parseYmd(last.s.date)) / 864e5) : null;
     const [icn, st] = up ? ["local_fire_department", up.s.date === today ? L("Si gioca oggi", "Playing today") : L(`Si gioca ${DOWS()[parseYmd(up.s.date).getDay()].slice(0, 3)} ${parseYmd(up.s.date).getDate()}`, `Playing ${DOWS()[parseYmd(up.s.date).getDay()].slice(0, 3)} ${parseYmd(up.s.date).getDate()}`)]
@@ -1321,7 +1339,7 @@ function renderHome() {
   const memTxt = memo ? L(`<b>Un anno fa</b> giocavate a ${esc(memo.g.game)} con ${esc(memo.g.name)}.`, `<b>A year ago</b> you played ${esc(memo.g.game)} with ${esc(memo.g.name)}.`)
     : lastP ? (() => { const dd = Math.floor((parseYmd(today) - parseYmd(lastP.s.date)) / 864e5), n = lastP.g.members.filter(u => rsvpOf(lastP.g, lastP.s, u) !== "no").length;
       return L(`<b>L'ultima volta</b>, ${dd === 0 ? "oggi" : dd === 1 ? "ieri" : `${dd} giorni fa`}, ${esc(lastP.g.game)} con ${esc(lastP.g.name)}: eravate in ${n}.`, `<b>Last time</b>, ${dd === 0 ? "today" : dd === 1 ? "yesterday" : `${dd} days ago`}, ${esc(lastP.g.game)} with ${esc(lastP.g.name)}: ${n} of you.`); })() : "";
-  if (memTxt) parts.push(`<div class="hmem${inA(6)}">${ic("history", "s22")}<span class="t14" style="font-size:14px;line-height:20px;color:var(--muted)">${memTxt}</span></div>`);
+  if (memTxt) parts.push(`<div class="hmem${inA(7)}">${ic("history", "s22")}<span class="t14" style="font-size:14px;line-height:20px;color:var(--muted)">${memTxt}</span></div>`);
   if (anim) setTimeout(() => { homeAnimated = true; }, 50);
   const conf = Date.now() < confettiUntil ? `<div class="confetti" aria-hidden="true">${Array.from({ length: 18 }, (_, i) => `<i style="left:${(i * 5.5 + 3) % 97}%;animation-delay:${((i * 7) % 6) / 10}s;background:${["#34c38f", "#f5a524", "#7c6cf2", "#38bdf8"][i % 4]}"></i>`).join("")}</div>` : "";
   return `<div class="home">${parts.join("")}</div>${conf}`;
@@ -2547,6 +2565,7 @@ document.addEventListener("click", e => {
 
     // proposte
     case "openProp": S.modal = { type: "prop", draft: { gid: d.g || (S.sGroup !== "all" ? S.sGroup : (groupList()[0]?.id || "")), date: d.date || "" } }; render(); break;
+    case "goProp": S.sFilter = "prop"; go("serate"); break;
     case "homeGroup": S.tab = "gruppi"; S.groupId = d.g; render(); window.scrollTo(0, 0); break;
     case "submitProp": {
       const gid = val("pGroup"), date = val("pDate"), gg = getGroup(gid);
