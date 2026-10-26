@@ -1009,6 +1009,9 @@ function pushState() {
   if (Notification.permission === "granted") return pushToken() && (S.me?.pushTokens || []).includes(pushToken()) ? "on" : "retry";
   return "ask";
 }
+// Tipi di notifica: tutti accesi di partenza tranne "Domani si gioca" (uguale al controllo su GitHub)
+const PUSH_DEFAULTS = { rem: false };
+const pushOn = k => { const v = (S.me?.pushPrefs || {})[k]; return typeof v === "boolean" ? v : PUSH_DEFAULTS[k] ?? true; };
 const PUSH_LABEL = () => ({ on: L("Attive", "On"), ask: L("Non attive", "Off"), retry: L("Attivazione in corso", "Activating"), "ios-home": L("Aggiungi l'app alla schermata Home", "Add the app to your Home Screen"), denied: L("Bloccate nelle impostazioni", "Blocked in settings"), unsupported: L("Non disponibili su questo browser", "Not available in this browser"), off: L("Presto disponibili", "Coming soon") })[pushState()];
 let pushRefreshed = false;
 function refreshPush() {
@@ -1934,7 +1937,7 @@ function renderModal() {
       <div class="card stack g8" style="padding:14px"><div class="row between" style="gap:10px"><span class="t13" style="font-weight:700">${L("Su questo telefono", "On this phone")}</span><span class="t13 muted">${esc(PUSH_LABEL())}</span></div>
         ${ps === "on" ? `<button class="btn m44" data-action="pushMenu">${L("Disattiva su questo telefono", "Turn off on this phone")}</button>` : ps === "ask" || ps === "retry" ? `<button class="btn p m44" data-action="pushMenu">${L("Attiva su questo telefono", "Turn on for this phone")}</button>` : ps === "ios-home" ? `<p class="t12 muted">${L("Su iPhone aggiungi l'app alla schermata Home e aprila da lì.", "On iPhone add the app to your Home Screen and open it from there.")}</p>` : ""}</div>
       <div class="stack g4"><span class="t13" style="font-weight:700">${L("Cosa vuoi ricevere", "What you want to get")}</span><span class="t12 muted">${L("Vale per tutti i tuoi telefoni.", "Applies to all your phones.")}</span></div>
-      <div class="stack" style="gap:2px">${cats.map(([k, t, sub]) => `<button class="toggle" data-action="pushCat" data-k="${k}" style="align-items:center"><span class="stack" style="gap:1px;text-align:left"><span>${t}</span>${sub ? `<span class="t12 muted" style="font-weight:400">${sub}</span>` : ""}</span><span class="sw ${pr[k] === false ? "" : "on"}"><i></i></span></button>`).join("")}</div>
+      <div class="stack" style="gap:2px">${cats.map(([k, t, sub]) => `<button class="toggle" data-action="pushCat" data-k="${k}" style="align-items:center"><span class="stack" style="gap:1px;text-align:left"><span>${t}</span>${sub ? `<span class="t12 muted" style="font-weight:400">${sub}</span>` : ""}</span><span class="sw ${pushOn(k) ? "on" : ""}"><i></i></span></button>`).join("")}</div>
       <button class="btn link m44" data-action="closeModal">${L("Fatto", "Done")}</button>`;
   } else if (M.type === "f6") {
     const g = getGroup(M.gid), s = g?.sessions?.[M.sid];
@@ -2644,7 +2647,7 @@ document.addEventListener("click", e => {
     case "tutClose": S.modal = null; render(); if (!S.me.tutorialSeen) { S.me.tutorialSeen = true; run(() => store.setProfile({ tutorialSeen: true })); } break;
     case "pushBannerOff": try { localStorage.setItem("gp-push-off", "1"); } catch (e) {} S.me.pushBanner = "off"; render(); run(() => store.setProfile({ pushBanner: "off" })); toast(L("Puoi attivarle quando vuoi dal menu del profilo, alla voce Notifiche.", "You can turn them on anytime from the profile menu, under Notifications.")); break;
     case "openNotifPrefs": S.menuOpen = false; S.modal = { type: "notif" }; render(); break;
-    case "pushCat": { const pr = { ...(S.me.pushPrefs || {}) }; pr[d.k] = pr[d.k] === false; S.me.pushPrefs = pr; render(); run(() => store.setProfile({ pushPrefs: pr })); break; }
+    case "pushCat": { const pr = { ...(S.me.pushPrefs || {}) }; pr[d.k] = !pushOn(d.k); S.me.pushPrefs = pr; render(); run(() => store.setProfile({ pushPrefs: pr })); break; }
     case "pushMenu": {
       const ps = pushState(); S.menuOpen = false;
       if (ps === "on") { ask(L("Disattivi le notifiche su questo dispositivo?", "Turn off notifications on this device?"), L("Disattiva", "Turn off"), () => run(async () => { await store.disablePush(); render(); toast(L("Notifiche disattivate.", "Notifications turned off.")); })); break; }

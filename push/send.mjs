@@ -37,14 +37,17 @@ async function user(uid) {
   return users[uid];
 }
 let sent = 0;
-// cat: tipo di notifica; ognuno può spegnere quelli che non vuole (profilo: pushPrefs)
+// cat: tipo di notifica; ognuno sceglie quali ricevere (profilo: pushPrefs).
+// Tutte accese di partenza, tranne "Domani si gioca" (rem), spenta finché la persona non la accende.
+const PUSH_DEFAULTS = { rem: false };
+const wants = (u, cat) => { const v = (u.pushPrefs || {})[cat]; return typeof v === "boolean" ? v : PUSH_DEFAULTS[cat] ?? true; };
 async function notify(key, uids, build, cat) {
   const logRef = db.collection("pushLog").doc(key);
   if ((await logRef.get()).exists) return;
   await logRef.set({ at: NOW });
   for (const uid of new Set(uids)) {
     const u = await user(uid), tokens = u.pushTokens || [];
-    if (!tokens.length || (cat && (u.pushPrefs || {})[cat] === false)) continue;
+    if (!tokens.length || (cat && !wants(u, cat))) continue;
     const { title, body, tag, open } = build(u.lang === "en" ? "en" : "it");
     let res;
     try { res = await fcm.sendEachForMulticast({ tokens, data: { title, body, url: open ? APP + "?open=" + open : APP, tag: tag || key }, webpush: { headers: { Urgency: "high", TTL: "86400" } } }); }
