@@ -1708,7 +1708,7 @@ function yearView() {
       <select id="yrGroup" class="sel small" data-change="yrGroup"><option value="all">${L("Tutti i gruppi", "All groups")}</option>${grp.map(([id, n]) => `<option value="${id}" ${gid === id ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></div>
     ${st.total ? `<div class="bigstat"><div><b>${st.total}</b><span>${L("sessioni giocate", "sessions played")}</span></div><div><b>${st.nGames}</b><span>${st.nGames === 1 ? L("gioco", "game") : L("giochi", "games")}</span></div>
       <div><b>${st.run}</b><span>${L("settimane di fila (record)", "weeks in a row (record)")}</span></div><div><b>${st.topMonth ? cap(MONTHS()[+st.topMonth[0] - 1]) : "-"}</b><span>${L("mese più giocato", "busiest month")}</span></div></div>
-      <p class="t13">${L(`Gioco preferito: <strong>${esc(st.topGame[0])}</strong> (${st.topGame[1]} sessioni).`, `Favourite game: <strong>${esc(st.topGame[0])}</strong> (${st.topGame[1]} sessions).`)}${st.topCo ? " " + L(`Compagno di tavolo più fedele: <strong>${esc(st.topCo[0])}</strong> (${st.topCo[1]}).`, `Most loyal table mate: <strong>${esc(st.topCo[0])}</strong> (${st.topCo[1]}).`) : ""}</p>
+      <p class="t13">${L(`Gioco preferito: <strong>${esc(st.topGame[0])}</strong> (${st.topGame[1]} sessioni).`, `Favourite game: <strong>${esc(st.topGame[0])}</strong> (${st.topGame[1]} sessions).`)}</p>
       <button class="btn p m44" data-action="shareYear">${ic("ios_share")}${L("Condividi", "Share")}</button>`
       : `<p class="sub">${L("Nessuna sessione giocata in questo periodo.", "No sessions played in this period.")}</p>`}
     <div class="stack g8" style="border-top:1px solid var(--soft3);padding-top:12px"><h2 class="h2">${L("Traguardi", "Milestones")}</h2>
