@@ -1271,7 +1271,7 @@ function renderHome() {
   const me = S.me.uid, today = todayStr(), groups = groupList(), anim = !homeAnimated;
   const inA = (i) => anim ? ` h-in" style="animation-delay:${(i * 0.07).toFixed(2)}s` : "";
   if (!groups.length && !(S.invIn || []).length) return `<div class="home"><div class="h-hello"><small>${cap(longDate(today))}</small><h1>${L("Benvenuto!", "Welcome!")}</h1></div>
-    <div class="card dashed">${L("Per cominciare crea un gruppo o entra in uno con un invito.", "To start, create a group or join one with an invite.")} <a data-action="tab" data-tab="gruppi">${L("Vai su Gruppi", "Go to Groups")}</a></div></div>`;
+    <div class="card dashed">${L("Per cominciare crea un gruppo o entra in uno con un invito.", "To start, create a group or join one with an invite.")} <a data-action="tab" data-tab="gruppi">${L("Vai ai tuoi gruppi", "Go to your groups")}</a></div></div>`;
   const todos = homeTodos();
   if (homeTodoPrev !== null && homeTodoPrev > 0 && !todos.length) { confettiUntil = Date.now() + 2600; setTimeout(() => { if (S.tab === "home") render(); }, 2700); }
   const justDone = homeTodoPrev !== null && homeTodoPrev > 0 && !todos.length;
@@ -1360,7 +1360,7 @@ function renderApp() {
   else if (S.tab === "disp") body = renderDisp();
   else if (S.tab === "serate") body = renderSerate();
   else body = renderGiocate();
-  const tab = (id, icon, label, badge) => `<button class="${S.tab === id ? "on" : ""}" data-action="tab" data-tab="${id}"><span class="pill">${ic(icon)}</span><span class="lbl">${label}</span>${badge ? `<span class="badge">${badge}</span>` : ""}</button>`;
+  const tab = (id, icon, label, badge, also) => `<button class="${S.tab === id || also ? "on" : ""}" data-action="tab" data-tab="${id}"><span class="pill">${ic(icon)}</span><span class="lbl">${label}</span>${badge ? `<span class="badge">${badge}</span>` : ""}</button>`;
   return `<div class="app">
     <header class="hdr">
       <div class="logo">${ic("casino", "fill")}</div>
@@ -1372,7 +1372,7 @@ function renderApp() {
     ${S.menuOpen ? renderMenu() : ""}
     <main class="main">${body}</main>
     <nav class="nav"><div class="nav-in">
-      ${tab("home", "home", "Home")}${tab("gruppi", "groups", "Gruppi", (S.invIn || []).length)}${tab("disp", "event_available", "Calendario")}${tab("serate", "casino", "Sessioni", pendingProp + pendingEv + riskN)}${tab("giocate", "history_edu", "Storico")}
+      ${tab("home", "home", "Home")}${tab("disp", "edit_calendar", "Plan", (S.invIn || []).length, S.tab === "gruppi")}${tab("serate", "casino", "Sessioni", pendingProp + pendingEv + riskN)}${tab("giocate", "history_edu", "Storico")}
     </div></nav>
   </div>`;
 }
@@ -1408,11 +1408,13 @@ const invCard = i => `<div class="lav-card stack g10">
   </div>`;
 
 // ----- GRUPPI -----
+// Plan: il mio calendario (si apre per primo) e i miei gruppi
+const planHead = cur => `<h1 class="h1 mb14">Plan</h1><div class="seg c2 h40 mb16"><button class="${cur === "disp" ? "on" : ""}" data-action="tab" data-tab="disp">${L("Il mio calendario", "My calendar")}</button><button class="${cur === "gruppi" ? "on" : ""}" data-action="tab" data-tab="gruppi">${L("I miei gruppi", "My groups")}${(S.invIn || []).length ? `<span class="cnt">${(S.invIn || []).length}</span>` : ""}</button></div>`;
 function renderGroups() {
   const list = groupList(), today = todayStr();
   const inviteLinkSmall = `<p class="t13 muted" style="text-align:center;margin:10px 0 18px">Hai ricevuto un link di invito? <a data-action="openF3">Incollalo qui</a></p>`;
   const invs = S.invIn || [];
-  return `<h1 class="h1 mb14">I miei gruppi</h1>
+  return `${planHead("gruppi")}
     ${invs.length ? `<div class="stack g10 mb16">${invs.map(invCard).join("")}</div>` : ""}
     ${list.length ? `<button class="btn p full" data-action="openF2">${ic("add")}Crea gruppo</button>${inviteLinkSmall}` : ""}
     ${list.length ? "" : `<div class="card stack g10" style="padding:20px">
@@ -1517,10 +1519,10 @@ function renderDisp() {
   }
   const keys = monthKeys(S.dMonth), marked = keys.filter(k => mine[k]).length;
   const brush = (id, label) => `<button class="brush ${S.brush === id ? "on-" + id : ""}" data-action="brush" data-b="${id}">${label}</button>`;
-  return `<h1 class="h1">Le mie disponibilità</h1>
-    <p class="sub" style="margin:2px 0 14px">Facoltative: aiutano a trovare le sessioni possibili. Valgono per tutti i tuoi gruppi.</p>
+  return `${planHead("disp")}
+    <p class="sub" style="margin:-4px 0 14px">Segna quando sei libero: aiuta a trovare le sessioni possibili e vale per tutti i tuoi gruppi.</p>
     ${hasGroups ? ""
-      : `<div class="peach-box mb12">Ricorda: per vedere quando si gioca devi far parte di almeno un gruppo. <a data-action="tab" data-tab="gruppi" style="color:inherit">Vai su Gruppi.</a></div>`}
+      : `<div class="peach-box mb12">Ricorda: per vedere quando si gioca devi far parte di almeno un gruppo. <a data-action="tab" data-tab="gruppi" style="color:inherit">Vai ai tuoi gruppi.</a></div>`}
     <div class="stack g10 mb12">
       ${monthSel("dMonthSel", S.dMonth, "big")}
       <div class="seg c4">${brush("yes", "SI")}${brush("maybe", "FORSE")}${brush("no", "NO")}${brush("clear", "Cancella")}</div>
@@ -1578,7 +1580,7 @@ function renderProposal(x, inline) {
 function renderSerate() {
   const groups = groupList();
   const head = `<h1 class="h1">Sessioni</h1>`;
-  if (!groups.length) return head + `<div class="card dashed" style="margin-top:14px">Qui vedrai in quali sessioni si può giocare e con quale gruppo. Prima crea o entra in un gruppo. <a data-action="tab" data-tab="gruppi">Vai su Gruppi</a></div>`;
+  if (!groups.length) return head + `<div class="card dashed" style="margin-top:14px">Qui vedrai in quali sessioni si può giocare e con quale gruppo. Prima crea o entra in un gruppo. <a data-action="tab" data-tab="gruppi">Vai ai tuoi gruppi</a></div>`;
   if (!["poss", "prop", "prog"].includes(S.sFilter)) S.sFilter = "poss";
   const opts = monthOptions();
   if (!opts.includes(S.sMonth)) S.sMonth = opts[0];
@@ -1968,7 +1970,7 @@ function tutSteps() {
       img: `<div class="card stack g8" style="text-align:left"><div class="row between"><b style="font-size:16px">Campagna D&amp;D</b><span class="t12 muted">5 ${L("membri", "members")}</span></div><span class="t13 muted">Dungeons &amp; Dragons · ${L("Si gioca con almeno 4 giocatori", "Plays with at least 4 players")}</span><div class="chips">${["Gigi", "Iole", "Mattia", "Roberto", "Gian"].map(n => chip(n, "m")).join("")}</div></div>` },
     { t: L("2. Invita gli amici", "2. Invite your friends"), d: L("Nella pagina del gruppo cerca un amico per username o email: riceve l'invito nell'app e accetta o rifiuta. Per chi non ha ancora l'app c'è il link, valido una sola volta.", "On the group page search a friend by username or email: they get the invite in the app and accept or decline. For people without the app there's a single-use link."),
       img: `<div class="stack g8"><div class="row" style="gap:6px"><div class="in soft m44 grow" style="display:flex;align-items:center;text-align:left">@gigi</div><span class="btn p m44">${L("Invita", "Invite")}</span></div><div class="lav-card" style="text-align:left"><span class="t13"><b>Mattia</b> ${L("ti invita nel gruppo", "invites you to the group")} <b>Campagna D&amp;D</b>.</span><div class="grid2" style="gap:8px"><span class="btn m44">${L("Rifiuta", "Decline")}</span><span class="btn p m44">${L("Accetta", "Accept")}</span></div></div></div>` },
-    { t: L("3. Segna quando ci sei", "3. Mark when you're free"), d: L("Nel Calendario scegli SI, FORSE o NO e tocca i giorni. Vale per tutti i tuoi gruppi: lo fai una volta sola.", "In Calendar pick YES, MAYBE or NO and tap the days. It applies to all your groups: you do it once."),
+    { t: L("3. Segna quando ci sei", "3. Mark when you're free"), d: L("In Plan, Il mio calendario, scegli SI, FORSE o NO e tocca i giorni. Vale per tutti i tuoi gruppi: lo fai una volta sola.", "In Plan, My calendar, pick YES, MAYBE or NO and tap the days. It applies to all your groups: you do it once."),
       img: `<div class="cal"><div class="cal-h">${L(["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"], ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]).map(w => `<span>${w}</span>`).join("")}</div><div class="cal-g">${pills.map(([lab, v], i) => `<span class="day ${v}"><span class="n">${19 + i}</span>${lab ? `<span class="dpill ${v}">${L(lab, { SI: "YES", FORSE: "MAYBE", NO: "NO" }[lab])}</span>` : ""}</span>`).join("")}</div></div>` },
     { t: L("4. Scopri quando si gioca", "4. See when you can play"), d: L("In Sessioni, vista Possibili, trovi i giorni in cui il gruppo arriva al minimo. Puoi guardarli in lista o in calendario. Tocca un giorno per rispondere per ogni gioco.", "In Sessions, Possible view, you find the days where the group reaches the minimum. See them as a list or a calendar. Tap a day to answer for each game."),
       img: `<div class="card night stack g8" style="text-align:left"><div class="row"><div class="grow stack"><b style="font-size:16px">24 ${MONTHS()[9]}</b><span class="t12 muted">${DOWS()[6]}</span></div><span class="tag c-mint">${L("Si può giocare", "Can play")}</span></div><div class="row-g"><b>Campagna D&amp;D</b><span class="t12 muted">Dungeons &amp; Dragons · ${L("4 su 5 ci sono · minimo 4", "4 of 5 in · minimum 4")}</span>${seg([L("Sì", "Yes"), L("Forse", "Maybe"), "No"], 0)}</div></div>` },
@@ -2116,10 +2118,10 @@ const EN = {
 
   // disponibilità
   "Le mie disponibilità": "My availability",
-  "Facoltative: aiutano a trovare le sessioni possibili. Valgono per tutti i tuoi gruppi.": "Optional: they help find possible sessions. They apply to all your groups.",
+  "Segna quando sei libero: aiuta a trovare le sessioni possibili e vale per tutti i tuoi gruppi.": "Mark when you are free: it helps find possible sessions and applies to all your groups.",
   "Proponi una sessione": "Propose a session",
   "Ricorda: per vedere quando si gioca devi far parte di almeno un gruppo.": "Remember: to see when you play you need to be in at least one group.",
-  "Vai su Gruppi.": "Go to Groups.",
+  "Vai ai tuoi gruppi.": "Go to your groups.",
   "SI": "YES",
   "FORSE": "MAYBE",
   "Cancella": "Clear",
@@ -2141,7 +2143,7 @@ const EN = {
   "Ritira la proposta": "Withdraw proposal",
   "Incrocia le disponibilità di tutti i membri dei tuoi gruppi, giorno per giorno.": "Matches the availability of all the members of your groups, day by day.",
   "Qui vedrai in quali sessioni si può giocare e con quale gruppo. Prima crea o entra in un gruppo.": "Here you'll see which sessions you can play and with which group. First create or join a group.",
-  "Vai su Gruppi": "Go to Groups",
+  "Vai ai tuoi gruppi": "Go to your groups",
   "Si può giocare": "Can play",
   "Dipende dai forse": "Depends on maybes",
   "Nessun gruppo": "No group",
