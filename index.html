@@ -1928,7 +1928,7 @@ function renderModal() {
   } else if (M.type === "notif") {
     const ps = pushState(), pr = S.me.pushPrefs || {};
     const cats = [["inv", L("Inviti nei gruppi", "Group invites"), ""], ["prop", L("Nuove proposte", "New proposals"), ""], ["ev", L("Sessioni confermate", "Confirmed sessions"), ""],
-      ["today", L("Oggi si gioca", "Game day"), L("La mattina del giorno della sessione, verso le 9:30", "On the morning of the session, around 9:30")], ["rem", L("Domani si gioca", "Game tomorrow"), L("Il giorno prima, dalle 10", "The day before, from 10:00")],
+      ["today", L("Oggi si gioca", "Game day"), L("5 ore prima dell'orario della sessione, o alle 9 se l'orario non c'è", "5 hours before the session time, or at 9:00 if there is no time")], ["rem", L("Domani si gioca", "Game tomorrow"), L("Il giorno prima, dalle 10", "The day before, from 10:00")],
       ["risk", L("Sessioni a rischio", "Sessions at risk"), L("Solo se sei admin: quando una sessione scende sotto il minimo", "Only if you're admin: when a session drops below the minimum")]];
     inner = `${titleBlock(L("Notifiche", "Notifications"), "")}
       <div class="card stack g8" style="padding:14px"><div class="row between" style="gap:10px"><span class="t13" style="font-weight:700">${L("Su questo telefono", "On this phone")}</span><span class="t13 muted">${esc(PUSH_LABEL())}</span></div>

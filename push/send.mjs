@@ -20,7 +20,8 @@ const ymdIn = d => new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(d);
 const TODAY = ymdIn(new Date(NOW)), TOMORROW = ymdIn(new Date(NOW + 864e5));
 const HOUR = +new Intl.DateTimeFormat("en-GB", { timeZone: TZ, hour: "2-digit", hour12: false }).format(new Date(NOW));
 const MINUTES = HOUR * 60 + +new Intl.DateTimeFormat("en-GB", { timeZone: TZ, minute: "2-digit" }).format(new Date(NOW));
-const TODAY_FROM = 9 * 60 + 30;       // promemoria del giorno stesso, dalle 9:30
+// Promemoria del giorno stesso: 5 ore prima dell'orario della sessione; senza orario, alle 9
+const todayFrom = s => { const m = /^(\d{1,2}):(\d{2})/.exec(s.time || ""); return m ? Math.max(0, +m[1] * 60 + +m[2] - 300) : 9 * 60; };
 
 const T = {
   it: { dows: ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"], months: ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"], at: "alle" },
@@ -104,7 +105,7 @@ for (const gDoc of (await db.collection("groups").get()).docs) {
     if (s.date === TOMORROW && HOUR >= REMIND_FROM_HOUR) await notify(`rem_${gid}_${sd.id}_${s.date}`, members.filter(u => rsvpOf(avail, s, u) !== "no"), l => l === "en"
       ? { title: `Tomorrow: ${g.game}`, body: `Tomorrow ${T.en.at} ${s.time || "21:00"} with ${g.name}${s.location ? `, ${s.location}` : ""}.`, open: "prog" }
       : { title: `Domani si gioca a ${g.game}`, body: `Domani ${T.it.at} ${s.time || "21:00"} con ${g.name}${s.location ? `, ${s.location}` : ""}.`, open: "prog" }, "rem");
-    if (s.date === TODAY && MINUTES >= TODAY_FROM) await notify(`today_${gid}_${sd.id}_${s.date}`, members.filter(u => rsvpOf(avail, s, u) !== "no"), l => l === "en"
+    if (s.date === TODAY && MINUTES >= todayFrom(s)) await notify(`today_${gid}_${sd.id}_${s.date}`, members.filter(u => rsvpOf(avail, s, u) !== "no"), l => l === "en"
       ? { title: `Game day: ${g.game}`, body: `Today ${T.en.at} ${s.time || "21:00"} with ${g.name}${s.location ? `, ${s.location}` : ""}.`, open: "prog" }
       : { title: `Oggi si gioca a ${g.game}`, body: `Oggi ${T.it.at} ${s.time || "21:00"} con ${g.name}${s.location ? `, ${s.location}` : ""}.`, open: "prog" }, "today");
   }
