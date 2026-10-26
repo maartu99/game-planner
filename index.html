@@ -1676,8 +1676,7 @@ const tally = (list, f) => { const c = {}; list.forEach(x => { const k = f(x); i
 function yearStats(year, gid) {
   const me = S.me.uid, list = playedAll().filter(x => x.s.date.startsWith(year) && (gid === "all" || x.g.id === gid));
   const games = tally(list, x => x.g.game), months = tally(list, x => x.s.date.slice(5, 7));
-  const co = {}; list.forEach(x => x.g.members.filter(u => u !== me && rsvpOf(x.g, x.s, u) !== "no").forEach(u => { const k = nameIn(x.g, u); co[k] = (co[k] || 0) + 1; }));
-  return { list, total: list.length, games, topGame: games[0], topMonth: months[0], run: longestRun(list), topCo: Object.entries(co).sort((a, b) => b[1] - a[1] || byNameStr(a[0], b[0]))[0], nGames: games.length };
+  return { list, total: list.length, games, topGame: games[0], topMonth: months[0], run: longestRun(list), nGames: games.length };
 }
 function yearText(year, gid) {
   const st = yearStats(year, gid), g = gid !== "all" ? getGroup(gid) : null;
