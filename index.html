@@ -1453,13 +1453,6 @@ function renderGiocate() {
   const N = filtered.length;
   const sel = (id, label, opts) => `<select id="${id}" class="sel small" data-change="${id}" aria-label="${label}">${opts.map(([v, l]) => `<option value="${esc(v)}" ${S[id] === v ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
   const pd = topFirst && parseYmd(topFirst);
-  // Statistiche: con chi giochi di più e quante settimane di fila hai giocato
-  const co = {}; hist.forEach(x => x.g.members.filter(u => u !== me && rsvpOf(x.g, x.s, u) !== "no").forEach(u => { const k = nameIn(x.g, u); co[k] = (co[k] || 0) + 1; }));
-  const topCo = Object.entries(co).sort((a, b) => b[1] - a[1] || byNameStr(a[0], b[0])).slice(0, 3);
-  const wk = ds => { const d = parseYmd(ds); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
-  const weeks = new Set(hist.map(x => wk(x.s.date)));
-  let streak = 0; { const d = parseYmd(todayStr()); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); const key = () => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; if (!weeks.has(key())) d.setDate(d.getDate() - 7); while (weeks.has(key())) { streak++; d.setDate(d.getDate() - 7); } }
-  const thisYear = String(new Date().getFullYear()), nYear = hist.filter(x => x.s.date.startsWith(thisYear)).length;
   const myTag = x => { const v = rsvpOf(x.g, x.s, me); return v === "yes" ? `<span class="tag c-mint">Ci sono</span>` : v === "maybe" ? `<span class="tag c-peach">Forse</span>` : v === "no" ? `<span class="tag c-err">Non posso</span>` : `<span class="tag c-grey">${L("Da rispondere", "To answer")}</span>`; };
   return `<h1 class="h1 mb16">Storico</h1>
     <div class="card stack g12 mb16">
@@ -1467,9 +1460,6 @@ function renderGiocate() {
       <p style="font-size:14px;line-height:20px">${nx ? L(`Prossima giocata: ${longDate(nx.s.date)} alle ${esc(nx.s.time || DEFAULT_TIME)}, ${esc(nx.g.game)} con ${esc(nx.g.name)}.`, `Next game: ${longDate(nx.s.date)} at ${esc(nx.s.time || DEFAULT_TIME)}, ${esc(nx.g.game)} with ${esc(nx.g.name)}.`) : "Nessuna giocata in programma."}</p>
       <div class="seg c3" style="background:transparent;padding:0;gap:8px">${[[inProg.length, "in programma"], [hist.length, "giocate in totale"], [ranked.length, "giochi provati"]].map(([n, l]) => `<div class="counter"><b>${n}</b><span>${l}</span></div>`).join("")}</div>
       ${ranked.length ? `<div class="chips" style="gap:6px">${ranked.map(([gm, c]) => `<button class="gchip ${S.fGame === gm ? "on" : ""}" data-action="fGameChip" data-game="${esc(gm)}">${esc(gm)}: ${c}</button>`).join("")}</div>` : ""}
-      ${hist.length ? `<div class="stack g4" style="border-top:1px solid var(--soft3);padding-top:10px">
-        <p class="t13">${L(`Quest'anno hai giocato ${nYear} ${nYear === 1 ? "volta" : "volte"}.`, `This year you played ${nYear} ${nYear === 1 ? "time" : "times"}.`)}${streak >= 2 ? " " + L(`Sono ${streak} settimane di fila con almeno una giocata.`, `That's ${streak} weeks in a row with at least one game.`) : ""}</p>
-        ${topCo.length ? `<p class="t13 muted">${L("Giochi più spesso con", "You play most often with")}: ${topCo.map(([n, c]) => `${esc(n)} (${c})`).join(", ")}.</p>` : ""}</div>` : ""}
       ${top ? `<p class="t13 muted">${L(`Il gioco a cui hai giocato di più è ${esc(top)}; la prima giocata registrata è del ${pd.getDate()} ${MONTHS()[pd.getMonth()]} ${pd.getFullYear()}.`, `Your most played game is ${esc(top)}; the first recorded play was on ${pd.getDate()} ${MONTHS()[pd.getMonth()]} ${pd.getFullYear()}.`)}</p>` : ""}
     </div>
     ${pool.length ? `<div class="grid2 mb10">
