@@ -1358,6 +1358,22 @@ function renderSerate() {
   const progPending = upcoming.filter(x => !rsvpOf(x.g, x.s, me) || (isAdmin(x.g) && atRisk(x.g, x.s))).length;
   const tabB = (v, label, badge) => `<button class="${sF === v ? "on" : ""}" data-action="sFilter" data-v="${v}">${label}${badge ? `<span class="cnt">${badge}</span>` : ""}</button>`;
   const groupSel = `<select id="sGroupSel" class="sel" data-change="sGroupSel"><option value="all">Tutti i miei gruppi</option>${groups.map(g => `<option value="${g.id}" ${S.sGroup === g.id ? "selected" : ""}>${esc(g.name)}</option>`).join("")}</select>`;
+  const ctrl = `<div class="row" style="gap:8px"><div class="grow" style="min-width:0">${groupSel}</div><div class="seg c2 h40" style="width:92px;flex:none">${[["list", "view_agenda", L("Lista", "List")], ["cal", "calendar_month", L("Calendario", "Calendar")]].map(([v, icn, lab]) => `<button class="${sView() === v ? "on" : ""}" data-action="setSView" data-v="${v}" aria-label="${lab}" title="${lab}">${ic(icn, "s18")}</button>`).join("")}</div></div>`;
+  const monthRow = `<div class="row" style="gap:8px"><div class="grow" style="min-width:0">${monthSel("sMonthSel", S.sMonth, "")}</div><button class="btn sm" style="min-height:40px;flex:none" data-action="goToday">${L("Oggi", "Today")}</button></div>`;
+  // Calendario del mese per Proposte e In programma: il numero indica quante cose ci sono quel giorno
+  const simpleCal = mode => {
+    const [y, m] = S.sMonth.split("-").map(Number), lead = (new Date(y, m - 1, 1).getDay() + 6) % 7, dim = new Date(y, m, 0).getDate();
+    let cells = ""; for (let i = 0; i < lead; i++) cells += `<span class="day pad"></span>`;
+    for (let d = 1; d <= dim; d++) {
+      const k = `${y}-${pad(m)}-${pad(d)}`;
+      const items = mode === "prop" ? props.filter(x => x.p.date === k) : upcoming.filter(x => x.s.date === k);
+      if (k < today || !items.length) { cells += `<button class="day ${k === today ? "today" : ""}" ${k < today ? "disabled" : `data-action="openF4" data-date="${k}"`}><span class="n">${d}</span></button>`; continue; }
+      const todo = mode === "prop" ? items.some(x => !ansOf(x.p, me) && !propImpossible(x.g, x.p)) : items.some(x => !rsvpOf(x.g, x.s, me));
+      cells += `<button class="day ${todo ? "s-maybe" : "s-ok"} ${k === today ? "today" : ""}" data-action="openF4" data-date="${k}" aria-label="${longDate(k)}"><span class="n">${d}</span><span class="dpill ${todo ? "maybe" : "yes"}">${items.length}</span></button>`;
+    }
+    return `<div class="cal"><div class="cal-h">${L(["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"], ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]).map(w => `<span>${w}</span>`).join("")}</div><div class="cal-g">${cells}</div></div>
+      <p class="t12 muted">${mode === "prop" ? L("Il numero è quante proposte ci sono quel giorno. Giallo: ce n'è una a cui devi rispondere. Tocca un giorno per aprirlo.", "The number is how many proposals that day. Yellow: one needs your answer. Tap a day to open it.") : L("Il numero è quante sessioni ci sono quel giorno. Giallo: devi ancora rispondere. Tocca un giorno per aprirlo.", "The number is how many sessions that day. Yellow: you still need to answer. Tap a day to open it.")}</p>`;
+  };
   let top, list;
   if (sF === "poss") {
     const keys = monthKeys(S.sMonth);
@@ -1374,8 +1390,7 @@ function renderSerate() {
         ${rows.map(e => renderRow(e, n.k, false)).join("")}
       </div>`;
     });
-    const viewSeg = `<div class="row" style="gap:8px"><div class="seg c2 h40 grow">${[["list", "view_agenda", "Lista"], ["cal", "calendar_month", "Calendario"]].map(([v, icn, lab]) => `<button class="${sView() === v ? "on" : ""}" data-action="setSView" data-v="${v}">${ic(icn, "s18")}${lab}</button>`).join("")}</div><button class="btn sm" style="min-height:40px" data-action="goToday">${L("Oggi", "Today")}</button></div>`;
-    top = `${viewSeg}<div class="grid2">${monthSel("sMonthSel", S.sMonth, "")}${groupSel}</div>
+    top = `${monthRow}
       ${sView() === "list" ? `<button class="toggle" data-action="toggleOnly">Solo le sessioni possibili<span class="sw ${onlyPoss() ? "on" : ""}"><i></i></span></button>` : ""}`;
     if (sView() === "cal") {
       // Calendario del mese: ogni giorno mostra quanti giochi si possono fare; toccandolo si apre il dettaglio
@@ -1401,15 +1416,16 @@ function renderSerate() {
     // prima quelle a cui devi rispondere, poi quelle aperte, in fondo quelle che non si possono fare
     const rank = x => propImpossible(x.g, x.p) ? 2 : ansOf(x.p, me) ? 1 : 0;
     const sorted = [...props].sort((a, b) => rank(a) - rank(b) || (a.p.date + (a.p.time || "")).localeCompare(b.p.date + (b.p.time || "")));
-    top = `${groupSel}<button class="btn ind full" data-action="openProp">${ic("campaign", "s22")}Proponi una sessione</button>`;
-    list = sorted.length ? sorted.map(x => renderProposal(x)) : [`<div class="card dashed">${L("Nessuna proposta aperta. Proponi una sessione e il gruppo potrà rispondere Sì, Forse o No.", "No open proposals. Propose a session and the group can answer Yes, Maybe or No.")}</div>`];
+    top = `<button class="btn ind full" data-action="openProp">${ic("campaign", "s22")}Proponi una sessione</button>${sView() === "cal" ? monthRow : ""}`;
+    list = sView() === "cal" ? [simpleCal("prop")] : sorted.length ? sorted.map(x => renderProposal(x)) : [`<div class="card dashed">${L("Nessuna proposta aperta. Proponi una sessione e il gruppo potrà rispondere Sì, Forse o No.", "No open proposals. Propose a session and the group can answer Yes, Maybe or No.")}</div>`];
   } else {
     const ps = pushState(), dismissed = S.me.pushBanner === "off" || (() => { try { if (localStorage.getItem("gp-push-off") === "1") return true; if (ps === "ask" || ps === "ios-home") { if (!localStorage.getItem("gp-push-seen")) { localStorage.setItem("gp-push-seen", "1"); window.__gpPushFirst = true; } return !window.__gpPushFirst; } return false; } catch (e) { return false; } })();
-    top = groupSel + (dismissed ? "" : ps === "ask" ? `<div class="lav-card"><p style="font-size:14px;line-height:20px">${L("Vuoi le notifiche sul telefono, anche ad app chiusa? Sessioni confermate, proposte, inviti e promemoria del giorno prima.", "Want notifications on your phone, even with the app closed? Confirmed sessions, proposals, invites and day-before reminders.")}</p><div class="row" style="gap:8px"><button class="btn ind sm" style="min-height:40px;box-shadow:none" data-action="pushMenu">${L("Attiva notifiche", "Turn on notifications")}</button><button class="btn link sm" style="min-height:40px" data-action="pushBannerOff">${L("Non ora", "Not now")}</button></div>${(() => { try { const er = localStorage.getItem("gp-push-err"); return er ? `<span class="t12 muted">${L("Ultimo errore", "Last error")}: ${esc(er)}</span>` : ""; } catch (e) { return ""; } })()}</div>`
+    top = (sView() === "cal" ? monthRow : "") + (dismissed ? "" : ps === "ask" ? `<div class="lav-card"><p style="font-size:14px;line-height:20px">${L("Vuoi le notifiche sul telefono, anche ad app chiusa? Sessioni confermate, proposte, inviti e promemoria del giorno prima.", "Want notifications on your phone, even with the app closed? Confirmed sessions, proposals, invites and day-before reminders.")}</p><div class="row" style="gap:8px"><button class="btn ind sm" style="min-height:40px;box-shadow:none" data-action="pushMenu">${L("Attiva notifiche", "Turn on notifications")}</button><button class="btn link sm" style="min-height:40px" data-action="pushBannerOff">${L("Non ora", "Not now")}</button></div>${(() => { try { const er = localStorage.getItem("gp-push-err"); return er ? `<span class="t12 muted">${L("Ultimo errore", "Last error")}: ${esc(er)}</span>` : ""; } catch (e) { return ""; } })()}</div>`
       : ps === "ios-home" ? `<div class="lav-card"><p class="t13">${L("Per ricevere le notifiche su iPhone aggiungi l'app alla schermata Home (Condividi, Aggiungi alla schermata Home) e aprila da lì.", "To get notifications on iPhone add the app to your Home Screen (Share, Add to Home Screen) and open it from there.")}</p><button class="btn link sm" style="align-self:flex-start;min-height:36px" data-action="pushBannerOff">${L("Non mostrare più", "Don't show again")}</button></div>` : "");
-    list = upcoming.length ? upcoming.map(x => eventCard(x.g, x.sid, x.s)) : [`<div class="card dashed">${L("Nessuna sessione in programma. Quando un admin conferma una sessione, la trovi qui.", "No scheduled sessions. When an admin confirms a session, you'll find it here.")}</div>`];
+    list = sView() === "cal" ? [simpleCal("prog")] : upcoming.length ? upcoming.map(x => eventCard(x.g, x.sid, x.s)) : [`<div class="card dashed">${L("Nessuna sessione in programma. Quando un admin conferma una sessione, la trovi qui.", "No scheduled sessions. When an admin confirms a session, you'll find it here.")}</div>`];
   }
   return head + `<div class="stack g8 mb16" style="margin-top:12px">
+      ${ctrl}
       <div class="seg c3 h40">${tabB("poss", "Possibili")}${tabB("prop", "Proposte", propPending)}${tabB("prog", "In programma", progPending)}</div>
       ${top}
     </div>
