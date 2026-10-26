@@ -101,6 +101,9 @@ for (const gDoc of (await db.collection("groups").get()).docs) {
     if (NOW - ms(s.confirmedAt) < FRESH) await notify(`ev_${gid}_${sd.id}`, members.filter(u => u !== by), l => l === "en"
       ? { title: `Game on: ${g.game}`, body: `${nameOf(by)} confirmed ${when(l, s.date, s.time)} with ${g.name}${s.location ? `, ${s.location}` : ""}.`, open: "prog" }
       : { title: `Si gioca: ${g.game}`, body: `${nameOf(by)} ha confermato ${when(l, s.date, s.time)} con ${g.name}${s.location ? `, ${s.location}` : ""}.`, open: "prog" }, "ev");
+    if (s.updatedAt && NOW - ms(s.updatedAt) < FRESH) await notify(`evu_${gid}_${sd.id}_${ms(s.updatedAt)}`, members.filter(u => u !== s.updatedBy), l => l === "en"
+      ? { title: `Updated: ${g.game}`, body: `${when(l, s.date, s.time)} with ${g.name}${s.location ? `, ${s.location}` : ", place to be defined"}.`, open: "prog" }
+      : { title: `Sessione aggiornata: ${g.game}`, body: `${when(l, s.date, s.time)} con ${g.name}${s.location ? `, ${s.location}` : ", luogo da definire"}.`, open: "prog" }, "ev");
     const yes = members.filter(u => rsvpOf(avail, s, u) === "yes").length;
     if (yes < need(g)) await notify(`risk_${gid}_${sd.id}_${s.date}`, admins, l => l === "en"
       ? { title: `At risk: ${g.game}`, body: `${when(l, s.date, s.time)}: ${yes} of ${members.length} are in, the minimum is ${need(g)}. Decide whether to keep, move or revoke it.`, open: "prog" }

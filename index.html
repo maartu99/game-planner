@@ -607,6 +607,7 @@ function makeLocalStore() {
     },
     rsvp(gid, sid, v) { G(gid).sessions[sid].rsvps[db.current] = v; save(); },
     deleteSession(gid, sid) { delete G(gid).sessions[sid]; save(); },
+    updateSession(gid, sid, patch, notify) { Object.assign(G(gid).sessions[sid], patch, notify ? { updatedAt: Date.now(), updatedBy: db.current } : {}); save(); },
     revokeSession(gid, sid) {
       const g = G(gid), s = g.sessions[sid];
       (g.proposals ||= {})["p" + id()] = { date: s.date, time: s.time || "", place: s.location || "", desc: s.notes || "", by: s.confirmedBy || s.createdBy, answers: { ...(s.rsvps || {}) }, createdAt: Date.now() };
@@ -879,6 +880,7 @@ async function makeFirebaseStore(cfg) {
     },
     rsvp: (gid, sid, v) => F.updateDoc(F.doc(db, "groups", gid, "sessions", sid), { ["rsvps." + uid]: v }),
     deleteSession: (gid, sid) => F.deleteDoc(F.doc(db, "groups", gid, "sessions", sid)),
+    updateSession: (gid, sid, patch, notify) => F.updateDoc(F.doc(db, "groups", gid, "sessions", sid), notify ? { ...patch, updatedAt: Date.now(), updatedBy: uid } : patch),
     async revokeSession(gid, sid) {
       const s = raw[gid]?.sessions?.[sid]; if (!s) return;
       await F.addDoc(F.collection(db, "groups", gid, "proposals"), { date: s.date, time: s.time || "", place: s.location || "", desc: s.notes || "", by: s.confirmedBy || s.createdBy || uid, answers: { ...(s.rsvps || {}) }, createdAt: Date.now() });
@@ -1749,7 +1751,7 @@ function eventCard(g, sid, s) {
     <div class="stack g6"><span class="t12" style="font-weight:700">La tua risposta <span class="faint">· puoi cambiarla quando vuoi</span></span>${answersSeg(mine, "rsvp", `data-g="${g.id}" data-s="${sid}"`)}</div>
     <div class="grid2" style="gap:6px"><button class="btn m44" style="font-size:12px" data-action="ics" data-g="${g.id}" data-s="${sid}">Aggiungi al calendario</button><a class="btn m44" style="font-size:12px" href="${esc(gcalLink(g, s))}" target="_blank" rel="noopener">Google Calendar</a></div>
     <a class="btn m44" style="font-size:13px" href="https://wa.me/?text=${encodeURIComponent(sessionText(g, s))}" target="_blank" rel="noopener noreferrer">${ic("ios_share")}${L("Condividi su WhatsApp", "Share on WhatsApp")}</a>
-    ${admin ? `<div class="grid2" style="gap:6px;border-top:1px solid var(--soft);padding-top:10px"><button class="btn m44" data-action="revoke" data-g="${g.id}" data-s="${sid}">${ic("undo")}Revoca conferma</button><button class="btn rose m44" data-action="cancelSession" data-g="${g.id}" data-s="${sid}">Annulla sessione</button></div>
+    ${admin ? `<div class="stack g6" style="border-top:1px solid var(--soft);padding-top:10px"><button class="btn m44" data-action="editEv" data-g="${g.id}" data-s="${sid}">${ic("edit")}${L("Modifica luogo, ora e note", "Edit place, time and notes")}</button><div class="grid2" style="gap:6px"><button class="btn m44" data-action="revoke" data-g="${g.id}" data-s="${sid}">${ic("undo")}Revoca conferma</button><button class="btn rose m44" data-action="cancelSession" data-g="${g.id}" data-s="${sid}">Annulla sessione</button></div></div>
       <button class="btn link sm" style="align-self:center;min-height:36px;font-size:12px" data-action="openF6" data-g="${g.id}" data-s="${sid}">${ic("share", "s16")}${L("Avvisa per email o copia il messaggio", "Notify by email or copy the message")}</button>` : ""}
   </div>`;
 }
@@ -1889,7 +1891,8 @@ function renderModal() {
       <div class="stack"><span class="caps" style="margin-bottom:4px">PERSONE</span>
         ${byName(g, g.members).map(u => { const t = ST[rsvpOf(g, s, u)] || ["In attesa", "c-grey"]; return `<div class="people-row"><span style="font-size:14px;font-weight:600">${esc(nameIn(g, u))}${u === me ? L(" (tu)", " (you)") : ""}</span><span class="tag ${t[1]}" style="font-size:12px;font-weight:700;padding:3px 10px">${t[0]}</span></div>`; }).join("")}</div>
       <div class="stack g6"><span class="t12" style="font-weight:700">La tua risposta <span class="faint">· puoi cambiarla quando vuoi</span></span>${answersSeg(rsvpOf(g, s, me), "rsvp", `data-g="${g.id}" data-s="${M.sid}"`)}</div>
-      ${isAdmin(g) ? `<div class="grid2" style="gap:6px"><button class="btn m44" data-action="revoke" data-g="${g.id}" data-s="${M.sid}">Revoca conferma</button><button class="btn rose m44" data-action="cancelSession" data-g="${g.id}" data-s="${M.sid}">Annulla sessione</button></div>` : ""}
+      ${isAdmin(g) ? `<button class="btn m44" data-action="editEv" data-g="${g.id}" data-s="${M.sid}">${ic("edit")}${L("Modifica luogo, ora e note", "Edit place, time and notes")}</button>
+      <div class="grid2" style="gap:6px"><button class="btn m44" data-action="revoke" data-g="${g.id}" data-s="${M.sid}">Revoca conferma</button><button class="btn rose m44" data-action="cancelSession" data-g="${g.id}" data-s="${M.sid}">Annulla sessione</button></div>` : ""}
       <button class="btn p" data-action="closeModal">Chiudi</button>`;
   } else if (M.type === "f2") {
     const g = M.gid ? getGroup(M.gid) : null, games = myGames();
@@ -1929,6 +1932,16 @@ function renderModal() {
         ${n.allConf ? `<p class="t13 muted">Tutti i tuoi gruppi hanno già una sessione confermata.</p>` : ""}</div>
       ${myV === "no" ? `<p class="t13 muted">${L("Nel calendario hai segnato NO per questo giorno: vale per tutti i giochi. Per cambiarlo vai in Disponibilità.", "In your calendar you marked NO for this day: it applies to every game. To change it go to Availability.")}</p>` : `<p class="t12 muted">${L("Puoi rispondere per ogni gioco: vale solo per questo giorno. Il resto lo gestisci dal calendario in Disponibilità.", "You can answer for each game: it only applies to this day. Everything else is managed from the calendar in Availability.")}</p>`}
       <button class="btn" data-action="closeModal">Chiudi</button>`;
+  } else if (M.type === "evEdit") {
+    const g = getGroup(M.gid), s = g?.sessions?.[M.sid];
+    if (!s || !isAdmin(g)) { S.modal = null; return ""; }
+    inner = `${titleBlock(L("Modifica sessione", "Edit session"), `${esc(g.game)} · ${longDate(s.date, true)}`)}
+      <label class="lbl">${L("Ora", "Time")}<input id="eTime" data-keep class="in" type="time" value="${esc(s.time || DEFAULT_TIME)}"></label>
+      <label class="lbl">${L("Dove", "Where")}<input id="eLoc" data-keep class="in" placeholder="${L("Es. da Gigi, via Roma 12", "E.g. at Gigi's, 12 Roma st.")}" value="${esc(s.location || "")}"></label>
+      <label class="lbl">${L("Note", "Notes")}<textarea id="eNotes" data-keep class="in" rows="2">${esc(s.notes || "")}</textarea></label>
+      <label class="row" style="gap:10px;align-items:center;font-size:14px;font-weight:600"><input id="eNotify" data-keep type="checkbox" checked style="width:20px;height:20px">${L("Avvisa il gruppo se cambiano ora o luogo", "Notify the group if time or place change")}</label>
+      ${errSlot("eErr")}
+      ${twoBtns(cancelBtn(), `<button class="btn p" data-action="saveEv" data-g="${g.id}" data-s="${M.sid}">${L("Salva", "Save")}</button>`)}`;
   } else if (M.type === "f5") {
     const groups = groupList().filter(g => isAdmin(g)), d = M.draft || {};
     inner = `${titleBlock("Conferma la sessione", "Tutti i membri del gruppo riceveranno l'avviso.")}
@@ -2614,6 +2627,16 @@ document.addEventListener("click", e => {
     case "setSView": { if (sView() === d.v) break; S.me.sView = d.v; render(); run(() => store.setProfile({ sView: d.v })); break; }
     case "goToday": { S.sMonth = curMonth(); S.modal = { type: "f4", date: todayStr() }; render(); break; }
     case "openF4": S.modal = { type: "f4", date: d.date }; render(); break;
+    case "editEv": S.modal = { type: "evEdit", gid: d.g, sid: d.s }; render(); break;
+    case "saveEv": {
+      const g = getGroup(d.g), s = g?.sessions?.[d.s]; if (!s || !isAdmin(g)) break;
+      const patch = { time: val("eTime") || DEFAULT_TIME, location: val("eLoc"), notes: val("eNotes") };
+      const changed = patch.time !== (s.time || DEFAULT_TIME) || patch.location !== (s.location || "");
+      const notify = changed && document.getElementById("eNotify")?.checked;
+      S.modal = null;
+      run(async () => { await store.updateSession(d.g, d.s, patch, notify); toast(notify ? L("Sessione aggiornata: il gruppo riceve l'avviso.", "Session updated: the group is notified.") : L("Sessione aggiornata.", "Session updated.")); });
+      render(); break;
+    }
     case "openEv": S.modal = { type: "ev", gid: d.g, sid: d.s }; render(); break;
     case "openF5": {
       const adm = groupList().filter(x => isAdmin(x));
