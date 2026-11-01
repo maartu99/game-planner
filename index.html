@@ -1931,7 +1931,6 @@ function renderModal() {
       ${allProposals().filter(x => x.p.date === M.date).length ? `<div class="stack g8"><span class="caps">${L("PROPOSTE", "PROPOSALS")}</span>${allProposals().filter(x => x.p.date === M.date).map(x => renderProposal(x, true)).join("")}</div>` : ""}
       <div class="stack g8"><span class="caps">GIOCHI POSSIBILI QUESTO GIORNO</span>
         <p class="t13 muted">${n.possible.length >= 2 ? "Più giochi sono possibili: l'admin sceglie a cosa giocare." : n.possible.length === 1 ? "C'è un gioco possibile." : "Nessun gioco possibile in questo giorno con le disponibilità attuali."}</p>
-        ${myV !== "no" && otherGames(M.date, "", true).length >= 3 ? `<button class="btn m44" data-action="openOthers" data-date="${M.date}">${L("Rispondi a tutti i giochi", "Answer all games")}</button>` : ""}
         ${[...n.evals].filter(e => !allProposals().some(x => x.p.date === M.date && x.g.id === e.g.id)).sort((a, b) => byNameStr(a.g.name, b.g.name)).map(e => renderRow(e, M.date, false, myGameSeg)).join("")}
         ${n.allConf ? `<p class="t13 muted">Tutti i tuoi gruppi hanno già una sessione confermata.</p>` : ""}</div>
       ${myV === "no" ? `<p class="t13 muted">${L("Nel calendario hai segnato NO per questo giorno: vale per tutti i giochi. Per cambiarlo vai in Disponibilità.", "In your calendar you marked NO for this day: it applies to every game. To change it go to Availability.")}</p>` : `<p class="t12 muted">${L("Puoi rispondere per ogni gioco: vale solo per questo giorno. Il resto lo gestisci dal calendario in Disponibilità.", "You can answer for each game: it only applies to this day. Everything else is managed from the calendar in Availability.")}</p>`}
@@ -1947,10 +1946,10 @@ function renderModal() {
       ${errSlot("eErr")}
       ${twoBtns(cancelBtn(), `<button class="btn p" data-action="saveEv" data-g="${g.id}" data-s="${M.sid}">${L("Salva", "Save")}</button>`)}`;
   } else if (M.type === "others") {
-    const list = otherGames(M.date, "", true);
-    if (!list.length) { S.modal = { type: "f4", date: M.date }; return renderModal(); }
-    inner = `<div><h3 style="margin-bottom:4px">${L("I tuoi giochi di questo giorno", "Your games on this day")}</h3><p class="t13 muted">${L("Imposta le risposte in blocco, poi correggi i singoli giochi. Se non tocchi niente restano come nel tuo calendario.", "Set your answers in bulk, then adjust single games. If you touch nothing they stay as in your calendar.")}</p></div>
-      <div class="grid2" style="gap:6px"><button class="btn m44" data-action="othersAll" data-g="" data-date="${M.date}" data-v="no">${L("Tutti No", "All No")}</button><button class="btn m44" data-action="othersAll" data-g="" data-date="${M.date}" data-v="yes">${L("Tutti Sì", "All Yes")}</button></div>
+    const first = getGroup(M.gid), list = otherGames(M.date, M.gid, true);
+    if (!first || !list.length) { S.modal = { type: "f4", date: M.date }; return renderModal(); }
+    inner = `<div><h3 style="margin-bottom:4px">${L(`Hai detto Sì a ${esc(first.game)}`, `You said yes to ${esc(first.game)}`)}</h3><p class="t13 muted">${L("E gli altri giochi di questo giorno? Se non tocchi niente restano come nel tuo calendario.", "What about the other games on this day? If you touch nothing they stay as in your calendar.")}</p></div>
+      <div class="grid2" style="gap:6px"><button class="btn m44" data-action="othersAll" data-g="${first.id}" data-date="${M.date}" data-v="no">${L("Tutti No", "All No")}</button><button class="btn m44" data-action="othersAll" data-g="${first.id}" data-date="${M.date}" data-v="yes">${L("Tutti Sì", "All Yes")}</button></div>
       <div class="stack">${list.map(g => `<div class="stack g6 ${gColor(g)}" style="padding:10px 0;border-top:1px solid var(--soft)"><div class="row" style="gap:8px">${gBadge(g, 20)}<span style="font-size:14px;font-weight:700">${esc(g.game)}</span><span class="t12 muted">${esc(g.name)}</span></div>${answersSeg(dayOf(g, S.me.uid, M.date), "othersAns", `data-g="${g.id}" data-date="${M.date}"`, [L("Sì", "Yes"), L("Forse", "Maybe"), "No"])}</div>`).join("")}</div>
       <button class="btn p" data-action="othersDone" data-g="" data-date="${M.date}">${L("Fatto", "Done")}</button>`;
   } else if (M.type === "f5") {
@@ -2630,12 +2629,15 @@ document.addEventListener("click", e => {
     }
     case "setGameDay": {
       const gg = S.groups[d.g] && getGroup(d.g); if (!gg) break;
+      // prima risposta del giorno: se ci sono altri giochi senza risposta, chiede cosa fare
+      const first = d.v === "yes" && !groupList().some(x => x.members.includes(me) && gameDay(x, me, d.date));
+      const others = first ? otherGames(d.date, d.g) : [];
       run(() => store.setGameDay(d.g, d.date, gameDay(gg, me, d.date) === d.v ? null : d.v));
+      if (others.length >= 2) { S.modal = { type: "others", date: d.date, gid: d.g }; render(); }
       break;
     }
     case "othersAns": { const gg = getGroup(d.g); if (gg) run(() => store.setGameDay(d.g, d.date, gameDay(gg, me, d.date) === d.v ? null : d.v)); break; }
     case "othersAll": { const list = otherGames(d.date, d.g, true); run(() => Promise.all(list.map(g => store.setGameDay(g.id, d.date, d.v)))); break; }
-    case "openOthers": S.modal = { type: "others", date: d.date }; render(); break;
     case "othersDone": S.modal = { type: "f4", date: d.date }; render(); break;
     case "propAnswer": { const p = S.groups[d.g]?.proposals?.[d.pid]; if (p) run(() => store.propAnswer(d.g, d.pid, ansOf(p, me) === d.v ? null : d.v)); break; }
     case "withdrawProp": ask("Ritiri questa proposta per tutto il gruppo?", "Ritira", () => run(() => store.deleteProposal(d.g, d.pid))); break;
