@@ -917,6 +917,9 @@ const prefOf = (g, u) => g.prefs?.[u] || 2;
 // altrimenti conta la risposta data a quel gioco (se c'è), poi quella generale del calendario.
 const baseDay = (g, u, d) => u === S.me.uid ? (S.me.days || {})[d] : (g.avail?.[u] || {})[d];
 const gameDay = (g, u, d) => (g.over?.[u] || {})[d];
+const otherGames = (date, exceptGid, all) => night(date, "all").evals
+  .filter(e => e.g.id !== exceptGid && e.g.members.includes(S.me.uid) && !e.st.find(x => x.u === S.me.uid && x.v === "busy") && (all || !gameDay(e.g, S.me.uid, date)))
+  .map(e => e.g);
 const dayOf = (g, u, d) => { const b = baseDay(g, u, d); return b === "no" ? "no" : (gameDay(g, u, d) || b); };
 const adminsOf = g => (g.admins && g.admins.length ? g.admins : [g.createdBy]).filter(u => g.members.includes(u));
 const isAdmin = (g, u = S.me.uid) => !!g && adminsOf(g).includes(u);
@@ -1942,6 +1945,13 @@ function renderModal() {
       <label class="row" style="gap:10px;align-items:center;font-size:14px;font-weight:600"><input id="eNotify" data-keep type="checkbox" checked style="width:20px;height:20px">${L("Avvisa il gruppo se cambiano ora o luogo", "Notify the group if time or place change")}</label>
       ${errSlot("eErr")}
       ${twoBtns(cancelBtn(), `<button class="btn p" data-action="saveEv" data-g="${g.id}" data-s="${M.sid}">${L("Salva", "Save")}</button>`)}`;
+  } else if (M.type === "others") {
+    const first = getGroup(M.gid), list = otherGames(M.date, M.gid, true);
+    if (!first || !list.length) { S.modal = { type: "f4", date: M.date }; return renderModal(); }
+    inner = `<div><h3 style="margin-bottom:4px">${L(`Hai detto Sì a ${esc(first.game)}`, `You said yes to ${esc(first.game)}`)}</h3><p class="t13 muted">${L("E gli altri giochi di questo giorno? Se non tocchi niente restano come nel tuo calendario.", "What about the other games on this day? If you touch nothing they stay as in your calendar.")}</p></div>
+      <div class="grid2" style="gap:6px"><button class="btn m44" data-action="othersAll" data-g="${first.id}" data-date="${M.date}" data-v="no">${L("Tutti No", "All No")}</button><button class="btn m44" data-action="othersAll" data-g="${first.id}" data-date="${M.date}" data-v="yes">${L("Tutti Sì", "All Yes")}</button></div>
+      <div class="stack">${list.map(g => `<div class="stack g6 ${gColor(g)}" style="padding:10px 0;border-top:1px solid var(--soft)"><div class="row" style="gap:8px">${gBadge(g, 20)}<span style="font-size:14px;font-weight:700">${esc(g.game)}</span><span class="t12 muted">${esc(g.name)}</span></div>${answersSeg(dayOf(g, S.me.uid, M.date), "othersAns", `data-g="${g.id}" data-date="${M.date}"`, [L("Sì", "Yes"), L("Forse", "Maybe"), "No"])}</div>`).join("")}</div>
+      <button class="btn p" data-action="othersDone" data-g="" data-date="${M.date}">${L("Fatto", "Done")}</button>`;
   } else if (M.type === "f5") {
     const groups = groupList().filter(g => isAdmin(g)), d = M.draft || {};
     inner = `${titleBlock("Conferma la sessione", "Tutti i membri del gruppo riceveranno l'avviso.")}
@@ -2617,7 +2627,18 @@ document.addEventListener("click", e => {
       render(); window.scrollTo(0, 0);
       break;
     }
-    case "setGameDay": { const gg = S.groups[d.g] && getGroup(d.g); if (!gg) break; run(() => store.setGameDay(d.g, d.date, gameDay(gg, me, d.date) === d.v ? null : d.v)); break; }
+    case "setGameDay": {
+      const gg = S.groups[d.g] && getGroup(d.g); if (!gg) break;
+      // prima risposta del giorno: se ci sono altri giochi senza risposta, chiede cosa fare
+      const first = d.v === "yes" && !groupList().some(x => x.members.includes(me) && gameDay(x, me, d.date));
+      const others = first ? otherGames(d.date, d.g) : [];
+      run(() => store.setGameDay(d.g, d.date, gameDay(gg, me, d.date) === d.v ? null : d.v));
+      if (others.length >= 2) { S.modal = { type: "others", date: d.date, gid: d.g }; render(); }
+      break;
+    }
+    case "othersAns": { const gg = getGroup(d.g); if (gg) run(() => store.setGameDay(d.g, d.date, gameDay(gg, me, d.date) === d.v ? null : d.v)); break; }
+    case "othersAll": { const list = otherGames(d.date, d.g, true); run(() => Promise.all(list.map(g => store.setGameDay(g.id, d.date, d.v)))); break; }
+    case "othersDone": S.modal = { type: "f4", date: d.date }; render(); break;
     case "propAnswer": { const p = S.groups[d.g]?.proposals?.[d.pid]; if (p) run(() => store.propAnswer(d.g, d.pid, ansOf(p, me) === d.v ? null : d.v)); break; }
     case "withdrawProp": ask("Ritiri questa proposta per tutto il gruppo?", "Ritira", () => run(() => store.deleteProposal(d.g, d.pid))); break;
 
