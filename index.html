@@ -993,8 +993,8 @@ function notifications() {
 // Link alla chat del gruppo: solo servizi di chat noti e solo https
 const CHAT_HOSTS = ["chat.whatsapp.com", "wa.me", "discord.gg", "discord.com", "t.me", "telegram.me", "signal.group", "signal.me"];
 function safeChat(u) { try { const x = new URL(String(u || "").trim()); if (x.protocol !== "https:") return ""; return CHAT_HOSTS.includes(x.hostname.replace(/^www\./, "")) ? x.href : ""; } catch (e) { return ""; } }
-const sessionText = (g, s) => L(`Confermato! ${longDate(s.date, true)} alle ${s.time || DEFAULT_TIME} si gioca a ${g.game} (gruppo ${g.name})${s.location ? ", " + s.location : ""}.${s.notes ? " " + s.notes : ""} Conferma la tua presenza su Game Planner: ${location.origin + location.pathname}`,
-  `Confirmed! ${longDate(s.date, true)} at ${s.time || DEFAULT_TIME} we play ${g.game} (group ${g.name})${s.location ? ", " + s.location : ""}.${s.notes ? " " + s.notes : ""} Confirm you're coming on Game Planner: ${location.origin + location.pathname}`);
+const sessionText = (g, s) => L(`Confermato! ${longDate(s.date, true)} alle ${s.time || DEFAULT_TIME} si gioca a ${g.game} (gruppo ${g.name})${s.location ? ", " + s.location : ""}.${s.notes ? " " + s.notes : ""} Conferma la tua presenza aprendo l'app Game Planner dalla schermata Home. Non ce l'hai ancora? Usa il link: ${location.origin + location.pathname}`,
+  `Confirmed! ${longDate(s.date, true)} at ${s.time || DEFAULT_TIME} we play ${g.game} (group ${g.name})${s.location ? ", " + s.location : ""}.${s.notes ? " " + s.notes : ""} Confirm you're coming by opening the Game Planner app from your Home Screen. Don't have it yet? Use the link: ${location.origin + location.pathname}`);
 let notifiedKeys = null;
 // Vecchi gruppi "solo se ci sono tutti": un admin li passa al minimo fisso (= membri di oggi)
 const migrated = new Set();
