@@ -91,7 +91,7 @@ h1,h2,h3{margin:0}
 .h-sec>.h-head h2{font-size:18px;font-weight:800}
 .h-cnt{min-width:24px;height:24px;padding:0 7px;border-radius:12px;background:#ff8a3d;color:#2a1200;font-size:13px;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
 .htodo{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:18px;background:var(--card);border:1px solid var(--line);box-shadow:var(--sh1)}
-.htodo .hic{width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;flex:none}
+.htodo .hic{width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--gt);flex:none}
 .htodo .k{font-size:12px;font-weight:700;color:var(--faint)}
 .htodo .t{font-size:15px;font-weight:800;line-height:20px}
 .htodo .s{font-size:13px;color:var(--muted)}
@@ -103,25 +103,25 @@ h1,h2,h3{margin:0}
 .hmore{align-self:flex-start;font-size:13px}
 .hdone{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:18px;background:var(--card);border:1px solid var(--line)}
 .hdone .ck{width:44px;height:44px;border-radius:50%;background:var(--mint);color:var(--mint-t);display:flex;align-items:center;justify-content:center;flex:none}
-.hnext{border-radius:26px;background:var(--gc);color:#fff;padding:20px;display:flex;flex-direction:column;gap:14px;position:relative;overflow:hidden}
-.hnext:before{content:"";position:absolute;right:-34px;top:-34px;width:150px;height:150px;border-radius:40px;background:rgba(255,255,255,.08);transform:rotate(18deg)}
-.hnext .lab{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.92)}
+.hnext{border-radius:26px;background:var(--gc);color:var(--gt);padding:20px;display:flex;flex-direction:column;gap:14px;position:relative;overflow:hidden}
+.hnext:before{content:"";position:absolute;right:-34px;top:-34px;width:150px;height:150px;border-radius:40px;background:color-mix(in srgb,var(--gt) 9%,transparent);transform:rotate(18deg)}
+.hnext .lab{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--gt)}
 .hnext .gname{font-size:23px;line-height:28px;font-weight:800}
-.hnext .game{font-size:15px;font-weight:600;color:rgba(255,255,255,.95)}
-.hnext .when{font-size:31px;line-height:34px;font-weight:800;color:#ffd3a8;text-align:right}
+.hnext .game{font-size:15px;font-weight:600;color:var(--gt)}
+.hnext .when{font-size:31px;line-height:34px;font-weight:800;color:var(--gp);text-align:right}
 .hnext .when.long{font-size:26px;line-height:30px}
-.hnext .when2{font-size:13px;font-weight:700;color:rgba(255,255,255,.95);text-align:right}
-.hnext .info{display:flex;flex-direction:column;gap:6px;margin-top:0;padding:11px 13px;border-radius:16px;background:rgba(0,0,0,.18);font-size:14px;line-height:20px;color:#fff;font-weight:600}
-.hnext .info .ms{color:#ffd3a8}
+.hnext .when2{font-size:13px;font-weight:700;color:var(--gt);text-align:right}
+.hnext .info{display:flex;flex-direction:column;gap:6px;margin-top:0;padding:11px 13px;border-radius:16px;background:var(--gk);font-size:14px;line-height:20px;color:var(--gt);font-weight:600}
+.hnext .info .ms{color:var(--gp)}
 .hnext .info span{display:flex;gap:8px;align-items:flex-start}
 .hav{display:flex}
 .hav i{font-style:normal;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;background:#fff;color:#16302a;border:3px solid #7ee2b0;margin-left:-8px}
 .hav i:first-child{margin-left:0}
-.hav i.maybe{border-color:#ffc078}.hav i.no{opacity:.45;border-color:#ff9b95}.hav i.wait{border:3px dashed #ffd3a8;background:rgba(255,255,255,.18);color:#fff}
-.hnudge{display:flex;align-items:center;gap:10px;min-height:46px;padding:0 14px;border-radius:14px;border:1px dashed #ffd3a8;background:rgba(255,211,168,.14);color:#ffe7d1;font-size:14px;font-weight:700;text-decoration:none}
+.hav i.maybe{border-color:#ffc078}.hav i.no{opacity:.45;border-color:#ff9b95}.hav i.wait{border:3px dashed var(--gp);background:color-mix(in srgb,var(--gt) 18%,transparent);color:var(--gt)}
+.hnudge{display:flex;align-items:center;gap:10px;min-height:46px;padding:0 14px;border-radius:14px;border:1px dashed var(--gp);background:color-mix(in srgb,var(--gp) 16%,transparent);color:var(--gt);font-size:14px;font-weight:700;text-decoration:none}
 .hseg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
-.hseg button{min-height:44px;border-radius:14px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;font-size:14px;font-weight:700}
-.hseg button.on{background:#fff;color:#16302a;border-color:#fff}
+.hseg button{min-height:44px;border-radius:14px;border:1px solid color-mix(in srgb,var(--gt) 35%,transparent);background:color-mix(in srgb,var(--gt) 12%,transparent);color:var(--gt);font-size:14px;font-weight:700}
+.hseg button.on{background:var(--gt);color:var(--gc);border-color:var(--gt)}
 .hacts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .hacts>*{min-height:44px;border-radius:14px;border:0;background:#fff;color:#16302a;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none}
 .pulse{width:10px;height:10px;border-radius:50%;background:#ffb070;flex:none}
@@ -170,6 +170,48 @@ h1,h2,h3{margin:0}
 .icgrid button.on{background:var(--primary);color:#fff;border-color:var(--primary)}
 .gc0{--gc:#1b6d4f;--gl:#e3f6ec;--gd:#1b6d4f}.gc1{--gc:#4d3c88;--gl:#ece6ff;--gd:#4d3c88}.gc2{--gc:#9a4a00;--gl:#ffeedd;--gd:#8f4e00}.gc3{--gc:#0a5f8a;--gl:#ddf1fd;--gd:#075985}.gc4{--gc:#a3214a;--gl:#ffe3ec;--gd:#9f1239}
 :root[data-theme="dark"] .gc0{--gl:#173a2c;--gd:#8fe0bb}:root[data-theme="dark"] .gc1{--gl:#2a2350;--gd:#cfc3ff}:root[data-theme="dark"] .gc2{--gl:#3d2a17;--gd:#ffc78f}:root[data-theme="dark"] .gc3{--gl:#123a52;--gd:#bae6fd}:root[data-theme="dark"] .gc4{--gl:#46192a;--gd:#fda4bf}
+/* palette gruppi: 14 colori, ognuno scuro (testo bianco) e chiaro (testo scuro) */
+:root{--gt:#fff;--gk:rgba(0,0,0,.18);--gp:#ffd3a8}
+.gc22{--gc:#ffb870;--gl:#ffe6cd;--gd:#61462b;--gt:#14171a;--gk:rgba(0,0,0,.1);--gp:#4c3722}
+.gc24{--gc:#ff8fa3;--gl:#ffd8df;--gd:#61363e;--gt:#14171a;--gk:rgba(0,0,0,.1);--gp:#4c2b31}
+.gc8{--gc:#a8286f;--gl:#f3e1eb;--gd:#8f225e}
+.gc28{--gc:#ffa8d4;--gl:#ffe1f0;--gd:#614051;--gt:#14171a;--gk:rgba(0,0,0,.1);--gp:#4c3240}
+.gc21{--gc:#c9b8ff;--gl:#ece6ff;--gd:#4c4661;--gt:#14171a;--gk:rgba(0,0,0,.1);--gp:#3c374c}
+.gc9{--gc:#2a4fb0;--gl:#e1e6f4;--gd:#244396}
+.gc29{--gc:#9db4ff;--gl:#dde5ff;--gd:#3c4461;--gt:#14171a;--gk:rgba(0,0,0,.1);--gp:#2f364c}
+.gc23{--gc:#8fd3f4;--gl:#d8f0fb;--gd:#36505d;--gt:#14171a;--gk:rgba(0,0,0,.1);--gp:#2b3f49}
+.gc20{--gc:#8fe0b0;--gl:#d8f4e3;--gd:#365543;--gt:#14171a;--gk:rgba(0,0,0,.1);--gp:#2b4335}
+.gc10{--gc:#12472a;--gl:#dee5e1;--gd:#0f3c24}
+.gc30{--gc:#6fbf8a;--gl:#cde9d6;--gd:#2a4934;--gt:#14171a;--gk:rgba(0,0,0,.1);--gp:#213929}
+.gc11{--gc:#4d6b0c;--gl:#e6eadd;--gd:#415b0a}
+.gc31{--gc:#cfe86a;--gl:#eef7cb;--gd:#4f5828;--gt:#14171a;--gk:rgba(0,0,0,.1);--gp:#3e4620}
+.gc25{--gc:#7fe0d4;--gl:#d2f4f0;--gd:#305551;--gt:#14171a;--gk:rgba(0,0,0,.1);--gp:#264340}
+.gc27{--gc:#f2d06b;--gl:#faefcb;--gd:#5c4f29;--gt:#14171a;--gk:rgba(0,0,0,.1);--gp:#493e20}
+.gc12{--gc:#6b3f26;--gl:#eae4e1;--gd:#5b3620}
+.gc32{--gc:#d9ad8c;--gl:#f2e2d7;--gd:#524235;--gt:#14171a;--gk:rgba(0,0,0,.1);--gp:#41342a}
+.gc26{--gc:#b9c6d4;--gl:#e6ebf0;--gd:#464b51;--gt:#14171a;--gk:rgba(0,0,0,.1);--gp:#383b40}
+.gc13{--gc:#171a1d;--gl:#dfdfdf;--gd:#141619}
+.gc33{--gc:#cfd3d8;--gl:#eef0f1;--gd:#4f5052;--gt:#14171a;--gk:rgba(0,0,0,.1);--gp:#3e3f41}
+:root[data-theme="dark"] .gc22{--gl:#524231;--gd:#ffb870}
+:root[data-theme="dark"] .gc24{--gl:#52363f;--gd:#ff8fa3}
+:root[data-theme="dark"] .gc8{--gl:#451b36;--gd:#d89ebe}
+:root[data-theme="dark"] .gc28{--gl:#523d4d;--gd:#ffa8d4}
+:root[data-theme="dark"] .gc21{--gl:#434259;--gd:#c9b8ff}
+:root[data-theme="dark"] .gc9{--gl:#18294d;--gd:#9fb0db}
+:root[data-theme="dark"] .gc29{--gl:#374159;--gd:#9db4ff}
+:root[data-theme="dark"] .gc23{--gl:#334956;--gd:#8fd3f4}
+:root[data-theme="dark"] .gc20{--gl:#334d43;--gd:#8fe0b0}
+:root[data-theme="dark"] .gc10{--gl:#10261e;--gd:#94ac9f}
+:root[data-theme="dark"] .gc30{--gl:#2a4438;--gd:#6fbf8a}
+:root[data-theme="dark"] .gc11{--gl:#253214;--gd:#afbc92}
+:root[data-theme="dark"] .gc31{--gl:#454f2f;--gd:#cfe86a}
+:root[data-theme="dark"] .gc25{--gl:#2e4d4d;--gd:#7fe0d4}
+:root[data-theme="dark"] .gc27{--gl:#4f492f;--gd:#f2d06b}
+:root[data-theme="dark"] .gc12{--gl:#2f231d;--gd:#bca99d}
+:root[data-theme="dark"] .gc32{--gl:#483f38;--gd:#d9ad8c}
+:root[data-theme="dark"] .gc26{--gl:#3f464d;--gd:#b9c6d4}
+:root[data-theme="dark"] .gc13{--gl:#12161a;--gd:#979899}
+:root[data-theme="dark"] .gc33{--gl:#45494e;--gd:#cfd3d8}
 .h-in{animation:hIn .5s cubic-bezier(.2,.8,.2,1) both}
 @keyframes hIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 .pulse.anim{animation:hPulse 1.6s ease-in-out infinite}
@@ -280,6 +322,9 @@ h1,h2,h3{margin:0}
 .card.click:hover{border-color:var(--mint-line)}
 .card.ev{border-color:var(--ev-line)}
 .card.ev.raised{box-shadow:var(--sh2)}
+.gstroke{border-color:var(--gc)!important;box-shadow:inset 0 0 0 1px var(--gc)}
+.card.click.gstroke{box-shadow:var(--sh1),inset 0 0 0 1px var(--gc)}
+.card.ev.raised.gstroke{box-shadow:var(--sh2),inset 0 0 0 1px var(--gc)}
 .card.prop{border:1.5px solid var(--lav-line);padding:16px}
 .card.night{padding:14px;box-shadow:var(--sh1)}
 .dim-card{opacity:.6}
@@ -577,6 +622,10 @@ function makeLocalStore() {
       if (!g.members.includes(db.current)) g.members.push(db.current);
       g.prefs[db.current] ??= 2; save();
     },
+    async searchUsers(q) {
+      q = q.trim().toLowerCase().replace(/^@/, "");
+      return Object.entries(db.users).filter(([, x]) => x.username && ((x.username || "").startsWith(q) || (x.name || "").toLowerCase().startsWith(q))).slice(0, 5).map(([uid, x]) => ({ uid, name: x.name, username: x.username }));
+    },
     async findUser(q) {
       q = q.trim().toLowerCase().replace(/^@/, "");
       const hit = Object.entries(db.users).find(([, x]) => q.includes("@") ? (x.email || "").toLowerCase() === q : (x.username || "") === q);
@@ -719,6 +768,8 @@ async function makeFirebaseStore(cfg) {
       // Indice per email: serve a farsi trovare e invitare dagli altri
       const d = s.exists() ? s.data() : {};
       if (email) F.setDoc(F.doc(db, "emailIndex", email), { uid, name: d.name || user.displayName || email.split("@")[0], username: d.username || "" }).catch(e => console.error(e));
+      // Indice per username: il nome in minuscolo serve alla ricerca degli admin
+      if (d.username && d.name) F.setDoc(F.doc(db, "usernames", d.username), { uid, name: d.name, nameLower: d.name.toLowerCase() }, { merge: true }).catch(e => console.error(e));
     } catch (e) { console.error(e); authState = "error"; return emit(); }
     authState = "ready";
     base.push(F.onSnapshot(ref, s => { meDoc = s.data() || {}; emit(); }, onErr));
@@ -781,7 +832,7 @@ async function makeFirebaseStore(cfg) {
       b.update(F.doc(db, "users", uid), { name: n });
       for (const g of myIds()) b.update(F.doc(db, "groups", g), { ["names." + uid]: n });
       if (email) b.set(F.doc(db, "emailIndex", email), { uid, name: n, username: meDoc?.username || "" });
-      if (meDoc?.username) b.set(F.doc(db, "usernames", meDoc.username), { uid, name: n });
+      if (meDoc?.username) b.set(F.doc(db, "usernames", meDoc.username), { uid, name: n, nameLower: n.toLowerCase() });
       await b.commit();
     },
     async findUser(q) {
@@ -789,13 +840,23 @@ async function makeFirebaseStore(cfg) {
       const s = await F.getDoc(F.doc(db, q.includes("@") ? "emailIndex" : "usernames", q));
       return s.exists() ? { uid: s.data().uid, name: s.data().name || "", username: s.data().username || (q.includes("@") ? "" : q) } : null;
     },
+    async searchUsers(q) {
+      q = q.trim().toLowerCase().replace(/^@/, "");
+      const col = F.collection(db, "usernames"), out = new Map();
+      const [a, b] = await Promise.all([
+        F.getDocs(F.query(col, F.where(F.documentId(), ">=", q), F.where(F.documentId(), "<=", q + "\uf8ff"), F.limit(5))),
+        F.getDocs(F.query(col, F.where("nameLower", ">=", q), F.where("nameLower", "<=", q + "\uf8ff"), F.limit(5)))
+      ]);
+      for (const sn of [...a.docs, ...b.docs]) out.set(sn.data().uid, { uid: sn.data().uid, name: sn.data().name || "", username: sn.id });
+      return [...out.values()];
+    },
     async setUsername(n) {
       const old = meDoc?.username, name = meDoc?.name || "";
       await F.runTransaction(db, async t => {
         const ref = F.doc(db, "usernames", n), cur = await t.get(ref);
         if (cur.exists() && cur.data().uid !== uid) throw new Error("Questo username è già preso.");
         if (old && old !== n) t.delete(F.doc(db, "usernames", old));
-        t.set(ref, { uid, name });
+        t.set(ref, { uid, name, nameLower: name.toLowerCase() });
         t.set(F.doc(db, "users", uid), { username: n }, { merge: true });
         if (email) t.set(F.doc(db, "emailIndex", email), { uid, name, username: n });
       });
@@ -1231,7 +1292,8 @@ const avatarHtml = (cls = "") => {
 
 // ----- COLORE E ICONA DEL GRUPPO -----
 // Il colore lo sceglie l'admin; se non l'ha scelto, uno fisso ricavato dal gruppo
-const GCOLORS = ["gc0", "gc1", "gc2", "gc3", "gc4", "gc5", "gc6", "gc7"];
+const GFAM = [["Arancione", "gc2", "gc22"], ["Rosso", "gc4", "gc24"], ["Rosa", "gc8", "gc28"], ["Viola", "gc1", "gc21"], ["Blu", "gc9", "gc29"], ["Azzurro", "gc3", "gc23"], ["Verde", "gc0", "gc20"], ["Verde scuro", "gc10", "gc30"], ["Lime", "gc11", "gc31"], ["Acqua", "gc5", "gc25"], ["Ocra", "gc7", "gc27"], ["Marrone", "gc12", "gc32"], ["Ardesia", "gc6", "gc26"], ["Nero", "gc13", "gc33"]];
+const GCOLORS = GFAM.flatMap(f => [f[1], f[2]]);
 const autoColor = id => { let h = 0; for (const ch of String(id || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return "gc" + (h % 5); };
 const gColor = g => GCOLORS.includes(g.color) ? g.color : autoColor(g.id);
 // Icone disegnate apposta (sagome originali)
@@ -1396,6 +1458,7 @@ function renderMenu() {
     <div class="menu-body">
       ${item("openName", "badge", "Nome", S.me.name)}
       ${item("accUsername", "alternate_email", "Username", S.me.username ? "@" + S.me.username : "Non impostato")}
+      ${S.me.username ? item("shareUsername", "share", L("Condividi il mio username", "Share my username"), L("Così gli amici ti aggiungono ai loro gruppi", "So friends can add you to their groups")) : ""}
       ${item("accEmail", "mail", "Email", S.me.email || "")}
       ${item("accPwd", "lock", "Password", S.me.provider === "google" ? "Gestita da Google" : "••••••••")}
       ${item("accPhone", "smartphone", "Telefono", S.me.phone || "Non impostato")}
@@ -1438,7 +1501,7 @@ function renderGroups() {
     </div>`}
     <div class="stack g12">${list.map(g => {
       const next = Object.values(g.sessions || {}).filter(s => s.date >= today).sort((a, b) => a.date.localeCompare(b.date))[0];
-      return `<button class="card click stack g10" data-action="openGroup" data-g="${g.id}">
+      return `<button class="card click stack g10 ${gColor(g)} gstroke" data-action="openGroup" data-g="${g.id}">
         <div class="row between" style="width:100%;gap:10px"><span class="row ${gColor(g)}" style="gap:10px;min-width:0"><span style="display:flex;padding:4px;border-radius:50%;background:var(--gc)">${gMed(g, 34)}</span><span style="font-size:18px;line-height:24px;font-weight:700">${esc(g.name)}</span></span><span class="t12 muted" style="font-weight:600;white-space:nowrap">${g.members.length === 1 ? L("1 membro", "1 member") : L(`${g.members.length} membri`, `${g.members.length} members`)}</span></div>
         <span class="t13 muted">${esc(g.game)} · ${ruleText(g)}</span>
         ${incomplete(g) ? `<span class="t12" style="font-weight:700;color:var(--warn-t)">${missingText(g)}</span>` : ""}
@@ -1480,8 +1543,9 @@ function renderGroup(g) {
       }).join("")}
     </div>
     ${admin ? `<div class="card stack g12">
-      <div class="stack g4"><h2 class="h2">Invita qualcuno</h2><p class="t13 muted">Cerca chi usa già l'app per username o email: riceve l'invito nell'app e può accettare o rifiutare.</p></div>
-      <div class="row" style="gap:6px"><input id="invQ" data-keep class="in soft m44 grow" type="text" autocapitalize="off" autocorrect="off" placeholder="Username o email"><button class="btn p m44" data-action="inviteUser">Invita</button></div>
+      <div class="stack g4"><h2 class="h2">Invita qualcuno</h2><p class="t13 muted">Scrivi almeno 3 lettere del nome o dello username: compaiono i candidati. Riceve l'invito nell'app e può accettare o rifiutare.</p></div>
+      <div class="row" style="gap:6px"><input id="invQ" data-keep class="in soft m44 grow" type="text" autocapitalize="off" autocorrect="off" placeholder="${L("Nome, username o email", "Name, username or email")}" autocomplete="off"><button class="btn p m44" data-action="inviteUser">Invita</button></div>
+      <div id="invList" class="stack" style="display:none"></div>
       <div id="invErr"></div>
       ${(S.invOut || []).filter(i => i.gid === g.id).map(i => `<div class="row between" style="gap:6px"><span class="t13"><span class="muted">${L("In attesa", "Waiting")}:</span> <strong>${esc(i.toName)}</strong></span><button class="btn redtxt sm" style="font-size:12px;padding:0 10px" data-action="cancelInv" data-id="${esc(i.id)}">${L("Annulla", "Cancel")}</button></div>`).join("")}
       <div class="stack g4" style="border-top:1px solid var(--soft3);padding-top:12px"><span class="t12" style="font-weight:700">Oppure manda un link</span><p class="t12 muted">${L(`Per chi non ha ancora l'app. Ogni link vale per una sola persona e per ${INVITE_DAYS} giorni.`, `For people without the app yet. Each link works for one person and for ${INVITE_DAYS} days.`)}</p></div>
@@ -1490,7 +1554,7 @@ function renderGroup(g) {
     </div>` : `<p class="t13 muted" style="padding:0 4px">Per invitare qualcuno chiedi a un admin del gruppo.</p>`}
     <div class="stack g10">
       <h2 style="margin-top:6px;font-size:18px;font-weight:700">Sessioni confermate</h2>
-      ${sessions.length ? sessions.map(([sid, s]) => `<div class="card ev stack g12">
+      ${sessions.length ? sessions.map(([sid, s]) => `<div class="card ev stack g12 ${gColor(g)} gstroke">
         <div class="row between" style="align-items:flex-start;gap:8px"><div class="row" style="gap:10px;min-width:0">${gBadge(g, 34)}<div class="stack" style="min-width:0"><span style="font-size:18px;font-weight:700">${esc(g.name)}</span><span class="t13 muted" style="font-weight:600">${esc(g.game)}</span></div></div>${sessTag(g, s)}</div>
         <span style="font-size:15px;font-weight:700" class="row" >${ic("calendar_month", "s18")}<span>${longDate(s.date, true)}${L(" alle ", " at ")}${esc(s.time || DEFAULT_TIME)}</span></span>
         ${s.location ? `<span class="t13 muted row" style="margin-top:-6px;gap:6px">${ic("location_on", "s18")}${esc(s.location)}</span>` : ""}
@@ -1575,7 +1639,7 @@ function renderProposal(x, inline) {
   const yesN = mem.filter(m => m.v === "yes").length, ok = yesN === mem.length, admin = isAdmin(g);
   const impossible = propImpossible(g, p);
   const tagP = impossible ? `<span class="tag c-grey" style="flex:none">${L("Non si può fare", "Not possible")}</span>` : `<span class="tag c-lav" style="flex:none">${L("Proposta", "Proposal")}</span>`;
-  return `<div class="${inline ? "row-g prop-in" : "card prop stack g10"}${impossible ? " dim-card" : ""}">
+  return `<div class="${inline ? "row-g prop-in" : "card prop stack g10 " + gColor(g) + " gstroke"}${impossible ? " dim-card" : ""}">
     ${inline
       ? `<div class="row between" style="gap:8px"><div class="row" style="gap:8px;min-width:0">${gBadge(g, 24)}<span style="font-size:15px;font-weight:700">${esc(g.name)}</span></div>${tagP}</div>
     <span class="t13 muted" style="margin-top:-4px">${esc(g.game)}${p.time ? L(" · ore ", " · at ") + esc(p.time) : ""}${p.place ? " · " + esc(p.place) : ""}</span>`
@@ -1742,7 +1806,7 @@ function eventCard(g, sid, s) {
   const me = S.me.uid, mine = rsvpOf(g, s, me), admin = isAdmin(g);
   const chips = byName(g, g.members).map(u => { const v = rsvpOf(g, s, u), n = esc(nameIn(g, u));
     return v === "yes" ? `<span class="chip p c-mint">${n}</span>` : v === "maybe" ? `<span class="chip p c-peach">${n} · ${L("forse", "maybe")}</span>` : v === "no" ? `<span class="chip p c-err">${n} · ${L("non viene", "not coming")}</span>` : `<span class="chip p c-grey">${n} · ${L("in attesa", "waiting")}</span>`; }).join("");
-  return `<div class="card ev raised stack g12">
+  return `<div class="card ev raised stack g12 ${gColor(g)} gstroke">
     <div class="row between" style="align-items:flex-start;gap:8px"><div class="row" style="gap:10px;min-width:0">${gBadge(g, 34)}<div class="stack" style="min-width:0"><span style="font-size:18px;font-weight:700">${esc(g.name)}</span><span class="t13 muted" style="font-weight:600">${esc(g.game)}</span></div></div>${sessTag(g, s)}</div>
     <span class="t12 muted">${esc(presenceLine(g, s))}</span>
     ${atRisk(g, s) && admin ? `<span class="t12" style="font-weight:700;color:var(--warn-t)">${L(`Sotto il minimo di ${need(g)} giocatori: decidi se tenerla, spostarla o revocarla.`, `Below the minimum of ${need(g)} players: decide whether to keep, move or revoke it.`)}</span>` : ""}
@@ -1795,7 +1859,7 @@ function renderGiocate() {
       </div>
       ${hasF ? `<div class="row mb14" style="justify-content:flex-end"><button class="btn grey sm" style="font-size:12px;padding:0 10px" data-action="clearFilters">Togli i filtri</button></div>` : ""}` : ""}
     <h2 class="h2b mb10">${L("In arrivo", "Upcoming")}</h2>
-    ${upF.length ? `<div class="stack g8 mb24">${upF.map(x => `<button class="hist up" data-action="goProg">
+    ${upF.length ? `<div class="stack g8 mb24">${upF.map(x => `<button class="hist up ${gColor(x.g)} gstroke" data-action="goProg">
         <div class="row between" style="gap:8px;align-items:flex-start"><div class="stack" style="min-width:0"><span style="font-size:16px;font-weight:700">${esc(x.g.name)}</span><span class="t13 muted" style="font-weight:600">${esc(x.g.game)}</span></div>${myTag(x)}</div>
         <span class="t13" style="font-weight:600">${longDate(x.s.date, true)}${L(" alle ", " at ")}${esc(x.s.time || DEFAULT_TIME)}</span>
         ${x.s.location ? `<span class="t12 muted">${esc(x.s.location)}</span>` : ""}
@@ -1807,7 +1871,7 @@ function renderGiocate() {
       ${N ? `<div class="stack g16">${secs.map(sc => `<div class="stack g8">
         <div class="row between" style="padding:0 2px;align-items:baseline"><span style="font-size:15px;font-weight:800">${sc.label}</span><span class="t12 muted" style="font-weight:600">${sc.items.length === 1 ? L("1 giocata", "1 play") : L(`${sc.items.length} giocate`, `${sc.items.length} plays`)}</span></div>
         ${sc.items.map(x => { const others = byName(x.g, x.g.members.filter(u => u !== me && rsvpOf(x.g, x.s, u) !== "no")).map(u => nameIn(x.g, u));
-          return `<div class="hist"><span style="font-size:16px;font-weight:700">${esc(x.g.name)}</span><span class="t13 muted" style="font-weight:600">${esc(x.g.game)}</span><span class="t13" style="font-weight:600">${longDate(x.s.date, true)}${L(" alle ", " at ")}${esc(x.s.time || DEFAULT_TIME)}</span>
+          return `<div class="hist ${gColor(x.g)} gstroke"><span style="font-size:16px;font-weight:700">${esc(x.g.name)}</span><span class="t13 muted" style="font-weight:600">${esc(x.g.game)}</span><span class="t13" style="font-weight:600">${longDate(x.s.date, true)}${L(" alle ", " at ")}${esc(x.s.time || DEFAULT_TIME)}</span>
             ${x.s.location ? `<span class="t12 muted">${esc(x.s.location)}</span>` : ""}
             <span class="t12 muted">${L("Con", "With")}: ${esc(others.length ? others.join(", ") : L("nessun altro", "nobody else"))}</span>
             ${x.s.notes ? `<span class="t12 muted" style="font-style:italic">${esc(x.s.notes)}</span>` : ""}</div>`; }).join("")}
@@ -1907,7 +1971,7 @@ function renderModal() {
       ${gameSel === "__new" ? `<label class="lbl">Nome del nuovo gioco<input id="gGame" data-keep class="in" placeholder="Es. Pathfinder" value="${esc(M.newName || "")}"></label>` : ""}
       <label class="lbl">Minimo di giocatori per giocare<select id="gMin" class="in" data-change="gMin">${["2", "3", "4", "5", "6", "7", "8", "9", "10"].map(n => `<option ${n === min ? "selected" : ""}>${n}</option>`).join("")}</select></label>
       <p class="t12 muted" style="margin-top:-6px">${L("Una sessione compare tra quelle possibili quando almeno questo numero di giocatori ha detto SI. L'admin può comunque confermare una sessione anche con meno persone.", "A session shows as possible when at least this many players said YES. An admin can still confirm a session with fewer people.")}</p>
-      <div class="lbl"><span>${L("Colore del gruppo", "Group color")}</span><div class="swatches">${GCOLORS.map(c => `<button class="${c} ${c === M.color ? "on" : ""}" data-action="pickColor" data-v="${c}" aria-label="${L("Colore", "Color")} ${c.slice(2)}"></button>`).join("")}</div></div>
+      <div class="lbl"><span>${L("Colore del gruppo", "Group color")}</span><div class="stack g8">${[GFAM.slice(0, 7), GFAM.slice(7)].map(blk => [1, 2].map(k => `<div class="swatches">${blk.map(f => `<button class="${f[k]} ${f[k] === M.color ? "on" : ""}" data-action="pickColor" data-v="${f[k]}" aria-label="${f[0]} ${k === 1 ? L("scuro", "dark") : L("chiaro", "light")}"></button>`).join("")}</div>`).join("")).join("")}</div></div>
       <div class="lbl"><span class="row between">${L("Icona del gruppo", "Group icon")}<span class="${M.color}" style="display:flex;padding:5px;border-radius:50%;background:var(--gc)">${gMed({ name: val("gName") || M.nameDraft || g?.name || "?", icon: M.icon, letter: M.letter }, 40)}</span></span>
         <button class="toggle" data-action="toggleLetter" style="margin:2px 0 4px">${L("Mostra l'iniziale del gruppo", "Show the group's initial")}<span class="sw ${M.letter ? "on" : ""}"><i></i></span></button>
         <div class="icgrid">${GICONS.map(n => `<button class="${n === M.icon ? "on" : ""}" data-action="pickIcon" data-v="${n}" aria-label="${esc(n.replace("svg:", ""))}">${n.startsWith("svg:") ? GSVG[n.slice(4)] : `<span class="ms">${n}</span>`}</button>`).join("")}</div>
@@ -2408,7 +2472,26 @@ document.addEventListener("change", e => {
   else if (id === "gMin") { S.modal.min = v; }
   render();
 });
+let invTimer = null, invSeq = 0;
+function renderInvList(list, gid) {
+  const el = document.getElementById("invList"); if (!el) return;
+  el.style.display = list.length ? "" : "none";
+  el.innerHTML = list.map(u => `<div class="row between" style="gap:8px;padding:8px 0;border-top:1px solid var(--soft)"><div class="stack" style="min-width:0;gap:0"><b style="font-size:14px;overflow-wrap:anywhere">${esc(u.name || u.username)}</b><span class="t12 muted">@${esc(u.username)}</span></div><button class="btn p sm" style="flex:none;padding:0 14px" data-action="invitePick" data-u="${esc(u.uid)}" data-n="${esc(u.name || u.username)}" data-un="${esc(u.username)}">${L("Invita", "Invite")}</button></div>`).join("");
+}
 document.addEventListener("input", e => {
+  if (e.target.id === "invQ") {
+    clearTimeout(invTimer);
+    const q = e.target.value.trim(), gid = S.groupId;
+    if (q.length < 3 || q.includes("@")) { invSeq++; renderInvList([]); return; }
+    invTimer = setTimeout(() => {
+      const my = ++invSeq, gg = getGroup(gid);
+      store.searchUsers(q).then(list => {
+        if (my !== invSeq || !gg) return;
+        const out = new Set((S.invOut || []).filter(i => i.gid === gg.id).map(i => i.to));
+        renderInvList(list.filter(u => !gg.members.includes(u.uid) && !out.has(u.uid)).slice(0, 5));
+      }).catch(err => { console.error(err); showErr("invErr", err?.code === "permission-denied" ? "Permesso negato: controlla le regole Firestore." : (err?.message || String(err))); });
+    }, 300);
+  }
   const gm = e.target.dataset?.gameInput;
   if (gm !== undefined) S.gameDrafts[gm] = e.target.value;
 });
@@ -2547,6 +2630,13 @@ document.addEventListener("click", e => {
       }).catch(err => { console.error(err); showErr("invErr", err?.code === "permission-denied" ? "Permesso negato: controlla le regole Firestore." : (err?.message || String(err))); });
       break;
     }
+    case "invitePick": {
+      const gg = getGroup(S.groupId); if (!gg) break;
+      const u = { uid: d.u, name: d.n, username: d.un };
+      showErr("invErr", "");
+      store.sendInvitation(gg.id, u).then(() => { const el = document.getElementById("invQ"); if (el) el.value = ""; renderInvList([]); toast(L(`Invito inviato a ${u.name}.`, `Invite sent to ${u.name}.`)); }).catch(err => { console.error(err); showErr("invErr", err?.code === "permission-denied" ? "Permesso negato: controlla le regole Firestore." : (err?.message || String(err))); });
+      break;
+    }
     case "cancelInv": { const inv = (S.invOut || []).find(i => i.id === d.id); if (inv) run(() => store.deleteInvitation(inv)); break; }
     case "declineInv": { const inv = (S.invIn || []).find(i => i.id === d.id); if (inv) ask(L(`Rifiuti l'invito nel gruppo "${inv.groupName}"?`, `Decline the invite to the group "${inv.groupName}"?`), L("Rifiuta", "Decline"), () => run(() => store.deleteInvitation(inv))); break; }
     case "acceptInv": {
@@ -2676,6 +2766,7 @@ document.addEventListener("click", e => {
     case "shareYear": { const t = yearText(S.yrYear || String(new Date().getFullYear()), S.yrGroup || "all"); if (navigator.share) navigator.share({ title: "Game Planner", text: t }).catch(() => {}); else copy(t); break; }
     case "openF6": S.modal = { type: "f6", gid: d.g, sid: d.s }; render(); break;
     case "copyText": copy(d.text); break;
+    case "shareUsername": { const t = L(`Aggiungimi su Game Planner! Il mio username è @${S.me.username}. Scrivilo in "Invita qualcuno" nella pagina del tuo gruppo: ${location.origin + location.pathname}`, `Add me on Game Planner! My username is @${S.me.username}. Type it in "Invite someone" on your group page: ${location.origin + location.pathname}`); if (navigator.share) navigator.share({ title: "Game Planner", text: t }).catch(() => {}); else copy(t); break; }
     case "revoke": ask("Revochi la conferma? La sessione torna una proposta e tutti possono rispondere di nuovo.", "Revoca", () => { S.modal = null; run(async () => { await store.revokeSession(d.g, d.s); toast("Conferma revocata: la sessione è di nuovo una proposta."); }); }); break;
     case "cancelSession": ask("Annulli questa sessione per tutti?", "Annulla sessione", () => { S.modal = null; run(async () => { await store.deleteSession(d.g, d.s); toast("Sessione annullata."); }); }); break;
     case "fGameChip": S.fGame = S.fGame === d.game ? "all" : d.game; render(); break;
