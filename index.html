@@ -109,6 +109,7 @@ h1,h2,h3{margin:0}
 .hnext .gname{font-size:23px;line-height:28px;font-weight:800}
 .hnext .game{font-size:15px;font-weight:600;color:rgba(255,255,255,.95)}
 .hnext .when{font-size:31px;line-height:34px;font-weight:800;color:#ffd3a8;text-align:right}
+.hnext .when.long{font-size:26px;line-height:30px}
 .hnext .when2{font-size:13px;font-weight:700;color:rgba(255,255,255,.95);text-align:right}
 .hnext .info{display:flex;flex-direction:column;gap:6px;margin-top:0;padding:11px 13px;border-radius:16px;background:rgba(0,0,0,.18);font-size:14px;line-height:20px;color:#fff;font-weight:600}
 .hnext .info .ms{color:#ffd3a8}
@@ -1302,7 +1303,7 @@ function renderHome() {
     const nudgeTxt = L(`Ciao! ${cap(longDate(s.date))} alle ${s.time || DEFAULT_TIME} si gioca a ${g.game} con ${g.name}. Ci sei? Rispondi su Game Planner: ${location.origin + location.pathname}`, `Hi! ${cap(longDate(s.date))} at ${s.time || DEFAULT_TIME} we play ${g.game} with ${g.name}. Are you in? Answer on Game Planner: ${location.origin + location.pathname}`);
     parts.push(`<section class="hnext ${gColor(g)}${inA(2)}">
       <div class="lab"><span class="pulse${anim || true ? " anim" : ""}"></span>${L("Prossima sessione", "Next session")}</div>
-      <div class="row between" style="align-items:flex-end;gap:12px"><div class="row" style="gap:12px;min-width:0;align-items:center">${gMed(g, 48)}<div class="stack" style="min-width:0"><span class="gname">${esc(g.name)}</span><span class="game">${esc(g.game)}</span></div></div><div class="stack" style="flex:none;align-items:flex-end"><span class="when">${w1}</span><span class="when2">${w2}</span></div></div>
+      <div class="row hhead" style="align-items:flex-end;gap:8px 12px;flex-wrap:${w1.length > 8 ? "wrap" : "nowrap"}"><div class="row" style="gap:12px;min-width:0;align-items:center;flex:${w1.length > 8 ? "1 1 200px" : "0 1 auto"}">${gMed(g, 48)}<div class="stack" style="min-width:0"><span class="gname">${esc(g.name)}</span><span class="game">${esc(g.game)}</span></div></div><div class="stack" style="flex:none;align-items:flex-end;margin-left:auto"><span class="when${w1.length > 8 ? " long" : ""}">${w1}</span><span class="when2">${w2}</span></div></div>
       ${s.location || s.notes ? `<div class="info">${s.location ? `<span>${ic("location_on", "s18")}${esc(s.location)}</span>` : ""}${s.notes ? `<span>${ic("sticky_note_2", "s18")}${esc(s.notes)}</span>` : ""}</div>` : ""}
       <div class="row" style="gap:12px"><div class="hav">${mem.slice(0, 7).map(m => `<i class="${m.v === "yes" ? "" : m.v === "maybe" ? "maybe" : m.v === "no" ? "no" : "wait"}" title="${esc(m.n)}">${esc(initials(m.n))}</i>`).join("")}</div><span style="font-size:13px;font-weight:600;color:rgba(255,255,255,.85)">${L(`${yes} su ${mem.length} ci sono`, `${yes} of ${mem.length} in`)}${wait.length ? L(` · ${wait.length} in attesa`, ` · ${wait.length} waiting`) : ""}</span></div>
       ${wait.length ? `<a class="hnudge" href="https://wa.me/?text=${encodeURIComponent(nudgeTxt)}" target="_blank" rel="noopener noreferrer">${ic("campaign")}<span class="grow">${wait.length === 1 ? L(`Manca ${esc(wait[0].n)}: mandale un messaggio`, `${esc(wait[0].n)} hasn't answered: send a message`) : L(`Mancano ${wait.length} risposte: manda un messaggio`, `${wait.length} answers missing: send a message`)}</span>${ic("chevron_right")}</a>` : ""}
