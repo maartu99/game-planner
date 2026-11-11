@@ -370,6 +370,12 @@ h1,h2,h3{margin:0}
 .conf-item .ms{font-size:18px}
 .conf-item.sky{background:var(--sky-bg);color:var(--sky-t);border:1px solid var(--sky-line);font-weight:600}
 .conf-item.sky .ms{color:var(--sky-t)}
+.conf-big{gap:10px;padding:12px}
+.conf-big .cg-game{font-size:16px;line-height:20px;font-weight:700}
+.conf-big .cg-grp{font-size:12px;line-height:16px;font-weight:600;opacity:.8}
+.conf-big .cg-when{font-size:13px;line-height:18px;font-weight:600;margin-top:2px}
+.conf-big .cg-st{display:inline-flex;align-items:center;gap:4px;font-size:12px;line-height:16px;font-weight:700;margin-top:4px}
+.conf-big .cg-st .ms{font-size:16px}
 .card.night.has-conf{background:var(--sky-bg);border-color:var(--sky-line)}
 .card.night.has-conf .conf-item.sky{background:var(--card)}
 .mk.conf{background:var(--sky-dot)!important}
@@ -1716,7 +1722,7 @@ function renderSerate() {
       const b = n.possible.some(e => e.status === "ok") ? ["Si può giocare", "c-mint"] : n.possible.length ? ["Dipende dai forse", "c-peach"] : n.confirmed.length ? ["Confermata", "c-green"] : n.props.length ? ["Proposta", "c-lav"] : ["Nessun gruppo", "c-grey"];
       return `<div class="card night tap stack g10 ${n.confirmed.length ? "has-conf" : ""}" data-action="openF4" data-date="${n.k}">
         <div class="row"><div class="grow stack" style="min-width:0"><h2 style="font-size:17px;line-height:22px;font-weight:700">${dayMonth(n.k)}</h2><span class="t13 muted" style="font-weight:600">${DOWS()[parseYmd(n.k).getDay()]}</span></div><span class="tag ${b[1]}">${b[0]}</span></div>
-        ${n.confirmed.map(x => `<button class="conf-item sky" data-action="openEv" data-g="${x.g.id}" data-s="${x.sid}">${ic("event_available")}<span class="grow">${L("In programma", "Scheduled")}: ${esc(x.g.game)} ${L("con", "with")} ${esc(x.g.name)}${L(" alle ", " at ")}${esc(x.s.time || DEFAULT_TIME)}</span>${ic("chevron_right")}</button>`).join("")}
+        ${n.confirmed.map(x => `<button class="conf-item sky conf-big" data-action="openEv" data-g="${x.g.id}" data-s="${x.sid}">${gBadge(x.g, 34)}<span class="grow stack" style="min-width:0;gap:2px"><span class="cg-game">${esc(x.g.game)}</span><span class="cg-grp">${esc(x.g.name)}</span><span class="cg-when">${DOWS()[parseYmd(n.k).getDay()]} ${dayMonth(n.k)}${L(", ore ", ", at ")}${esc(x.s.time || DEFAULT_TIME)}</span><span class="cg-st">${ic("event_available")}${L("In programma", "Scheduled")}</span></span>${ic("chevron_right")}</button>`).join("")}
         ${n.props.map(x => `<button class="conf-item prop-link" data-action="sFilter" data-v="prop">${ic("campaign")}<span class="grow">${L("Proposta aperta", "Open proposal")}: ${esc(x.g.game)} ${L("con", "with")} ${esc(x.g.name)}</span>${ic("chevron_right")}</button>`).join("")}
         ${rows.map(e => renderRow(e, n.k, false)).join("")}
       </div>`;
