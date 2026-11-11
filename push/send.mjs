@@ -91,6 +91,16 @@ for (const gDoc of (await db.collection("groups").get()).docs) {
   const [sessions, proposals] = await Promise.all([
     gDoc.ref.collection("sessions").where("date", ">=", TODAY).get(), gDoc.ref.collection("proposals").where("date", ">=", TODAY).get(),
   ]);
+  // Sessioni annullate o con la conferma revocata: l'app lascia un promemoria nel gruppo
+  for (const [k, e] of Object.entries(g.ends || {})) {
+    if (!e || !e.at || NOW - e.at >= FRESH) continue;
+    const to = members.filter(u => u !== e.by && !(e.no || []).includes(u));
+    await notify(`end_${gid}_${k}`, to, l => e.kind === "revoke"
+      ? (l === "en" ? { title: `Confirmation revoked: ${e.game}`, body: `${when(l, e.date, e.time)} with ${e.name} is a proposal again.`, open: "prop" }
+        : { title: `Conferma revocata: ${e.game}`, body: `${when(l, e.date, e.time)} con ${e.name} torna una proposta.`, open: "prop" })
+      : (l === "en" ? { title: `Session cancelled: ${e.game}`, body: `${when(l, e.date, e.time)} with ${e.name} is cancelled.`, open: "prog" }
+        : { title: `Sessione annullata: ${e.game}`, body: `${when(l, e.date, e.time)} con ${e.name} è stata annullata.`, open: "prog" }), "ev");
+  }
   if (sessions.empty && proposals.empty) continue;
   const avail = {};
   if (!sessions.empty) (await gDoc.ref.collection("availability").get()).forEach(a => { avail[a.id] = a.data(); });

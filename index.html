@@ -942,12 +942,28 @@ async function makeFirebaseStore(cfg) {
       if (propId) await F.deleteDoc(F.doc(db, "groups", gid, "proposals", propId));
     },
     rsvp: (gid, sid, v) => F.updateDoc(F.doc(db, "groups", gid, "sessions", sid), { ["rsvps." + uid]: v }),
-    deleteSession: (gid, sid) => F.deleteDoc(F.doc(db, "groups", gid, "sessions", sid)),
+    // Quando una sessione sparisce lascia un promemoria nel gruppo: il controllo ogni 5 minuti ne fa una notifica
+    endNote(gid, sid, kind) {
+      const gd = raw[gid]?.doc || {}, s = raw[gid]?.sessions?.[sid] || {}, now = Date.now(), out = {};
+      for (const [k, v] of Object.entries(gd.ends || {})) if (!v || now - (v.at || 0) > 3 * 864e5) out["ends." + k] = F.deleteField();
+      const no = Object.entries(s.rsvps || {}).filter(([, v]) => v === "no").map(([u]) => u);
+      out["ends." + now + "_" + sid] = { kind, by: uid, game: gd.game || "", name: gd.name || "", date: s.date || "", time: s.time || "", at: now, no };
+      return out;
+    },
+    async deleteSession(gid, sid) {
+      const b = F.writeBatch(db);
+      b.update(F.doc(db, "groups", gid), this.endNote(gid, sid, "cancel"));
+      b.delete(F.doc(db, "groups", gid, "sessions", sid));
+      await b.commit();
+    },
     updateSession: (gid, sid, patch, notify) => F.updateDoc(F.doc(db, "groups", gid, "sessions", sid), notify ? { ...patch, updatedAt: Date.now(), updatedBy: uid } : patch),
     async revokeSession(gid, sid) {
       const s = raw[gid]?.sessions?.[sid]; if (!s) return;
-      await F.addDoc(F.collection(db, "groups", gid, "proposals"), { date: s.date, time: s.time || "", place: s.location || "", desc: s.notes || "", by: s.confirmedBy || s.createdBy || uid, answers: { ...(s.rsvps || {}) }, createdAt: Date.now() });
-      await F.deleteDoc(F.doc(db, "groups", gid, "sessions", sid));
+      const b = F.writeBatch(db);
+      b.set(F.doc(F.collection(db, "groups", gid, "proposals")), { date: s.date, time: s.time || "", place: s.location || "", desc: s.notes || "", by: s.confirmedBy || s.createdBy || uid, answers: { ...(s.rsvps || {}) }, createdAt: Date.now() });
+      b.update(F.doc(db, "groups", gid), this.endNote(gid, sid, "revoke"));
+      b.delete(F.doc(db, "groups", gid, "sessions", sid));
+      await b.commit();
     },
     async createProposal(gid, d) {
       await F.addDoc(F.collection(db, "groups", gid, "proposals"), { ...d, by: uid, answers: { [uid]: "yes" }, createdAt: Date.now() });
