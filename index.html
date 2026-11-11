@@ -324,6 +324,7 @@ h1,h2,h3{margin:0}
 .card.ev.raised{box-shadow:var(--sh2)}
 .gstroke{border-color:var(--gc)!important;box-shadow:inset 0 0 0 1px var(--gc)}
 .card.click.gstroke{box-shadow:var(--sh1),inset 0 0 0 1px var(--gc)}
+.row-g.gstroke{border-width:1px}
 .card.ev.raised.gstroke{box-shadow:var(--sh2),inset 0 0 0 1px var(--gc)}
 .card.prop{border:1.5px solid var(--lav-line);padding:16px}
 .card.night{padding:14px;box-shadow:var(--sh1)}
@@ -573,6 +574,8 @@ let store = null;
 // ---------------------------------------------------------------------
 //  STORE DEMO (localStorage)
 // ---------------------------------------------------------------------
+// Prime lettere (da 3 in su) di ogni parola del nome: servono a cercare anche per cognome
+const nameKeys = n => { const out = new Set(); for (const w of String(n || "").toLowerCase().split(/[^a-z0-9àèéìòù]+/).filter(Boolean)) for (let i = 3; i <= Math.min(w.length, 20); i++) out.add(w.slice(0, i)); return [...out]; };
 function makeLocalStore() {
   const KEY = "gameplanner-demo-v3";
   let db = null;
@@ -624,7 +627,7 @@ function makeLocalStore() {
     },
     async searchUsers(q) {
       q = q.trim().toLowerCase().replace(/^@/, "");
-      return Object.entries(db.users).filter(([, x]) => x.username && ((x.username || "").startsWith(q) || (x.name || "").toLowerCase().startsWith(q))).slice(0, 5).map(([uid, x]) => ({ uid, name: x.name, username: x.username }));
+      return Object.entries(db.users).filter(([, x]) => x.username && ((x.username || "").startsWith(q) || nameKeys(x.name).includes(q))).slice(0, 5).map(([uid, x]) => ({ uid, name: x.name, username: x.username }));
     },
     async findUser(q) {
       q = q.trim().toLowerCase().replace(/^@/, "");
@@ -769,7 +772,7 @@ async function makeFirebaseStore(cfg) {
       const d = s.exists() ? s.data() : {};
       if (email) F.setDoc(F.doc(db, "emailIndex", email), { uid, name: d.name || user.displayName || email.split("@")[0], username: d.username || "" }).catch(e => console.error(e));
       // Indice per username: il nome in minuscolo serve alla ricerca degli admin
-      if (d.username && d.name) F.setDoc(F.doc(db, "usernames", d.username), { uid, name: d.name, nameLower: d.name.toLowerCase() }, { merge: true }).catch(e => console.error(e));
+      if (d.username && d.name) F.setDoc(F.doc(db, "usernames", d.username), { uid, name: d.name, nameLower: d.name.toLowerCase(), nameKeys: nameKeys(d.name) }, { merge: true }).catch(e => console.error(e));
     } catch (e) { console.error(e); authState = "error"; return emit(); }
     authState = "ready";
     base.push(F.onSnapshot(ref, s => { meDoc = s.data() || {}; emit(); }, onErr));
@@ -832,7 +835,7 @@ async function makeFirebaseStore(cfg) {
       b.update(F.doc(db, "users", uid), { name: n });
       for (const g of myIds()) b.update(F.doc(db, "groups", g), { ["names." + uid]: n });
       if (email) b.set(F.doc(db, "emailIndex", email), { uid, name: n, username: meDoc?.username || "" });
-      if (meDoc?.username) b.set(F.doc(db, "usernames", meDoc.username), { uid, name: n, nameLower: n.toLowerCase() });
+      if (meDoc?.username) b.set(F.doc(db, "usernames", meDoc.username), { uid, name: n, nameLower: n.toLowerCase(), nameKeys: nameKeys(n) });
       await b.commit();
     },
     async findUser(q) {
@@ -845,7 +848,7 @@ async function makeFirebaseStore(cfg) {
       const col = F.collection(db, "usernames"), out = new Map();
       const [a, b] = await Promise.all([
         F.getDocs(F.query(col, F.where(F.documentId(), ">=", q), F.where(F.documentId(), "<=", q + "\uf8ff"), F.limit(5))),
-        F.getDocs(F.query(col, F.where("nameLower", ">=", q), F.where("nameLower", "<=", q + "\uf8ff"), F.limit(5)))
+        F.getDocs(F.query(col, F.where("nameKeys", "array-contains", q), F.limit(5)))
       ]);
       for (const sn of [...a.docs, ...b.docs]) out.set(sn.data().uid, { uid: sn.data().uid, name: sn.data().name || "", username: sn.id });
       return [...out.values()];
@@ -856,7 +859,7 @@ async function makeFirebaseStore(cfg) {
         const ref = F.doc(db, "usernames", n), cur = await t.get(ref);
         if (cur.exists() && cur.data().uid !== uid) throw new Error("Questo username è già preso.");
         if (old && old !== n) t.delete(F.doc(db, "usernames", old));
-        t.set(ref, { uid, name, nameLower: name.toLowerCase() });
+        t.set(ref, { uid, name, nameLower: name.toLowerCase(), nameKeys: nameKeys(name) });
         t.set(F.doc(db, "users", uid), { username: n }, { merge: true });
         if (email) t.set(F.doc(db, "emailIndex", email), { uid, name, username: n });
       });
@@ -1638,7 +1641,7 @@ function memberChip(x) {
 }
 function renderRow(e, k, isRec, mine) {
   const pos = e.status !== "none", admin = isAdmin(e.g), st = ROW_ST[e.status];
-  return `<div class="row-g ${pos ? "" : "dim"}">
+  return `<div class="row-g ${gColor(e.g)} gstroke ${pos ? "" : "dim"}">
     <div class="row" style="gap:8px">${gBadge(e.g, 24)}<span style="font-size:15px;font-weight:700">${esc(e.g.name)}</span></div>
     <span class="t12 muted" style="margin-top:-4px">${esc(e.g.game)} · ${L(`${e.yes} su ${e.M} ci sono · minimo ${e.need}`, `${e.yes} of ${e.M} in · minimum ${e.need}`)}</span>
     <span class="status ${st[1]}">${st[0]}</span>
@@ -1655,7 +1658,7 @@ function renderProposal(x, inline) {
   const yesN = mem.filter(m => m.v === "yes").length, ok = yesN === mem.length, admin = isAdmin(g);
   const impossible = propImpossible(g, p);
   const tagP = impossible ? `<span class="tag c-grey" style="flex:none">${L("Non si può fare", "Not possible")}</span>` : `<span class="tag c-lav" style="flex:none">${L("Proposta", "Proposal")}</span>`;
-  return `<div class="${inline ? "row-g prop-in" : "card prop stack g10 " + gColor(g) + " gstroke"}${impossible ? " dim-card" : ""}">
+  return `<div class="${inline ? "row-g prop-in " + gColor(g) + " gstroke" : "card prop stack g10 " + gColor(g) + " gstroke"}${impossible ? " dim-card" : ""}">
     ${inline
       ? `<div class="row between" style="gap:8px"><div class="row" style="gap:8px;min-width:0">${gBadge(g, 24)}<span style="font-size:15px;font-weight:700">${esc(g.name)}</span></div>${tagP}</div>
     <span class="t13 muted" style="margin-top:-4px">${esc(g.game)}${p.time ? L(" · ore ", " · at ") + esc(p.time) : ""}${p.place ? " · " + esc(p.place) : ""}</span>`
