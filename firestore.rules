@@ -31,7 +31,7 @@ service cloud.firestore {
       return code in resource.data.get('invites', {}) && resource.data.invites[code].exp > request.time;
     }
     function ownMaps() {
-      return onlyOwnKey('names') && onlyOwnKey('emails') && onlyOwnKey('prefs') && onlyOwnKey('phones');
+      return onlyOwnKey('names') && onlyOwnKey('unames') && onlyOwnKey('emails') && onlyOwnKey('prefs') && onlyOwnKey('phones');
     }
 
     // Profilo personale (nome, disponibilità, telefono, avatar, giochi, avvisi letti): solo il proprietario
@@ -83,15 +83,15 @@ service cloud.firestore {
         request.auth.uid in resource.data.admins
         // Membro: cambia solo i propri dati (nome, email, telefono, voglia di giocare)
         || (request.auth.uid in resource.data.members
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['names', 'emails', 'prefs', 'phones'])
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['names', 'unames', 'emails', 'prefs', 'phones'])
             && ownMaps())
         // Membro che esce dal gruppo
         || (request.auth.uid in resource.data.members
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'names', 'emails', 'prefs', 'phones'])
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'names', 'unames', 'emails', 'prefs', 'phones'])
             && request.resource.data.members == resource.data.members.removeAll([request.auth.uid])
             && ownMaps())
         // Nuovo membro che entra con un invito valido: l'invito viene consumato
-        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'names', 'emails', 'prefs', 'phones', 'joinCode', 'invites'])
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'names', 'unames', 'emails', 'prefs', 'phones', 'joinCode', 'invites'])
             && request.resource.data.members == resource.data.members.concat([request.auth.uid])
             && validInvite(request.resource.data.joinCode)
             && !(request.resource.data.joinCode in request.resource.data.get('invites', {}))

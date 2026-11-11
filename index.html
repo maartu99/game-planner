@@ -595,10 +595,10 @@ function makeLocalStore() {
     const groups = {};
     if (me) for (const [gid, g] of Object.entries(db.groups)) {
       if (!g.members.includes(uid)) continue;
-      const names = {}, avail = {}, emails = {}, phones = {};
+      const names = {}, unames = {}, avail = {}, emails = {}, phones = {};
       const over = {};
-      for (const m of g.members) { const x = db.users[m] || {}; over[m] = (x.over || {})[gid] || {}; names[m] = x.name || "?"; avail[m] = x.days || {}; emails[m] = x.email || ""; phones[m] = x.phone || ""; }
-      groups[gid] = { ...g, names, emails, phones, avail, over, sessions: g.sessions || {}, proposals: g.proposals || {} };
+      for (const m of g.members) { const x = db.users[m] || {}; over[m] = (x.over || {})[gid] || {}; names[m] = x.name || "?"; unames[m] = x.username || ""; avail[m] = x.days || {}; emails[m] = x.email || ""; phones[m] = x.phone || ""; }
+      groups[gid] = { ...g, names, unames, emails, phones, avail, over, sessions: g.sessions || {}, proposals: g.proposals || {} };
     }
     const invs = Object.entries(db.invitations || {}).map(([id, x]) => ({ id, ...x }));
     listener({ me, groups, invIn: me ? invs.filter(x => x.to === uid) : [], invOut: me ? invs.filter(x => x.by === uid) : [], authState: me ? "ready" : "signedOut", demoUsers: Object.entries(db.users).map(([id, x]) => ({ id, name: x.name })) });
@@ -746,9 +746,16 @@ async function makeFirebaseStore(cfg) {
   const db = F.getFirestore(app);
   let listener = () => {}, uid = null, email = "", authState = "loading", meDoc = null, provider = "password";
   let base = []; const per = {}; const raw = {}; let invIn = [], invOut = [];
+  const unameSynced = new Set();
   const emit = () => {
+    // Una volta per gruppo: scrive il proprio username nel gruppo (serve a chi ha già un gruppo)
+    if (uid && meDoc?.username) for (const [gid, r] of Object.entries(raw)) {
+      if (!r.doc || unameSynced.has(gid) || r.doc.unames?.[uid] === meDoc.username) continue;
+      unameSynced.add(gid);
+      F.updateDoc(F.doc(db, "groups", gid), { ["unames." + uid]: meDoc.username }).catch(e => console.error(e));
+    }
     const groups = {};
-    for (const [gid, r] of Object.entries(raw)) if (r.doc) groups[gid] = { prefs: {}, names: {}, emails: {}, phones: {}, admins: [r.doc.createdBy], ...r.doc, avail: r.avail, over: r.over || {}, sessions: r.sessions, proposals: r.proposals };
+    for (const [gid, r] of Object.entries(raw)) if (r.doc) groups[gid] = { prefs: {}, names: {}, unames: {}, emails: {}, phones: {}, admins: [r.doc.createdBy], ...r.doc, avail: r.avail, over: r.over || {}, sessions: r.sessions, proposals: r.proposals };
     listener({ authState, authEmail: email, groups, invIn, invOut, me: authState === "ready" && meDoc ? { uid, email, provider, days: {}, games: [], seenAt: 0, ...meDoc, email } : null });
   };
   const onErr = e => { console.error(e); emit(); };
@@ -870,6 +877,9 @@ async function makeFirebaseStore(cfg) {
         t.set(F.doc(db, "users", uid), { username: n }, { merge: true });
         if (email) t.set(F.doc(db, "emailIndex", email), { uid, name, username: n });
       });
+      const b = F.writeBatch(db);
+      for (const g of myIds()) b.update(F.doc(db, "groups", g), { ["unames." + uid]: n });
+      await b.commit().catch(e => console.error(e));
     },
     async sendInvitation(gid, u) {
       const g = raw[gid]?.doc || {}, code = rid(), b = F.writeBatch(db);
@@ -914,7 +924,7 @@ async function makeFirebaseStore(cfg) {
     async changePassword(cur, nw) { await reauth(cur); await A.updatePassword(auth.currentUser, nw); },
     async createGroup(data) {
       const ref = F.doc(F.collection(db, "groups"));
-      await F.setDoc(ref, { ...data, members: [uid], admins: [uid], names: { [uid]: meDoc?.name || "" }, emails: { [uid]: email }, phones: meDoc?.phone ? { [uid]: meDoc.phone } : {}, prefs: { [uid]: 2 }, invites: {}, createdBy: uid, createdAt: F.serverTimestamp() });
+      await F.setDoc(ref, { ...data, members: [uid], admins: [uid], names: { [uid]: meDoc?.name || "" }, unames: { [uid]: meDoc?.username || "" }, emails: { [uid]: email }, phones: meDoc?.phone ? { [uid]: meDoc.phone } : {}, prefs: { [uid]: 2 }, invites: {}, createdBy: uid, createdAt: F.serverTimestamp() });
       await F.setDoc(F.doc(db, "groups", ref.id, "availability", uid), { days: meDoc?.days || {} });
       await loadJoined(ref.id);
       return ref.id;
@@ -922,7 +932,7 @@ async function makeFirebaseStore(cfg) {
     updateGroup: (gid, p) => F.updateDoc(F.doc(db, "groups", gid), p),
     async joinGroup(gid, code) {
       // L'invito si consuma entrando: lo stesso link non funziona una seconda volta
-      const patch = { members: F.arrayUnion(uid), ["names." + uid]: meDoc?.name || "", ["emails." + uid]: email, ["prefs." + uid]: 2, joinCode: code, ["invites." + code]: F.deleteField() };
+      const patch = { members: F.arrayUnion(uid), ["names." + uid]: meDoc?.name || "", ["unames." + uid]: meDoc?.username || "", ["emails." + uid]: email, ["prefs." + uid]: 2, joinCode: code, ["invites." + code]: F.deleteField() };
       if (meDoc?.phone) patch["phones." + uid] = meDoc.phone;
       try { await F.updateDoc(F.doc(db, "groups", gid), patch); }
       catch (e) { throw new Error(e.code === "permission-denied" || e.code === "not-found" ? "Invito non valido, già usato o scaduto. Chiedi un nuovo link a un admin del gruppo." : e.message); }
@@ -937,7 +947,7 @@ async function makeFirebaseStore(cfg) {
     cancelInvites: gid => F.updateDoc(F.doc(db, "groups", gid), { invites: {} }),
     async removeMember(gid, u) {
       await F.deleteDoc(F.doc(db, "groups", gid, "availability", u));
-      const patch = { members: F.arrayRemove(u), ["names." + u]: F.deleteField(), ["emails." + u]: F.deleteField(), ["prefs." + u]: F.deleteField(), ["phones." + u]: F.deleteField() };
+      const patch = { members: F.arrayRemove(u), ["names." + u]: F.deleteField(), ["unames." + u]: F.deleteField(), ["emails." + u]: F.deleteField(), ["prefs." + u]: F.deleteField(), ["phones." + u]: F.deleteField() };
       if ((raw[gid]?.doc?.admins || []).includes(u)) patch.admins = F.arrayRemove(u);
       await F.updateDoc(F.doc(db, "groups", gid), patch);
     },
@@ -995,6 +1005,7 @@ async function makeFirebaseStore(cfg) {
 // ---------------------------------------------------------------------
 const groupList = () => Object.entries(S.groups).map(([id, g]) => ({ id, ...g })).sort((a, b) => byNameStr(a.name || "", b.name || ""));
 const getGroup = id => S.groups[id] ? { id, ...S.groups[id] } : null;
+const unameIn = (g, u) => u === S.me.uid ? (S.me.username || "") : (g.unames?.[u] || "");
 const nameIn = (g, u) => u === S.me.uid ? (S.me.name || L("Tu", "You")) : (g.names?.[u] || L("Qualcuno", "Someone"));
 // Risposta di una persona a una proposta: ogni proposta ha le sue risposte
 // Scelte di visualizzazione salvate nel profilo
@@ -1531,7 +1542,7 @@ function renderGroups() {
         <div class="row between" style="width:100%;gap:10px"><span class="row ${gColor(g)}" style="gap:10px;min-width:0"><span style="display:flex;padding:4px;border-radius:50%;background:var(--gc)">${gMed(g, 34)}</span><span style="font-size:18px;line-height:24px;font-weight:700">${esc(g.name)}</span></span><span class="t12 muted" style="font-weight:600;white-space:nowrap">${g.members.length === 1 ? L("1 membro", "1 member") : L(`${g.members.length} membri`, `${g.members.length} members`)}</span></div>
         <span class="t13 muted">${esc(g.game)} · ${ruleText(g)}</span>
         ${incomplete(g) ? `<span class="t12" style="font-weight:700;color:var(--warn-t)">${missingText(g)}</span>` : ""}
-        <div class="chips">${byName(g, g.members).map(u => `<span class="chip m">${esc(nameIn(g, u))}</span>`).join("")}</div>
+        <div class="chips">${byName(g, g.members).map(u => `<span class="chip m">${esc(unameIn(g, u) || nameIn(g, u))}</span>`).join("")}</div>
         ${next ? `<div class="row wrapf" style="width:100%;border-top:1px solid var(--soft3);padding-top:10px;font-size:12px;font-weight:700"><span style="color:var(--primary-d)">${L("Prossima sessione", "Next session")}: ${longDate(next.date)}</span></div>` : ""}
       </button>`;
     }).join("")}</div>`;
@@ -1562,6 +1573,7 @@ function renderGroup(g) {
         return `<div class="mrow">
           <div class="row between">
             <div class="stack" style="gap:2px;min-width:0"><span class="mname">${esc(nameIn(g, u))}${u === me ? L(" (tu)", " (you)") : ""}${uA ? `<span class="tag-admin">ADMIN</span>` : ""}</span>
+              ${unameIn(g, u) ? `<span class="t13 muted" style="font-weight:600">@${esc(unameIn(g, u))}</span>` : ""}
               <span class="t12 muted">${n ? L(`${n} giorni segnati da oggi in poi`, n === 1 ? "1 day marked from today on" : `${n} days marked from today on`) : "Non ha ancora segnato le disponibilità"}</span></div>
           </div>
           ${admin && u !== me ? `<div class="row" style="gap:6px"><button class="btn sm" style="font-size:12px;padding:0 10px" data-action="toggleAdmin" data-u="${u}">${uA ? "Togli admin" : "Rendi admin"}</button><button class="btn redtxt sm" style="font-size:12px;padding:0 10px" data-action="removeMember" data-u="${u}">Rimuovi dal gruppo</button></div>` : ""}
