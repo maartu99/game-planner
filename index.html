@@ -308,6 +308,7 @@ h1,h2,h3{margin:0}
 .seg button{min-height:44px;border:none;border-radius:8px;font-size:13px;font-weight:700;background:transparent;color:var(--muted);position:relative;display:flex;align-items:center;justify-content:center;gap:5px}
 .seg.h40 button{min-height:40px}
 .seg button.on{background:var(--card);color:var(--primary-d);box-shadow:0 1px 2px rgba(30,36,41,.12)}
+.seg.seg-green button.on{background:var(--primary);color:var(--on-primary)}
 .seg button.on-yes{background:#1b6d4f;color:#fff}
 .seg button.on-maybe{background:var(--orange);color:var(--orange-t)}
 .seg button.on-no{background:var(--red);color:#fff}
@@ -1777,7 +1778,7 @@ function renderSerate() {
   }
   return head + `<div class="stack g8 mb16" style="margin-top:12px">
       ${ctrl}
-      <div class="seg c3 h40">${tabB("poss", "Possibili")}${tabB("prop", "Proposte", propPending)}${tabB("prog", "In programma", progPending)}</div>
+      <div class="seg c3 h40 seg-green">${tabB("poss", "Possibili")}${tabB("prop", "Proposte", propPending)}${tabB("prog", "In programma", progPending)}</div>
       ${top}
     </div>
     <div class="stack g8">${monthBlock}<div class="stack g12">${list.join("")}</div></div>`;
